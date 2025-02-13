@@ -1,5 +1,6 @@
 using FourSPM_WebService.Data.EF.FourSPM;
 using FourSPM_WebService.Data.Extensions;
+using FourSPM_WebService.Extensions;
 using Microsoft.AspNetCore.OData;
 using Microsoft.AspNetCore.OData.Batch;
 using Microsoft.OData.ModelBuilder;
@@ -21,11 +22,7 @@ builder.Services.AddControllers()
             .EnableNonParenthesisForEmptyParameterFunction = true;
     });
 
-
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
-
+builder.ConfigureInstallers();
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
