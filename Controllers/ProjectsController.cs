@@ -1,16 +1,11 @@
-using Azure.Core;
-using FourSPM_WebService.Data.Extensions;
 using FourSPM_WebService.Data.Interfaces;
 using FourSPM_WebService.Data.OData.FourSPM;
-using FourSPM_WebService.Data.Repositories;
 using FourSPM_WebService.Models.Results;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.OData.Deltas;
-using Microsoft.AspNetCore.OData.Formatter;
 using Microsoft.AspNetCore.OData.Query;
 using Microsoft.AspNetCore.OData.Routing.Attributes;
-using Microsoft.EntityFrameworkCore;
 using System.Net;
 
 namespace FourSPM_WebService.Controllers;
