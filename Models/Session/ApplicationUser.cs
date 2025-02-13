@@ -4,7 +4,7 @@ namespace FourSPM_WebService.Models.Session
 {
     public class ApplicationUser
     {
-        public string Upn { get; set; }
+        public string? Upn { get; set; }
         public string? UserName { get; set; }
         public Guid? UserId { get; set; }
         public IReadOnlyCollection<RolePermissionModel> Permissions { get; set; } = new List<RolePermissionModel>();

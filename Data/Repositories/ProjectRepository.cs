@@ -1,4 +1,4 @@
-﻿using AutoMapper;
+using AutoMapper;
 using FourSPM_WebService.Data.EF.FourSPM;
 using FourSPM_WebService.Data.Interfaces;
 using FourSPM_WebService.Data.OData.FourSPM;
@@ -76,9 +76,9 @@ namespace FourSPM_WebService.Data.Repositories
             };
         }
 
-        public async Task<OperationResult<ProjectEntity?>> UpdateProject(Guid key, Action<ProjectEntity> update)
+        public async Task<OperationResult<ProjectEntity?>> UpdateProjectByKey(Guid key, Action<ProjectEntity> update)
         {
-            var original = await ProjectQuery().FirstOrDefaultAsync(x => x.Id == key);
+            var original = await ProjectQuery().FirstOrDefaultAsync(x => x.Guid == key);
 
             if (original == null)
             {
