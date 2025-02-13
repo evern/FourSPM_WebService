@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
 
-namespace FourSPM_WebService.EF.FourSPM;
+namespace FourSPM_WebService.Data.EF.FourSPM;
 
 public partial class FourSPMContext : DbContext
 {

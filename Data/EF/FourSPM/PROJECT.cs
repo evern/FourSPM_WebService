@@ -1,15 +1,17 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace FourSPM_WebService.EF.FourSPM;
+namespace FourSPM_WebService.Data.EF.FourSPM;
 
-public partial class USER
+public partial class PROJECT
 {
     public Guid GUID { get; set; }
 
-    public string? FIRST_NAME { get; set; }
+    public string NUMBER { get; set; } = null!;
 
-    public string? LAST_NAME { get; set; }
+    public string? NAME { get; set; }
+
+    public string? CLIENT { get; set; }
 
     public DateTime CREATED { get; set; }
 
