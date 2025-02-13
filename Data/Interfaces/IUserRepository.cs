@@ -7,7 +7,7 @@ namespace FourSPM_WebService.Data.Interfaces
     {
         IQueryable<UserEntity> Query();
         Task<OperationResult<UserEntity?>> CreateUser(UserEntity? entity);
-        Task<OperationResult<UserEntity?>> UpdateUser(Guid key, Action<UserEntity> update);
+        Task<OperationResult<UserEntity?>> UpdateUserByKey(Guid key, Action<UserEntity> update);
         Task<OperationResult<UserEntity?>> UpdateUser(UserEntity? entity);
         Task<OperationResult> DeleteUser(Guid key);
     }

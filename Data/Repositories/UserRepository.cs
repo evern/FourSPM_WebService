@@ -68,7 +68,7 @@ namespace FourSPM_WebService.Data.Repositories
             };
         }
 
-        public async Task<OperationResult<UserEntity?>> UpdateUser(Guid key, Action<UserEntity> update)
+        public async Task<OperationResult<UserEntity?>> UpdateUserByKey(Guid key, Action<UserEntity> update)
         {
             var original = await Query().FirstOrDefaultAsync(x => x.Guid == key);
 
@@ -82,6 +82,7 @@ namespace FourSPM_WebService.Data.Repositories
             }
             update(original);
 
+            // Call the other method by the new name
             return await UpdateUser(original);
         }
 
@@ -130,8 +131,8 @@ namespace FourSPM_WebService.Data.Repositories
                 };
             }
 
-            efUser.Deleted = DateTime.Now;
-            efUser.Deletedby = _user.UserId!.Value;
+            efUser.DELETED = DateTime.Now;
+            efUser.DELETEDBY = _user.UserId!.Value;
 
             await _context.SaveChangesAsync();
             return OperationResult.Success();
