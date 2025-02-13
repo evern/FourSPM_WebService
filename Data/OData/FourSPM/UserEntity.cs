@@ -26,5 +26,7 @@ namespace FourSPM_WebService.Data.OData.FourSPM
         public DateTime? Deleted { get; set; }
 
         public Guid? DeletedBy { get; set; }
+
+        public string FullName => string.Concat(FirstName, " ", LastName);
     }
 }
