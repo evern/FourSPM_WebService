@@ -11,6 +11,10 @@ public partial class USER
 
     public string? LAST_NAME { get; set; }
 
+    public required string USERNAME { get; set; }
+
+    public required string PASSWORD { get; set; }
+
     public DateTime CREATED { get; set; }
 
     public Guid CREATEDBY { get; set; }

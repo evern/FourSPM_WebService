@@ -48,9 +48,11 @@ namespace FourSPM_WebService.Data.Repositories
                 };
             }
 
-            var efUser = new USER
+            var efUser = new USER()
             {
                 GUID = entity.Guid,
+                USERNAME = entity.UserName,
+                PASSWORD = entity.Password,
                 CREATED = DateTime.Now,
                 CREATEDBY = _user.UserId!.Value
             };

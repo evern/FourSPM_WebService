@@ -15,6 +15,10 @@ namespace FourSPM_WebService.Data.OData.FourSPM
 
         public string? LastName { get; set; }
 
+        public required string UserName { get; set; }
+
+        public required string Password { get; set; }
+
         public DateTime Created { get; set; }
 
         public Guid CreatedBy { get; set; }
