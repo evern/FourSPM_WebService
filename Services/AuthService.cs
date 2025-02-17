@@ -13,6 +13,7 @@ public interface IAuthService
 {
     string GenerateJwtToken(USER user);
     bool VerifyPassword(string plainPassword, string storedHash);
+    bool ValidateToken(string token);
 }
 
 public class AuthService : IAuthService
@@ -49,5 +50,35 @@ public class AuthService : IAuthService
     public bool VerifyPassword(string plainPassword, string storedHash)
     {
         return PasswordHasher.VerifyPassword(plainPassword, storedHash);
+    }
+
+    public bool ValidateToken(string token)
+    {
+        if (string.IsNullOrEmpty(token))
+            return false;
+
+        try
+        {
+            var tokenHandler = new JwtSecurityTokenHandler();
+            var key = Encoding.UTF8.GetBytes(_jwtConfig.Secret);
+            
+            tokenHandler.ValidateToken(token, new TokenValidationParameters
+            {
+                ValidateIssuerSigningKey = true,
+                IssuerSigningKey = new SymmetricSecurityKey(key),
+                ValidateIssuer = true,
+                ValidIssuer = _jwtConfig.Issuer,
+                ValidateAudience = true,
+                ValidAudience = _jwtConfig.Audience,
+                ValidateLifetime = true,
+                ClockSkew = TimeSpan.Zero
+            }, out SecurityToken validatedToken);
+
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
     }
 }
