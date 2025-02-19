@@ -5,28 +5,28 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
-namespace FourSPM_WebService.Controllers.Login.Controller;
+namespace FourSPM_WebService.Controllers.Auth.Controller;
 
 [ApiController]
-[Route("api/[controller]")]
+[Route("api/auth")]
 [AllowAnonymous]
-public class LoginController : ControllerBase
+public class AuthController : ControllerBase
 {
     private readonly IAuthService _authService;
     private readonly FourSPMContext _context;
-    private readonly ILogger<LoginController> _logger;
+    private readonly ILogger<AuthController> _logger;
 
-    public LoginController(
+    public AuthController(
         IAuthService authService,
         FourSPMContext context,
-        ILogger<LoginController> logger)
+        ILogger<AuthController> logger)
     {
         _authService = authService;
         _context = context;
         _logger = logger;
     }
 
-    [HttpPost]
+    [HttpPost("login")]
     public async Task<IActionResult> Login([FromBody] LoginRequest request)
     {
         try
@@ -81,6 +81,29 @@ public class LoginController : ControllerBase
         {
             _logger.LogError(ex, "Error during login for user: {Username}", request.Email);
             return StatusCode(500, "An error occurred during login");
+        }
+    }
+
+    [HttpPost("logout")]
+    public IActionResult Logout()
+    {
+        try
+        {
+            // Clear the JWT token cookie by setting it to expire immediately
+            Response.Cookies.Delete("token", new CookieOptions
+            {
+                HttpOnly = true,
+                Secure = true,
+                SameSite = SameSiteMode.None,
+                Path = "/"
+            });
+
+            return Ok(new { message = "Logged out successfully" });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error during logout");
+            return StatusCode(500, "An error occurred during logout");
         }
     }
 }

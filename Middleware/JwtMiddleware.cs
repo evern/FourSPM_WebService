@@ -10,10 +10,10 @@ public class JwtMiddleware
     private readonly IServiceProvider _serviceProvider;
     private readonly HashSet<string> _publicEndpoints = new()
     {
-        "/api/login",
-        "/api/register",
-        "/api/login/forgot-password",
-        "/api/login/reset-password"
+        "/api/auth/login",
+        "/api/auth/register",
+        "/api/auth/login/forgot-password",
+        "/api/auth/login/reset-password"
     };
 
     public JwtMiddleware(RequestDelegate next, IServiceProvider serviceProvider)
