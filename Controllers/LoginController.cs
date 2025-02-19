@@ -32,24 +32,24 @@ public class LoginController : ControllerBase
         try
         {
             var user = await _context.USERs
-                .Where(u => u.USERNAME == request.Username && u.DELETED == null)
+                .Where(u => u.USERNAME == request.Email && u.DELETED == null)
                 .FirstOrDefaultAsync();
 
             if (user == null)
             {
-                _logger.LogWarning("Failed login attempt for user: {Username}", request.Username);
+                _logger.LogWarning("Failed login attempt for user: {Username}", request.Email);
                 return Unauthorized("Invalid username or password");
             }
 
             if (string.IsNullOrEmpty(request.Password))
             {
-                _logger.LogWarning("Empty password attempt for user: {Username}", request.Username);
+                _logger.LogWarning("Empty password attempt for user: {Username}", request.Email);
                 return Unauthorized("Invalid username or password");
             }
 
             if (!_authService.VerifyPassword(request.Password, user.PASSWORD))
             {
-                _logger.LogWarning("Failed login attempt for user: {Username}", request.Username);
+                _logger.LogWarning("Failed login attempt for user: {Username}", request.Email);
                 return Unauthorized("Invalid username or password");
             }
 
@@ -79,7 +79,7 @@ public class LoginController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error during login for user: {Username}", request.Username);
+            _logger.LogError(ex, "Error during login for user: {Username}", request.Email);
             return StatusCode(500, "An error occurred during login");
         }
     }
