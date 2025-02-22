@@ -1,5 +1,5 @@
-﻿namespace FourSPM_WebService.Models.Shared
-{
+﻿namespace FourSPM_WebService.Models.Shared;
+
     public enum OperationStatus
     {
         None,

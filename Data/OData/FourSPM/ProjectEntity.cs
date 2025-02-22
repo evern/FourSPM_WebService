@@ -1,18 +1,24 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using FourSPM_WebService.Models.Shared.Enums;
+using System.ComponentModel.DataAnnotations;
 
 namespace FourSPM_WebService.Data.OData.FourSPM
 {
     public class ProjectEntity
     {
-        [Key] // Required for OData
-        public Guid Guid { get; set; }
+        [Key]
+        [Required]
+        public string ClientNumber { get; set; } = null!;
+
+        [Key]
+        [Required]
+        public string ProjectNumber { get; set; } = null!;
+
+        public string? ClientContact { get; set; }
+
+        public string? PurchaseOrderNumber { get; set; }
 
         [Required]
-        public string Number { get; set; } = null!;
-
-        public string? Name { get; set; }
-
-        public string? Client { get; set; }
+        public ProjectStatus ProjectStatus { get; set; }
 
         public DateTime Created { get; set; }
 
