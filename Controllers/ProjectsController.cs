@@ -1,12 +1,23 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.OData.Routing.Controllers;
+using Microsoft.AspNetCore.OData.Deltas;
+using Microsoft.AspNetCore.Authorization;
 using FourSPM_WebService.Data.Interfaces;
 using FourSPM_WebService.Data.OData.FourSPM;
 using FourSPM_WebService.Models.Results;
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.OData.Deltas;
-using Microsoft.AspNetCore.OData.Query;
+using System.Reflection;
+using System.IO;
+using Microsoft.AspNetCore.JsonPatch;
+using System.Text.Json;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.OData.Routing.Attributes;
 using System.Net;
+using Microsoft.AspNetCore.OData.Query;
+using Microsoft.AspNetCore.OData.Formatter;
 
 namespace FourSPM_WebService.Controllers;
 
@@ -15,21 +26,23 @@ namespace FourSPM_WebService.Controllers;
 public class ProjectsController : FourSPMODataController
 {
     private readonly IProjectRepository _projectRepository;
+    private readonly ILogger<ProjectsController> _logger;
 
-    public ProjectsController(IProjectRepository projectRepository)
+    public ProjectsController(IProjectRepository projectRepository, ILogger<ProjectsController> logger)
     {
         _projectRepository = projectRepository;
+        _logger = logger;
     }
 
-    [HttpGet]
+    /// <summary>
+    /// Retrieves all projects
+    /// </summary>
+    /// <returns>A list of projects</returns>
     [EnableQuery]
-    [Produces("application/json")]
-    [ProducesResponseType(typeof(IQueryable<ProjectEntity>), (int)HttpStatusCode.OK)]
     public IActionResult Get()
     {
         try
         {
-            // Return IQueryable directly to let OData handle the query options
             return Ok(_projectRepository.ProjectQuery());
         }
         catch (Exception ex)
@@ -38,48 +51,117 @@ public class ProjectsController : FourSPMODataController
         }
     }
 
-    [HttpGet]
+    /// <summary>
+    /// Retrieves a project by its GUID
+    /// </summary>
+    /// <param name="key">The GUID of the project to retrieve</param>
+    /// <returns>The project with the specified GUID</returns>
     [EnableQuery]
-    [Produces("application/json")]
-    [ProducesResponseType(typeof(ProjectEntity), (int)HttpStatusCode.OK)]
-    [ODataRouteComponent("odata/v1/Projects({key})")]
-    public IActionResult GetById([FromRoute] Guid key)
+    public IActionResult Get([FromODataUri] Guid key)
     {
         return Ok(_projectRepository.ProjectQuery().FirstOrDefault(p => p.Guid == key));
     }
 
-    [HttpPost]
+    /// <summary>
+    /// Creates a new project
+    /// </summary>
+    /// <param name="project">The project to create</param>
+    /// <returns>The created project</returns>
     public async Task<IActionResult> Post([FromBody] ProjectEntity project)
     {
         var result = await _projectRepository.CreateProject(project);
-
         return GetResult(result);
     }
 
-    [HttpDelete]
-    public async Task<IActionResult> Delete([FromRoute] Guid key)
+    /// <summary>
+    /// Deletes a project by its GUID
+    /// </summary>
+    /// <param name="key">The GUID of the project to delete</param>
+    /// <returns>A success message if the project was deleted successfully</returns>
+    public async Task<IActionResult> Delete([FromODataUri] Guid key)
     {
         var result = await _projectRepository.DeleteProject(key);
-
         return GetResult(result);
     }
 
-    [HttpPut]
-    public async Task<IActionResult> Put(Guid key, [FromBody] ProjectEntity update)
+    /// <summary>
+    /// Updates a project
+    /// </summary>
+    /// <param name="key">The GUID of the project to update</param>
+    /// <param name="update">The project properties to update</param>
+    /// <returns>The updated project</returns>
+    public async Task<IActionResult> Put([FromODataUri] Guid key, [FromBody] ProjectEntity update)
     {
+        if (key != update.Guid)
+        {
+            return BadRequest(new { error = "Route key and project GUID do not match" });
+        }
         var result = await _projectRepository.UpdateProject(update);
-
         return GetResult(result);
     }
 
-    [HttpPatch]
-    public async Task<IActionResult> Patch(Guid key, [FromBody] Delta<ProjectEntity> update)
+    /// <summary>
+    /// Partially updates a project
+    /// </summary>
+    /// <param name="key">The GUID of the project to update</param>
+    /// <param name="delta">The project properties to update</param>
+    /// <returns>The updated project</returns>
+    public async Task<IActionResult> Patch([FromODataUri] Guid key, [FromBody] Delta<ProjectEntity> delta)
     {
-        var result = await _projectRepository.UpdateProjectByKey(
-            key,
-            entity => update.Patch(entity)
-        );
+        try
+        {
+            _logger?.LogInformation($"Received PATCH request for project {key}");
 
-        return GetResult(result);
+            if (key == Guid.Empty)
+            {
+                return BadRequest(new { error = "Invalid GUID", message = "The project ID cannot be empty" });
+            }
+
+            if (delta == null)
+            {
+                _logger?.LogWarning($"Update data is null for project {key}");
+                return BadRequest(new 
+                { 
+                    error = "Update data cannot be null",
+                    message = "The request body must contain valid properties to update."
+                });
+            }
+
+            // Get the project to update first
+            var entity = await _projectRepository.ProjectQuery()
+                .FirstOrDefaultAsync(x => x.Guid == key);
+
+            if (entity == null)
+            {
+                return NotFound(new { error = "Not Found", message = $"Project with ID {key} was not found" });
+            }
+
+            // Create a copy of the entity to track changes
+            var updatedEntity = new ProjectEntity();
+            delta.CopyChangedValues(updatedEntity);
+
+            // Save the changes
+            var updateResult = await _projectRepository.UpdateProjectByKey(
+                key,
+                e => {
+                    foreach (var propName in delta.GetChangedPropertyNames())
+                    {
+                        var prop = typeof(ProjectEntity).GetProperty(propName);
+                        if (prop != null)
+                        {
+                            var value = prop.GetValue(updatedEntity);
+                            prop.SetValue(e, value);
+                        }
+                    }
+                }
+            );
+
+            return GetResult(updateResult);
+        }
+        catch (Exception ex)
+        {
+            _logger?.LogError(ex, "Error updating project");
+            return StatusCode(500, new { error = "Internal Server Error", message = ex.Message });
+        }
     }
 }

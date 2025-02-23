@@ -38,10 +38,9 @@ public class JwtMiddleware
 
         if (token != null)
         {
-            // Get scoped services within the request
-            using var scope = _serviceProvider.CreateScope();
-            var authService = scope.ServiceProvider.GetRequiredService<IAuthService>();
-            var appUser = scope.ServiceProvider.GetRequiredService<ApplicationUser>();
+            // Get services from the current request scope
+            var authService = context.RequestServices.GetRequiredService<IAuthService>();
+            var appUser = context.RequestServices.GetRequiredService<ApplicationUser>();
 
             if (authService.ValidateToken(token))
             {

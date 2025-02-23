@@ -9,12 +9,10 @@ namespace FourSPM_WebService.Data.OData.FourSPM
         [Required]
         public Guid Guid { get; set; }
 
-        [Key]
         [Required]
         [MaxLength(3)]
         public string ClientNumber { get; set; } = null!;
 
-        [Key]
         [Required]
         [MaxLength(2)]
         public string ProjectNumber { get; set; } = null!;

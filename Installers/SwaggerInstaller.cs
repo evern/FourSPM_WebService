@@ -1,10 +1,13 @@
 ﻿using FourSPM_WebService.Interfaces;
+using FourSPM_WebService.Swagger;
 using FourSPM_WebService.Swagger.DocumentFilter;
 using FourSPM_WebService.Swagger.OperationFilter;
 using FourSPM_WebService.Swagger.SchemaFilter;
 using Microsoft.OpenApi.Models;
 using Swashbuckle.AspNetCore.SwaggerGen;
 using System.ComponentModel;
+using Microsoft.AspNetCore.OData.Deltas;
+using FourSPM_WebService.Data.OData.FourSPM;
 
 namespace FourSPM_WebService.Installers;
 
@@ -12,57 +15,91 @@ public class SwaggerInstaller : IStartupInstaller
 {
     public void Configure(WebApplicationBuilder builder)
     {
-        // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
-        builder.Services.AddEndpointsApiExplorer();
-        builder.Services.AddSwaggerGen(options => ConfigureSwagger(options, builder.Configuration));
+        builder.Services.ConfigureSwagger();
     }
+}
 
-    private static void ConfigureSwagger(SwaggerGenOptions options, IConfiguration configuration)
+public static class SwaggerInstallerExtensions
+{
+    public static IServiceCollection ConfigureSwagger(this IServiceCollection services)
     {
-        options.SwaggerDoc("v1", new OpenApiInfo
+        services.AddEndpointsApiExplorer();
+        services.AddSwaggerGen(options =>
         {
-            Version = "v1",
-            Title = $"{nameof(FourSPM_WebService)}"
+            options.SwaggerDoc("v1", new OpenApiInfo
+            {
+                Version = "v1",
+                Title = "FourSPM Web Service API",
+                Description = "FourSPM Web Service API with OData support"
+            });
+
+            // Configure JWT authentication for Swagger
+            options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+            {
+                Description = "JWT Authorization header using the Bearer scheme. Example: \"Authorization: Bearer {token}\"",
+                Name = "Authorization",
+                In = ParameterLocation.Header,
+                Type = SecuritySchemeType.ApiKey,
+                Scheme = "Bearer"
+            });
+
+            options.AddSecurityRequirement(new OpenApiSecurityRequirement
+            {
+                {
+                    new OpenApiSecurityScheme
+                    {
+                        Reference = new OpenApiReference
+                        {
+                            Type = ReferenceType.SecurityScheme,
+                            Id = "Bearer"
+                        }
+                    },
+                    Array.Empty<string>()
+                }
+            });
+
+            // Add Delta<ProjectEntity> schema mapping
+            options.MapType<Delta<ProjectEntity>>(() => new OpenApiSchema
+            {
+                Type = "object",
+                AdditionalProperties = new OpenApiSchema
+                {
+                    Type = "string" // Allows arbitrary properties
+                }
+            });
+
+            // Enable XML comments
+            var xmlFile = $"{System.Reflection.Assembly.GetExecutingAssembly().GetName().Name}.xml";
+            var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
+            options.IncludeXmlComments(xmlPath);
+
+            // Enable OData operations in Swagger - use only necessary filters
+            options.DocumentFilter<ODataDocumentFilter>();
+            options.SchemaFilter<ODataQueryOptionSchemaFilter>();
+            options.OperationFilter<ODataDeltaOperationFilter>();
+            options.OperationFilter<ODataRouteOperationFilter>();
+
+            // Use only one filter for OData query parameters
+            options.OperationFilter<ODataQueryOperationFilter>();
+
+            options.CustomSchemaIds(SchemaIdStrategy);
         });
 
-        //options.ExampleFilters();
-        options.CustomSchemaIds(SchemaIdStrategy);
-        options.OperationFilter<ODataDeltaOperationFilter>();
-        options.OperationFilter<ODataQueryOperationFilter>();
-        options.OperationFilter<ODataQueryOptionsOperationFilter>();
-        options.DocumentFilter<ODataDocumentFilter>();
-        options.SchemaFilter<ODataQueryOptionSchemaFilter>();
+        return services;
     }
 
     private static string? SchemaIdStrategy(Type currentClass)
     {
-        if (!currentClass.Namespace!.StartsWith(nameof(FourSPM_WebService)))
+        var str = currentClass.Name;
+        if (currentClass.IsGenericType)
         {
-            return currentClass.FullName;
+            var name = currentClass.GetGenericArguments()
+                .Select(SchemaIdStrategy)
+                .Aggregate(
+                    currentClass.Name.Split('`').First(),
+                    (current, arg) => current + "_" + arg);
+            str = name;
         }
-
-        var displayNameAttr = currentClass
-            .GetCustomAttributes(false)
-            .OfType<DisplayNameAttribute>()
-            .FirstOrDefault();
-
-        if (!string.IsNullOrEmpty(displayNameAttr?.DisplayName))
-        {
-            return displayNameAttr.DisplayName;
-        }
-
-        return GetClassName(currentClass);
-    }
-
-    private static string? GetClassName(Type currentClass, string? name = null)
-    {
-        name = string.IsNullOrEmpty(name) ? currentClass.Name : $"{name}[{currentClass.Name}]";
-
-        foreach (var type in currentClass.GenericTypeArguments)
-        {
-            name = GetClassName(type, name);
-        }
-
-        return name?.Replace("`1", string.Empty);
+        return str;
     }
 }
