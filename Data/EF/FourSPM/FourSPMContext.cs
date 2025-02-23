@@ -1,6 +1,7 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
+using FourSPM_WebService.Models.Shared.Enums;
 
 namespace FourSPM_WebService.Data.EF.FourSPM;
 
@@ -32,12 +33,48 @@ public partial class FourSPMContext : DbContext
             entity.ToTable("PROJECT");
 
             entity.Property(e => e.GUID).ValueGeneratedNever();
-            entity.Property(e => e.CLIENT).HasMaxLength(100);
-            entity.Property(e => e.CREATED).HasColumnType("datetime");
-            entity.Property(e => e.DELETED).HasColumnType("datetime");
-            entity.Property(e => e.NAME).HasMaxLength(100);
-            entity.Property(e => e.NUMBER).HasMaxLength(100);
+            entity.Property(e => e.CLIENT_NUMBER).HasMaxLength(3).IsRequired();
+            entity.Property(e => e.PROJECT_NUMBER).HasMaxLength(2).IsRequired();
+            entity.Property(e => e.CLIENT_CONTACT);
+            entity.Property(e => e.PURCHASE_ORDER_NUMBER);
+            entity.Property(e => e.PROJECT_STATUS)
+                .HasConversion<int>()
+                .HasDefaultValue(ProjectStatus.TenderInProgress);
+            entity.Property(e => e.CREATED).HasColumnType("datetime").IsRequired();
+            entity.Property(e => e.CREATEDBY).IsRequired();
+            entity.Property(e => e.NAME);
             entity.Property(e => e.UPDATED).HasColumnType("datetime");
+            entity.Property(e => e.UPDATEDBY);
+            entity.Property(e => e.DELETED).HasColumnType("datetime");
+            entity.Property(e => e.DELETEDBY);
+
+            // Add test data
+            entity.HasData(
+                new PROJECT
+                {
+                    GUID = Guid.Parse("11111111-1111-1111-1111-111111111111"),
+                    CLIENT_NUMBER = "001",
+                    PROJECT_NUMBER = "01",
+                    NAME = "Test Project 1",
+                    CLIENT_CONTACT = "John Doe",
+                    PURCHASE_ORDER_NUMBER = "PO001",
+                    PROJECT_STATUS = ProjectStatus.TenderInProgress,
+                    CREATED = DateTime.Now,
+                    CREATEDBY = Guid.Parse("00000000-0000-0000-0000-000000000001")
+                },
+                new PROJECT
+                {
+                    GUID = Guid.Parse("22222222-2222-2222-2222-222222222222"),
+                    CLIENT_NUMBER = "002",
+                    PROJECT_NUMBER = "02",
+                    NAME = "Test Project 2",
+                    CLIENT_CONTACT = "Jane Smith",
+                    PURCHASE_ORDER_NUMBER = "PO002",
+                    PROJECT_STATUS = ProjectStatus.Awarded,
+                    CREATED = DateTime.Now,
+                    CREATEDBY = Guid.Parse("00000000-0000-0000-0000-000000000001")
+                }
+            );
         });
 
         modelBuilder.Entity<USER>(entity =>

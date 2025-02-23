@@ -1,6 +1,7 @@
 using FourSPM_WebService.Config;
 using FourSPM_WebService.Data.EF.FourSPM;
 using FourSPM_WebService.Helpers;
+using FourSPM_WebService.Models.Auth;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
@@ -8,13 +9,6 @@ using System.Text;
 using Microsoft.AspNetCore.Cryptography.KeyDerivation;
 
 namespace FourSPM_WebService.Services;
-
-public interface IAuthService
-{
-    string GenerateJwtToken(USER user);
-    bool VerifyPassword(string plainPassword, string storedHash);
-    bool ValidateToken(string token);
-}
 
 public class AuthService : IAuthService
 {
@@ -32,7 +26,7 @@ public class AuthService : IAuthService
 
         var claims = new[]
         {
-            new Claim(ClaimTypes.Name, user.FullName),
+            new Claim(ClaimTypes.Name, user.USERNAME),
             new Claim(ClaimTypes.NameIdentifier, user.GUID.ToString())
         };
 
@@ -61,7 +55,7 @@ public class AuthService : IAuthService
         {
             var tokenHandler = new JwtSecurityTokenHandler();
             var key = Encoding.UTF8.GetBytes(_jwtConfig.Secret);
-            
+
             tokenHandler.ValidateToken(token, new TokenValidationParameters
             {
                 ValidateIssuerSigningKey = true,
@@ -80,5 +74,45 @@ public class AuthService : IAuthService
         {
             return false;
         }
+    }
+
+    public UserInfo? GetUserInfoFromToken(string token)
+    {
+        try
+        {
+            var tokenHandler = new JwtSecurityTokenHandler();
+            var key = Encoding.ASCII.GetBytes(_jwtConfig.Secret);
+            var validationParameters = new TokenValidationParameters
+            {
+                ValidateIssuerSigningKey = true,
+                IssuerSigningKey = new SymmetricSecurityKey(key),
+                ValidateIssuer = true,
+                ValidateAudience = true,
+                ValidIssuer = _jwtConfig.Issuer,
+                ValidAudience = _jwtConfig.Audience,
+                ClockSkew = TimeSpan.Zero
+            };
+
+            var principal = tokenHandler.ValidateToken(token, validationParameters, out SecurityToken validatedToken);
+
+            var nameIdentifierClaim = principal.FindFirst(ClaimTypes.NameIdentifier);
+            var nameClaim = principal.FindFirst(ClaimTypes.Name);
+
+            if (nameIdentifierClaim != null && nameClaim != null && Guid.TryParse(nameIdentifierClaim.Value, out Guid userId))
+            {
+                return new UserInfo
+                {
+                    UserId = userId,
+                    UserName = nameClaim.Value,
+                    Email = nameClaim.Value // Using username as email for now
+                };
+            }
+        }
+        catch
+        {
+            // Log error here
+        }
+
+        return null;
     }
 }

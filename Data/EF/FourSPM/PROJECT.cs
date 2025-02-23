@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using FourSPM_WebService.Models.Shared.Enums;
 
@@ -19,8 +19,6 @@ public partial class PROJECT
     public ProjectStatus PROJECT_STATUS { get; set; }
 
     public string? NAME { get; set; }
-
-    public string? CLIENT { get; set; }
 
     public DateTime CREATED { get; set; }
 

@@ -24,16 +24,26 @@ public class ProjectsController : FourSPMODataController
     [HttpGet]
     [EnableQuery]
     [Produces("application/json")]
-    [ProducesResponseType(typeof(ODataQueryResponse<ProjectEntity>), (int)HttpStatusCode.OK)]
+    [ProducesResponseType(typeof(IQueryable<ProjectEntity>), (int)HttpStatusCode.OK)]
     public IActionResult Get()
     {
-        return Ok(_projectRepository.ProjectQuery());
+        try
+        {
+            // Return IQueryable directly to let OData handle the query options
+            return Ok(_projectRepository.ProjectQuery());
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { error = ex.Message });
+        }
     }
 
     [HttpGet]
+    [EnableQuery]
     [Produces("application/json")]
     [ProducesResponseType(typeof(ProjectEntity), (int)HttpStatusCode.OK)]
-    public IActionResult Get([FromRoute] Guid key)
+    [ODataRouteComponent("odata/v1/Projects({key})")]
+    public IActionResult GetById([FromRoute] Guid key)
     {
         return Ok(_projectRepository.ProjectQuery().FirstOrDefault(p => p.Guid == key));
     }

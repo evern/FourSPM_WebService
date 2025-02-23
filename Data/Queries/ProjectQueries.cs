@@ -1,18 +1,34 @@
-﻿using FourSPM_WebService.Data.EF.FourSPM;
+using FourSPM_WebService.Data.EF.FourSPM;
 using FourSPM_WebService.Models.Session;
+using FourSPM_WebService.Data.OData.FourSPM;
+using Microsoft.EntityFrameworkCore;
 
 namespace FourSPM_WebService.Data.Queries
 {
     public class ProjectQueries
     {
-        public static IQueryable<PROJECT> UserProjectQuery(FourSPMContext context, ApplicationUser user)
+        public static IQueryable<ProjectEntity> UserProjectQuery(FourSPMContext context, ApplicationUser user)
         {
-            var userId = user.UserId ?? Guid.NewGuid();
-;
-            var activeProjects = context.PROJECTs
-                .Where(p => !p.DELETED.HasValue);
-
-            return activeProjects;
+            // For now, return all non-deleted projects
+            return context.PROJECTs
+                .Where(p => !p.DELETED.HasValue)
+                .OrderByDescending(p => p.CREATED)
+                .Select(p => new ProjectEntity
+                {
+                    Guid = p.GUID,
+                    ClientNumber = p.CLIENT_NUMBER,
+                    ProjectNumber = p.PROJECT_NUMBER,
+                    ClientContact = p.CLIENT_CONTACT,
+                    Name = p.NAME,
+                    PurchaseOrderNumber = p.PURCHASE_ORDER_NUMBER,
+                    ProjectStatus = p.PROJECT_STATUS,
+                    Created = p.CREATED,
+                    CreatedBy = p.CREATEDBY,
+                    Updated = p.UPDATED,
+                    UpdatedBy = p.UPDATEDBY,
+                    Deleted = p.DELETED,
+                    DeletedBy = p.DELETEDBY
+                });
         }
     }
 }

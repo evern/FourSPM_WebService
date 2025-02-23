@@ -36,6 +36,22 @@ builder.Services.AddSingleton(jwtConfig);
 builder.Services.AddDbContext<FourSPMContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
+// Register repositories
+builder.Services.AddRepositories();
+
+// Add CORS
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowFrontend", builder =>
+    {
+        builder
+            .WithOrigins("http://localhost:3000")
+            .AllowAnyMethod()
+            .AllowAnyHeader()
+            .WithExposedHeaders("OData-Version");
+    });
+});
+
 // Add OData services
 builder.Services.AddControllers()
     .AddOData(options =>
@@ -80,9 +96,15 @@ builder.Services.AddCors(options =>
         builder =>
         {
             builder
-                .WithOrigins("http://localhost:3000")
+                .WithOrigins(
+                    "http://localhost:3000",
+                    "https://localhost:3000",
+                    "http://localhost:3001",
+                    "https://localhost:3001"
+                )
                 .AllowAnyMethod()
                 .AllowAnyHeader()
+                .WithExposedHeaders("OData-Version")
                 .AllowCredentials();
         });
 });
@@ -101,6 +123,9 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+
+// Use CORS before auth
+app.UseCors("AllowFrontend");
 
 app.UseAuthentication();
 app.UseAuthorization();

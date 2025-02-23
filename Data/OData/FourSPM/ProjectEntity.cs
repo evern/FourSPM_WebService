@@ -1,4 +1,4 @@
-﻿using FourSPM_WebService.Models.Shared.Enums;
+using FourSPM_WebService.Models.Shared.Enums;
 using System.ComponentModel.DataAnnotations;
 
 namespace FourSPM_WebService.Data.OData.FourSPM
@@ -7,11 +7,19 @@ namespace FourSPM_WebService.Data.OData.FourSPM
     {
         [Key]
         [Required]
+        public Guid Guid { get; set; }
+
+        [Key]
+        [Required]
+        [MaxLength(3)]
         public string ClientNumber { get; set; } = null!;
 
         [Key]
         [Required]
+        [MaxLength(2)]
         public string ProjectNumber { get; set; } = null!;
+
+        public string? Name { get; set; }
 
         public string? ClientContact { get; set; }
 

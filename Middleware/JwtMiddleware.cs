@@ -1,3 +1,4 @@
+using FourSPM_WebService.Models.Session;
 using FourSPM_WebService.Services;
 using Microsoft.AspNetCore.Http;
 using System.Net;
@@ -37,14 +38,26 @@ public class JwtMiddleware
 
         if (token != null)
         {
-            // Get scoped service within the request
+            // Get scoped services within the request
             using var scope = _serviceProvider.CreateScope();
             var authService = scope.ServiceProvider.GetRequiredService<IAuthService>();
+            var appUser = scope.ServiceProvider.GetRequiredService<ApplicationUser>();
 
             if (authService.ValidateToken(token))
             {
-                await _next(context);
-                return;
+                // Get user info from token and populate ApplicationUser
+                var userInfo = authService.GetUserInfoFromToken(token);
+                if (userInfo != null)
+                {
+                    appUser.UserId = userInfo.UserId;
+                    appUser.UserName = userInfo.UserName;
+                    appUser.Upn = userInfo.UserName;
+                    // Note: You'll need to implement getting permissions
+                    // appUser.Permissions = await authService.GetUserPermissions(userInfo.UserId);
+                    
+                    await _next(context);
+                    return;
+                }
             }
         }
 
