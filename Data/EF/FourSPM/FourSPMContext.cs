@@ -17,8 +17,10 @@ public partial class FourSPMContext : DbContext
     }
 
     public virtual DbSet<PROJECT> PROJECTs { get; set; }
-
     public virtual DbSet<USER> USERs { get; set; }
+    public virtual DbSet<DEPARTMENT> DEPARTMENTs { get; set; }
+    public virtual DbSet<DELIVERABLE_TYPE> DELIVERABLE_TYPEs { get; set; }
+    public virtual DbSet<DELIVERABLE> DELIVERABLEs { get; set; }
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
 #warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see https://go.microsoft.com/fwlink/?LinkId=723263.
@@ -89,6 +91,93 @@ public partial class FourSPMContext : DbContext
             entity.Property(e => e.FIRST_NAME).HasMaxLength(100);
             entity.Property(e => e.LAST_NAME).HasMaxLength(100);
             entity.Property(e => e.UPDATED).HasColumnType("datetime");
+        });
+
+        modelBuilder.Entity<DEPARTMENT>(entity =>
+        {
+            entity.HasKey(e => e.ID);
+            entity.ToTable("DEPARTMENTS");
+
+            entity.Property(e => e.ID).HasDefaultValueSql("NEWID()");
+            entity.Property(e => e.NAME).HasMaxLength(50).IsRequired();
+            entity.Property(e => e.DESCRIPTION).HasMaxLength(500);
+            entity.Property(e => e.CREATED).HasColumnType("datetime").IsRequired().HasDefaultValueSql("GETDATE()");
+            entity.Property(e => e.CREATEDBY).IsRequired();
+            entity.Property(e => e.UPDATED).HasColumnType("datetime");
+            entity.Property(e => e.UPDATEDBY);
+            entity.Property(e => e.DELETED).HasColumnType("datetime");
+            entity.Property(e => e.DELETEDBY);
+        });
+
+        modelBuilder.Entity<DELIVERABLE_TYPE>(entity =>
+        {
+            entity.HasKey(e => e.ID);
+            entity.ToTable("DELIVERABLE_TYPES");
+
+            entity.Property(e => e.ID).HasDefaultValueSql("NEWID()");
+            entity.Property(e => e.NAME).HasMaxLength(50).IsRequired();
+            entity.Property(e => e.DESCRIPTION).HasMaxLength(500);
+            entity.Property(e => e.CREATED).HasColumnType("datetime").IsRequired().HasDefaultValueSql("GETDATE()");
+            entity.Property(e => e.CREATEDBY).IsRequired();
+            entity.Property(e => e.UPDATED).HasColumnType("datetime");
+            entity.Property(e => e.UPDATEDBY);
+            entity.Property(e => e.DELETED).HasColumnType("datetime");
+            entity.Property(e => e.DELETEDBY);
+        });
+
+        modelBuilder.Entity<DELIVERABLE>(entity =>
+        {
+            entity.HasKey(e => e.ID);
+            entity.ToTable("DELIVERABLES");
+
+            entity.HasIndex(e => e.CLIENT_NUMBER).HasDatabaseName("IX_DELIVERABLES_CLIENT_NUMBER");
+            entity.HasIndex(e => e.PROJECT_NUMBER).HasDatabaseName("IX_DELIVERABLES_PROJECT_NUMBER");
+            entity.HasIndex(e => e.BOOKING_CODE).HasDatabaseName("IX_DELIVERABLES_BOOKING_CODE");
+            entity.HasIndex(e => e.INTERNAL_DOCUMENT_NUMBER).HasDatabaseName("IX_DELIVERABLES_INTERNAL_DOC_NUM");
+            entity.HasIndex(e => e.DEPARTMENT_ID).HasDatabaseName("IX_DELIVERABLES_DEPARTMENT_ID");
+            entity.HasIndex(e => e.DELIVERABLE_TYPE_ID).HasDatabaseName("IX_DELIVERABLES_DELIVERABLE_TYPE_ID");
+            entity.HasIndex(e => e.PROJECT_ID).HasDatabaseName("IX_DELIVERABLES_PROJECT_ID");
+            entity.HasIndex(e => e.DELETED).HasDatabaseName("IX_DELIVERABLES_DELETED");
+
+            entity.Property(e => e.ID).HasDefaultValueSql("NEWID()");
+            entity.Property(e => e.PROJECT_ID).IsRequired();
+            entity.Property(e => e.CLIENT_NUMBER).HasMaxLength(3).IsRequired();
+            entity.Property(e => e.PROJECT_NUMBER).HasMaxLength(2).IsRequired();
+            entity.Property(e => e.AREA_NUMBER).HasMaxLength(2);
+            entity.Property(e => e.DISCIPLINE).HasMaxLength(2).IsRequired();
+            entity.Property(e => e.DOCUMENT_TYPE).HasMaxLength(3).IsRequired();
+            entity.Property(e => e.DEPARTMENT_ID).IsRequired();
+            entity.Property(e => e.DELIVERABLE_TYPE_ID).IsRequired();
+            entity.Property(e => e.INTERNAL_DOCUMENT_NUMBER).HasMaxLength(50).IsRequired();
+            entity.Property(e => e.CLIENT_DOCUMENT_NUMBER).HasMaxLength(100);
+            entity.Property(e => e.DOCUMENT_TITLE).HasMaxLength(255).IsRequired();
+            entity.Property(e => e.BUDGET_HOURS).HasColumnType("decimal(10,2)").IsRequired().HasDefaultValue(0);
+            entity.Property(e => e.VARIATION_HOURS).HasColumnType("decimal(10,2)").IsRequired().HasDefaultValue(0);
+            entity.Property(e => e.TOTAL_HOURS).HasColumnType("decimal(10,2)").IsRequired().HasDefaultValue(0);
+            entity.Property(e => e.TOTAL_COST).HasColumnType("decimal(15,2)").IsRequired().HasDefaultValue(0);
+            entity.Property(e => e.BOOKING_CODE).HasMaxLength(50).IsRequired();
+            entity.Property(e => e.CREATED).HasColumnType("datetime").IsRequired().HasDefaultValueSql("GETDATE()");
+            entity.Property(e => e.CREATEDBY).IsRequired();
+            entity.Property(e => e.UPDATED).HasColumnType("datetime");
+            entity.Property(e => e.UPDATEDBY);
+            entity.Property(e => e.DELETED).HasColumnType("datetime");
+            entity.Property(e => e.DELETEDBY);
+
+            // Foreign key relationships
+            entity.HasOne(d => d.Department)
+                .WithMany()
+                .HasForeignKey(d => d.DEPARTMENT_ID)
+                .OnDelete(DeleteBehavior.NoAction);
+
+            entity.HasOne(d => d.DeliverableType)
+                .WithMany()
+                .HasForeignKey(d => d.DELIVERABLE_TYPE_ID)
+                .OnDelete(DeleteBehavior.NoAction);
+
+            entity.HasOne(d => d.Project)
+                .WithMany(p => p.Deliverables)
+                .HasForeignKey(d => d.PROJECT_ID)
+                .OnDelete(DeleteBehavior.NoAction);
         });
 
         OnModelCreatingPartial(modelBuilder);

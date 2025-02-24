@@ -1,5 +1,6 @@
 using FourSPM_WebService.Models.Shared.Enums;
 using System.ComponentModel.DataAnnotations;
+using System.Collections.Generic;
 
 namespace FourSPM_WebService.Data.OData.FourSPM
 {
@@ -37,5 +38,7 @@ namespace FourSPM_WebService.Data.OData.FourSPM
         public DateTime? Deleted { get; set; }
 
         public Guid? DeletedBy { get; set; }
+
+        public virtual ICollection<DeliverableEntity> Deliverables { get; set; } = new List<DeliverableEntity>();
     }
 }

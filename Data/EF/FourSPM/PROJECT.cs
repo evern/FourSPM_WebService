@@ -31,4 +31,6 @@ public partial class PROJECT
     public DateTime? DELETED { get; set; }
 
     public Guid? DELETEDBY { get; set; }
+
+    public virtual ICollection<DELIVERABLE> Deliverables { get; set; } = new List<DELIVERABLE>();
 }
