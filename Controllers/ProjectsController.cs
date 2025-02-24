@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.OData.Query;
 using Microsoft.AspNetCore.OData.Routing.Controllers;
 using Microsoft.AspNetCore.OData.Deltas;
 using Microsoft.AspNetCore.Authorization;
@@ -14,10 +15,9 @@ using System.IO;
 using Microsoft.AspNetCore.JsonPatch;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.AspNetCore.OData.Routing.Attributes;
 using System.Net;
-using Microsoft.AspNetCore.OData.Query;
 using Microsoft.AspNetCore.OData.Formatter;
+using Microsoft.AspNetCore.OData.Routing.Attributes;
 
 namespace FourSPM_WebService.Controllers;
 
@@ -57,9 +57,27 @@ public class ProjectsController : FourSPMODataController
     /// <param name="key">The GUID of the project to retrieve</param>
     /// <returns>The project with the specified GUID</returns>
     [EnableQuery]
-    public IActionResult Get([FromODataUri] Guid key)
+    public IActionResult Get([FromRoute] Guid key)
     {
-        return Ok(_projectRepository.ProjectQuery().FirstOrDefault(p => p.Guid == key));
+        try
+        {
+            _logger.LogInformation($"Fetching project with GUID: {key}");
+            var project = _projectRepository.ProjectQuery().FirstOrDefault(p => p.Guid == key);
+            
+            if (project == null)
+            {
+                _logger.LogWarning($"Project not found with GUID: {key}");
+                return NotFound($"Project with GUID {key} not found");
+            }
+
+            _logger.LogInformation($"Successfully retrieved project: {project.ProjectNumber}");
+            return Ok(project);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, $"Error retrieving project with GUID: {key}");
+            return StatusCode(500, "Internal server error occurred while retrieving the project");
+        }
     }
 
     /// <summary>
@@ -78,7 +96,7 @@ public class ProjectsController : FourSPMODataController
     /// </summary>
     /// <param name="key">The GUID of the project to delete</param>
     /// <returns>A success message if the project was deleted successfully</returns>
-    public async Task<IActionResult> Delete([FromODataUri] Guid key)
+    public async Task<IActionResult> Delete([FromRoute] Guid key)
     {
         var result = await _projectRepository.DeleteProject(key);
         return GetResult(result);
@@ -90,7 +108,7 @@ public class ProjectsController : FourSPMODataController
     /// <param name="key">The GUID of the project to update</param>
     /// <param name="update">The project properties to update</param>
     /// <returns>The updated project</returns>
-    public async Task<IActionResult> Put([FromODataUri] Guid key, [FromBody] ProjectEntity update)
+    public async Task<IActionResult> Put([FromRoute] Guid key, [FromBody] ProjectEntity update)
     {
         if (key != update.Guid)
         {
@@ -106,7 +124,7 @@ public class ProjectsController : FourSPMODataController
     /// <param name="key">The GUID of the project to update</param>
     /// <param name="delta">The project properties to update</param>
     /// <returns>The updated project</returns>
-    public async Task<IActionResult> Patch([FromODataUri] Guid key, [FromBody] Delta<ProjectEntity> delta)
+    public async Task<IActionResult> Patch([FromRoute] Guid key, [FromBody] Delta<ProjectEntity> delta)
     {
         try
         {

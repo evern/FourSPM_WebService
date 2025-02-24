@@ -1,47 +1,34 @@
-using Microsoft.AspNetCore.OData.Routing.Attributes;
 using Microsoft.OpenApi.Models;
 using Swashbuckle.AspNetCore.SwaggerGen;
-using System.Reflection;
+using Microsoft.AspNetCore.Mvc.Controllers;
+using System.Linq;
 
-namespace FourSPM_WebService.Swagger.OperationFilter;
-
-public class ODataRouteOperationFilter : IOperationFilter
+namespace FourSPM_WebService.Swagger.OperationFilter
 {
-    public void Apply(OpenApiOperation operation, OperationFilterContext context)
+    public class ODataRouteOperationFilter : IOperationFilter
     {
-        var odataRouteAttribute = context.MethodInfo.GetCustomAttribute<ODataRouteComponentAttribute>();
-        if (odataRouteAttribute != null)
+        public void Apply(OpenApiOperation operation, OperationFilterContext context)
         {
-            // Get the route component value from the attribute's constructor parameter
-            var routeComponent = odataRouteAttribute.ToString() ?? string.Empty;
-
-            // Update the operation ID to include the OData route
-            operation.OperationId = $"{context.MethodInfo.Name}_{routeComponent.Replace("(", "").Replace(")", "").Replace("{", "").Replace("}", "")}";
-
-            // Ensure parameters are properly documented
-            if (operation.Parameters == null)
-                operation.Parameters = new List<OpenApiParameter>();
-
-            // Extract route parameters from the route component
-            var routeParams = routeComponent
-                .Split(new[] { '(', ')', '{', '}' }, StringSplitOptions.RemoveEmptyEntries)
-                .Where(p => p.Contains("key"))
-                .ToList();
-
-            foreach (var param in routeParams)
+            if (context.ApiDescription.ActionDescriptor is ControllerActionDescriptor descriptor)
             {
-                // Add or update route parameters
-                var existingParam = operation.Parameters.FirstOrDefault(p => p.Name == param);
-                if (existingParam == null)
+                // Check if this is an OData Get operation with a key parameter
+                if (descriptor.ControllerName == "Projects" && descriptor.ActionName == "Get")
                 {
-                    operation.Parameters.Add(new OpenApiParameter
+                    // Find and modify the key parameter
+                    var keyParameter = operation.Parameters.FirstOrDefault(p => p.Name == "key");
+                    if (keyParameter != null)
                     {
-                        Name = param,
-                        In = ParameterLocation.Path,
-                        Required = true,
-                        Schema = new OpenApiSchema { Type = "string", Format = "uuid" },
-                        Description = $"The {param} parameter from the OData route"
-                    });
+                        // Update the parameter description
+                        keyParameter.Description = "GUID of the project (without quotes or braces)";
+                        keyParameter.Example = new Microsoft.OpenApi.Any.OpenApiString("0c43f203-a974-4b2c-868a-16d33b6ed9eb");
+                    }
+
+                    // Update the operation URL by removing query parameter
+                    var queryKeyParam = operation.Parameters.FirstOrDefault(p => p.Name == "key" && p.In == ParameterLocation.Query);
+                    if (queryKeyParam != null)
+                    {
+                        operation.Parameters.Remove(queryKeyParam);
+                    }
                 }
             }
         }
