@@ -12,7 +12,7 @@ public class JwtMiddleware
     private readonly HashSet<string> _publicEndpoints = new()
     {
         "/api/auth/login",
-        "/api/auth/register",
+        "/api/auth/create",
         "/api/auth/login/forgot-password",
         "/api/auth/login/reset-password"
     };

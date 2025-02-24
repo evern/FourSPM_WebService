@@ -1,6 +1,7 @@
 using FourSPM_WebService.Data.EF.FourSPM;
 using FourSPM_WebService.Models.Session;
 using FourSPM_WebService.Services;
+using FourSPM_WebService.Helpers;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -81,6 +82,74 @@ public class AuthController : ControllerBase
         {
             _logger.LogError(ex, "Error during login for user: {Username}", request.Email);
             return StatusCode(500, "An error occurred during login");
+        }
+    }
+
+    [HttpPost("create")]
+    public async Task<IActionResult> CreateAccount([FromBody] LoginRequest request)
+    {
+        try
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            // Check if user already exists
+            var existingUser = await _context.USERs
+                .Where(u => u.USERNAME == request.Email && u.DELETED == null)
+                .FirstOrDefaultAsync();
+
+            if (existingUser != null)
+            {
+                _logger.LogWarning("Account creation attempt for existing user: {Username}", request.Email);
+                return BadRequest("User already exists");
+            }
+
+            // Create new user
+            var newUser = new USER
+            {
+                GUID = Guid.NewGuid(),
+                USERNAME = request.Email,
+                PASSWORD = _authService.HashPassword(request.Password), // Password is now guaranteed to be non-null
+                FIRST_NAME = request.FirstName,
+                LAST_NAME = request.LastName,
+                CREATED = DateTime.UtcNow,
+                UPDATED = DateTime.UtcNow
+            };
+
+            _context.USERs.Add(newUser);
+            await _context.SaveChangesAsync();
+
+            // Generate token for the new user
+            var token = _authService.GenerateJwtToken(newUser);
+
+            // Set the token cookie
+            Response.Cookies.Append("token", token, new CookieOptions
+            {
+                HttpOnly = true,
+                Secure = true,
+                SameSite = SameSiteMode.None,
+                Expires = DateTime.UtcNow.AddDays(7),
+                Path = "/"
+            });
+
+            return Ok(new
+            {
+                token,
+                user = new
+                {
+                    newUser.GUID,
+                    newUser.USERNAME,
+                    newUser.FIRST_NAME,
+                    newUser.LAST_NAME
+                }
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error during account creation for user: {Username}", request.Email);
+            return StatusCode(500, "An error occurred during account creation");
         }
     }
 

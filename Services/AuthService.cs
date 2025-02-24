@@ -43,7 +43,12 @@ public class AuthService : IAuthService
 
     public bool VerifyPassword(string plainPassword, string storedHash)
     {
-        return PasswordHasher.VerifyPassword(plainPassword, storedHash);
+        return EncryptionHelper.VerifyPassword(plainPassword, storedHash);
+    }
+
+    public string HashPassword(string password)
+    {
+        return EncryptionHelper.HashPassword(password);
     }
 
     public bool ValidateToken(string token)

@@ -2,10 +2,37 @@ using System.Security.Cryptography;
 
 namespace FourSPM_WebService.Helpers
 {
-    public static class PasswordHasher
+    public static class EncryptionHelper
     {
         private const int KeySize = 32; // 256 bits
         private const int Iterations = 100000;
+
+        /// <summary>
+        /// Hashes a password using PBKDF2 with SHA256
+        /// </summary>
+        /// <param name="password">The password to hash</param>
+        /// <returns>Base64 encoded string containing the salt and hash</returns>
+        public static string HashPassword(string password)
+        {
+            // Generate a random salt
+            byte[] salt = new byte[KeySize];
+            using (var rng = RandomNumberGenerator.Create())
+            {
+                rng.GetBytes(salt);
+            }
+
+            // Hash the password
+            using var deriveBytes = new Rfc2898DeriveBytes(password, salt, Iterations, HashAlgorithmName.SHA256);
+            byte[] hash = deriveBytes.GetBytes(KeySize);
+
+            // Combine salt and hash
+            byte[] hashBytes = new byte[KeySize * 2];
+            Array.Copy(salt, 0, hashBytes, 0, KeySize);
+            Array.Copy(hash, 0, hashBytes, KeySize, KeySize);
+
+            // Convert to base64 and return
+            return Convert.ToBase64String(hashBytes);
+        }
 
         /// <summary>
         /// Verifies a password against its hash
