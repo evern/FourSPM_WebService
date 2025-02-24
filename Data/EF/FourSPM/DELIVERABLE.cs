@@ -8,19 +8,9 @@ namespace FourSPM_WebService.Data.EF.FourSPM
     public class DELIVERABLE
     {
         [Key]
-        public Guid ID { get; set; }
+        public Guid GUID { get; set; }
 
-        public Guid PROJECT_ID { get; set; }
-
-        [Required]
-        [StringLength(3)]
-        [RegularExpression(@"[0-9][0-9][0-9]", ErrorMessage = "CLIENT_NUMBER must be 3 digits")]
-        public required string CLIENT_NUMBER { get; set; }
-
-        [Required]
-        [StringLength(2)]
-        [RegularExpression(@"[0-9][0-9]", ErrorMessage = "PROJECT_NUMBER must be 2 digits")]
-        public required string PROJECT_NUMBER { get; set; }
+        public Guid PROJECT_GUID { get; set; }
 
         [StringLength(2)]
         [RegularExpression(@"[0-9][0-9]", ErrorMessage = "AREA_NUMBER must be 2 digits")]
@@ -91,7 +81,7 @@ namespace FourSPM_WebService.Data.EF.FourSPM
         [ForeignKey(nameof(DELIVERABLE_TYPE_ID))]
         public virtual DELIVERABLE_TYPE? DeliverableType { get; set; }
 
-        [ForeignKey(nameof(PROJECT_ID))]
+        [ForeignKey(nameof(PROJECT_GUID))]
         public virtual PROJECT? Project { get; set; }
     }
 }

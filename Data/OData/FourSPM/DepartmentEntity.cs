@@ -1,17 +1,21 @@
 using System;
+using System.ComponentModel.DataAnnotations;
 
 namespace FourSPM_WebService.Data.OData.FourSPM
 {
     public class DepartmentEntity
     {
-        public Guid ID { get; set; }
-        public required string NAME { get; set; }
-        public string? DESCRIPTION { get; set; }
-        public DateTime CREATED { get; set; }
-        public Guid CREATEDBY { get; set; }
-        public DateTime? UPDATED { get; set; }
-        public Guid? UPDATEDBY { get; set; }
-        public DateTime? DELETED { get; set; }
-        public Guid? DELETEDBY { get; set; }
+        [Key]
+        [Required]
+        public Guid Guid { get; set; }
+        [Required]
+        public required string Name { get; set; }
+        public string? Description { get; set; }
+        public DateTime Created { get; set; }
+        public Guid CreatedBy { get; set; }
+        public DateTime? Updated { get; set; }
+        public Guid? UpdatedBy { get; set; }
+        public DateTime? Deleted { get; set; }
+        public Guid? DeletedBy { get; set; }
     }
 }

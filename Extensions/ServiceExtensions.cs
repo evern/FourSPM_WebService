@@ -16,6 +16,11 @@ namespace FourSPM_WebService.Extensions
             // Register repositories
             services.AddScoped<IProjectRepository, ProjectRepository>();
             services.AddScoped<IAuthService, AuthService>();
+            
+            // Register new repositories
+            services.AddScoped<IDepartmentRepository, DepartmentRepository>();
+            services.AddScoped<IDeliverableTypeRepository, DeliverableTypeRepository>();
+            services.AddScoped<IDeliverableRepository, DeliverableRepository>();
 
             return services;
         }

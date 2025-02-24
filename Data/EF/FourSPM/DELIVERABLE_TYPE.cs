@@ -8,7 +8,7 @@ namespace FourSPM_WebService.Data.EF.FourSPM
     public class DELIVERABLE_TYPE
     {
         [Key]
-        public Guid ID { get; set; }
+        public Guid GUID { get; set; }
 
         [Required]
         [StringLength(50)]

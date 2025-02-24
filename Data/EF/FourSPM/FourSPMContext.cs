@@ -95,10 +95,10 @@ public partial class FourSPMContext : DbContext
 
         modelBuilder.Entity<DEPARTMENT>(entity =>
         {
-            entity.HasKey(e => e.ID);
+            entity.HasKey(e => e.GUID);
             entity.ToTable("DEPARTMENTS");
 
-            entity.Property(e => e.ID).HasDefaultValueSql("NEWID()");
+            entity.Property(e => e.GUID).HasDefaultValueSql("NEWID()");
             entity.Property(e => e.NAME).HasMaxLength(50).IsRequired();
             entity.Property(e => e.DESCRIPTION).HasMaxLength(500);
             entity.Property(e => e.CREATED).HasColumnType("datetime").IsRequired().HasDefaultValueSql("GETDATE()");
@@ -111,10 +111,10 @@ public partial class FourSPMContext : DbContext
 
         modelBuilder.Entity<DELIVERABLE_TYPE>(entity =>
         {
-            entity.HasKey(e => e.ID);
+            entity.HasKey(e => e.GUID);
             entity.ToTable("DELIVERABLE_TYPES");
 
-            entity.Property(e => e.ID).HasDefaultValueSql("NEWID()");
+            entity.Property(e => e.GUID).HasDefaultValueSql("NEWID()");
             entity.Property(e => e.NAME).HasMaxLength(50).IsRequired();
             entity.Property(e => e.DESCRIPTION).HasMaxLength(500);
             entity.Property(e => e.CREATED).HasColumnType("datetime").IsRequired().HasDefaultValueSql("GETDATE()");
@@ -127,22 +127,18 @@ public partial class FourSPMContext : DbContext
 
         modelBuilder.Entity<DELIVERABLE>(entity =>
         {
-            entity.HasKey(e => e.ID);
+            entity.HasKey(e => e.GUID);
             entity.ToTable("DELIVERABLES");
 
-            entity.HasIndex(e => e.CLIENT_NUMBER).HasDatabaseName("IX_DELIVERABLES_CLIENT_NUMBER");
-            entity.HasIndex(e => e.PROJECT_NUMBER).HasDatabaseName("IX_DELIVERABLES_PROJECT_NUMBER");
             entity.HasIndex(e => e.BOOKING_CODE).HasDatabaseName("IX_DELIVERABLES_BOOKING_CODE");
             entity.HasIndex(e => e.INTERNAL_DOCUMENT_NUMBER).HasDatabaseName("IX_DELIVERABLES_INTERNAL_DOC_NUM");
             entity.HasIndex(e => e.DEPARTMENT_ID).HasDatabaseName("IX_DELIVERABLES_DEPARTMENT_ID");
             entity.HasIndex(e => e.DELIVERABLE_TYPE_ID).HasDatabaseName("IX_DELIVERABLES_DELIVERABLE_TYPE_ID");
-            entity.HasIndex(e => e.PROJECT_ID).HasDatabaseName("IX_DELIVERABLES_PROJECT_ID");
+            entity.HasIndex(e => e.PROJECT_GUID).HasDatabaseName("IX_DELIVERABLES_PROJECT_ID");
             entity.HasIndex(e => e.DELETED).HasDatabaseName("IX_DELIVERABLES_DELETED");
 
-            entity.Property(e => e.ID).HasDefaultValueSql("NEWID()");
-            entity.Property(e => e.PROJECT_ID).IsRequired();
-            entity.Property(e => e.CLIENT_NUMBER).HasMaxLength(3).IsRequired();
-            entity.Property(e => e.PROJECT_NUMBER).HasMaxLength(2).IsRequired();
+            entity.Property(e => e.GUID).HasDefaultValueSql("NEWID()");
+            entity.Property(e => e.PROJECT_GUID).IsRequired();
             entity.Property(e => e.AREA_NUMBER).HasMaxLength(2);
             entity.Property(e => e.DISCIPLINE).HasMaxLength(2).IsRequired();
             entity.Property(e => e.DOCUMENT_TYPE).HasMaxLength(3).IsRequired();
@@ -176,7 +172,7 @@ public partial class FourSPMContext : DbContext
 
             entity.HasOne(d => d.Project)
                 .WithMany(p => p.Deliverables)
-                .HasForeignKey(d => d.PROJECT_ID)
+                .HasForeignKey(d => d.PROJECT_GUID)
                 .OnDelete(DeleteBehavior.NoAction);
         });
 

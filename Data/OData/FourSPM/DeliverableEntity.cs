@@ -5,34 +5,37 @@ namespace FourSPM_WebService.Data.OData.FourSPM
 {
     public class DeliverableEntity
     {
-        public Guid ID { get; set; }
-        public Guid PROJECT_ID { get; set; }
-        [RegularExpression(@"[0-9][0-9][0-9]")]
-        public required string CLIENT_NUMBER { get; set; }
+        [Key]
+        [Required]
+        public Guid Guid { get; set; }
+        public Guid ProjectGuid { get; set; }
         [RegularExpression(@"[0-9][0-9]")]
-        public required string PROJECT_NUMBER { get; set; }
-        [RegularExpression(@"[0-9][0-9]")]
-        public string? AREA_NUMBER { get; set; }
+        public string? AreaNumber { get; set; }
         [RegularExpression(@"[A-Z][A-Z]")]
-        public required string DISCIPLINE { get; set; }
+        [Required]
+        public required string Discipline { get; set; }
         [RegularExpression(@"[A-Z][A-Z][A-Z]")]
-        public required string DOCUMENT_TYPE { get; set; }
-        public Guid DEPARTMENT_ID { get; set; }
-        public Guid DELIVERABLE_TYPE_ID { get; set; }
-        public required string INTERNAL_DOCUMENT_NUMBER { get; set; }
-        public string? CLIENT_DOCUMENT_NUMBER { get; set; }
-        public required string DOCUMENT_TITLE { get; set; }
-        public decimal BUDGET_HOURS { get; set; }
-        public decimal VARIATION_HOURS { get; set; }
-        public decimal TOTAL_HOURS { get; set; }
-        public decimal TOTAL_COST { get; set; }
-        public required string BOOKING_CODE { get; set; }
-        public DateTime CREATED { get; set; }
-        public Guid CREATEDBY { get; set; }
-        public DateTime? UPDATED { get; set; }
-        public Guid? UPDATEDBY { get; set; }
-        public DateTime? DELETED { get; set; }
-        public Guid? DELETEDBY { get; set; }
+        [Required]
+        public required string DocumentType { get; set; }
+        public Guid DepartmentId { get; set; }
+        public Guid DeliverableTypeId { get; set; }
+        [Required]
+        public required string InternalDocumentNumber { get; set; }
+        public string? ClientDocumentNumber { get; set; }
+        [Required]
+        public required string DocumentTitle { get; set; }
+        public decimal BudgetHours { get; set; }
+        public decimal VariationHours { get; set; }
+        public decimal TotalHours { get; set; }
+        public decimal TotalCost { get; set; }
+        [Required]
+        public required string BookingCode { get; set; }
+        public DateTime Created { get; set; }
+        public Guid CreatedBy { get; set; }
+        public DateTime? Updated { get; set; }
+        public Guid? UpdatedBy { get; set; }
+        public DateTime? Deleted { get; set; }
+        public Guid? DeletedBy { get; set; }
 
         public virtual DepartmentEntity? Department { get; set; }
         public virtual DeliverableTypeEntity? DeliverableType { get; set; }
