@@ -11,5 +11,6 @@ namespace FourSPM_WebService.Services
         bool ValidateToken(string token);
         UserInfo? GetUserInfoFromToken(string token);
         string GeneratePasswordResetToken(USER user);
+        UserInfo? ValidatePasswordResetToken(string token);
     }
 }

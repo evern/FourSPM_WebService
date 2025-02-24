@@ -5,6 +5,7 @@ using FourSPM_WebService.Helpers;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
 
 namespace FourSPM_WebService.Controllers.Auth.Controller;
 
@@ -216,6 +217,57 @@ public class AuthController : ControllerBase
         {
             _logger.LogError(ex, "Error during password reset for email: {Email}", request.Email);
             return StatusCode(500, "An error occurred during password reset");
+        }
+    }
+
+    [HttpPost("change-password")]
+    public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordRequest request)
+    {
+        try
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            if (string.IsNullOrEmpty(request.CurrentPassword))
+            {
+                return BadRequest(new { message = "Current password is required" });
+            }
+
+            // Get user ID from claims
+            var userIdClaim = HttpContext.User.Claims.FirstOrDefault(x => x.Type == ClaimTypes.NameIdentifier);
+            if (userIdClaim == null || !Guid.TryParse(userIdClaim.Value, out var userId))
+            {
+                return Unauthorized(new { message = "Invalid token" });
+            }
+
+            var user = await _context.USERs
+                .Where(u => u.GUID == userId && u.DELETED == null)
+                .FirstOrDefaultAsync();
+
+            if (user == null)
+            {
+                return NotFound(new { message = "User not found" });
+            }
+
+            // Verify current password
+            if (!_authService.VerifyPassword(request.CurrentPassword, user.PASSWORD))
+            {
+                return BadRequest(new { message = "Current password is incorrect" });
+            }
+
+            // Update password
+            user.PASSWORD = _authService.HashPassword(request.Password);
+            user.UPDATED = DateTime.UtcNow;
+            await _context.SaveChangesAsync();
+
+            return Ok(new { message = "Password changed successfully" });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error during password change");
+            return StatusCode(500, "An error occurred while changing the password");
         }
     }
 }

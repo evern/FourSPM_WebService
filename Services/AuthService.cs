@@ -144,4 +144,52 @@ public class AuthService : IAuthService
         var token = tokenHandler.CreateToken(tokenDescriptor);
         return tokenHandler.WriteToken(token);
     }
+
+    public UserInfo? ValidatePasswordResetToken(string token)
+    {
+        try
+        {
+            var tokenHandler = new JwtSecurityTokenHandler();
+            var key = Encoding.ASCII.GetBytes(_jwtConfig.Secret);
+            var validationParameters = new TokenValidationParameters
+            {
+                ValidateIssuerSigningKey = true,
+                IssuerSigningKey = new SymmetricSecurityKey(key),
+                ValidateIssuer = false,
+                ValidateAudience = false,
+                ClockSkew = TimeSpan.Zero
+            };
+
+            var principal = tokenHandler.ValidateToken(token, validationParameters, out var validatedToken);
+            var jwtToken = validatedToken as JwtSecurityToken;
+
+            if (jwtToken == null)
+            {
+                return null;
+            }
+
+            // Verify this is a password reset token
+            var purposeClaim = jwtToken.Claims.FirstOrDefault(x => x.Type == "purpose");
+            if (purposeClaim?.Value != "password_reset")
+            {
+                return null;
+            }
+
+            var userIdClaim = jwtToken.Claims.FirstOrDefault(x => x.Type == ClaimTypes.NameIdentifier);
+            if (userIdClaim == null || !Guid.TryParse(userIdClaim.Value, out var userId))
+            {
+                return null;
+            }
+
+            return new UserInfo
+            {
+                UserId = userId,
+                Email = jwtToken.Claims.FirstOrDefault(x => x.Type == ClaimTypes.Email)?.Value ?? string.Empty
+            };
+        }
+        catch
+        {
+            return null;
+        }
+    }
 }
