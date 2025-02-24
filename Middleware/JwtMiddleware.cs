@@ -13,8 +13,8 @@ public class JwtMiddleware
     {
         "/api/auth/login",
         "/api/auth/create",
-        "/api/auth/login/forgot-password",
-        "/api/auth/login/reset-password"
+        "/api/auth/forgot-password",
+        "/api/auth/reset-password"
     };
 
     public JwtMiddleware(RequestDelegate next, IServiceProvider serviceProvider)

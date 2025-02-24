@@ -120,4 +120,28 @@ public class AuthService : IAuthService
 
         return null;
     }
+
+    public string GeneratePasswordResetToken(USER user)
+    {
+        var tokenHandler = new JwtSecurityTokenHandler();
+        var key = Encoding.ASCII.GetBytes(_jwtConfig.Secret);
+        
+        var tokenDescriptor = new SecurityTokenDescriptor
+        {
+            Subject = new ClaimsIdentity(new[]
+            {
+                new Claim(ClaimTypes.NameIdentifier, user.GUID.ToString()),
+                new Claim(ClaimTypes.Email, user.USERNAME),
+                new Claim("purpose", "password_reset")
+            }),
+            Expires = DateTime.UtcNow.AddHours(1), // Reset token valid for 1 hour
+            SigningCredentials = new SigningCredentials(
+                new SymmetricSecurityKey(key),
+                SecurityAlgorithms.HmacSha256Signature
+            )
+        };
+
+        var token = tokenHandler.CreateToken(tokenDescriptor);
+        return tokenHandler.WriteToken(token);
+    }
 }

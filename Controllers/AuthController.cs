@@ -175,4 +175,47 @@ public class AuthController : ControllerBase
             return StatusCode(500, "An error occurred during logout");
         }
     }
+
+    [HttpPost("reset-password")]
+    [AllowAnonymous]
+    public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordRequest request)
+    {
+        try
+        {
+            _logger.LogInformation("Reset password request received for email: {Email}", request.Email);
+
+            if (!ModelState.IsValid)
+            {
+                _logger.LogWarning("Invalid model state for reset password request");
+                return BadRequest(ModelState);
+            }
+
+            // Find user by email
+            var user = await _context.USERs
+                .Where(u => u.USERNAME == request.Email && u.DELETED == null)
+                .FirstOrDefaultAsync();
+
+            if (user == null)
+            {
+                _logger.LogInformation("User not found for email: {Email}", request.Email);
+                // Return success even if user not found to prevent email enumeration
+                return Ok(new { message = "If the email exists, a password reset link has been sent." });
+            }
+
+            _logger.LogInformation("User found, generating reset token for: {Email}", request.Email);
+            // Generate password reset token
+            var resetToken = _authService.GeneratePasswordResetToken(user);
+
+            _logger.LogInformation("Reset token generated successfully for: {Email}", request.Email);
+            // TODO: Send email with reset token
+            // For now, we'll just return the token in the response
+            // In production, this should send an email with a link containing the token
+            return Ok(new { message = "If the email exists, a password reset link has been sent.", resetToken });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error during password reset for email: {Email}", request.Email);
+            return StatusCode(500, "An error occurred during password reset");
+        }
+    }
 }

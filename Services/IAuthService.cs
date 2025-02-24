@@ -10,5 +10,6 @@ namespace FourSPM_WebService.Services
         bool VerifyPassword(string plainPassword, string storedHash);
         bool ValidateToken(string token);
         UserInfo? GetUserInfoFromToken(string token);
+        string GeneratePasswordResetToken(USER user);
     }
 }
