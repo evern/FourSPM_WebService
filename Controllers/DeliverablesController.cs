@@ -7,10 +7,13 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.OData.Query;
 using Microsoft.AspNetCore.OData.Routing.Attributes;
 using Microsoft.AspNetCore.OData.Routing.Controllers;
+using Microsoft.AspNetCore.OData.Deltas;
 using Newtonsoft.Json;
 using System;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.OData.Formatter;
 
 namespace FourSPM_WebService.Controllers
 {
@@ -19,10 +22,12 @@ namespace FourSPM_WebService.Controllers
     public class DeliverablesController : FourSPMODataController
     {
         private readonly IDeliverableRepository _repository;
+        private readonly ILogger<DeliverablesController> _logger;
 
-        public DeliverablesController(IDeliverableRepository repository)
+        public DeliverablesController(IDeliverableRepository repository, ILogger<DeliverablesController> logger)
         {
             _repository = repository;
+            _logger = logger;
         }
 
         public class ODataResponse<T>
@@ -141,6 +146,74 @@ namespace FourSPM_WebService.Controllers
         {
             var result = await _repository.DeleteAsync(key, deletedBy);
             return result ? NoContent() : NotFound();
+        }
+
+        /// <summary>
+        /// Partially updates a deliverable
+        /// </summary>
+        /// <param name="key">The GUID of the deliverable to update</param>
+        /// <param name="delta">The deliverable properties to update</param>
+        /// <returns>The updated deliverable</returns>
+        public async Task<IActionResult> Patch([FromODataUri] Guid key, [FromBody] Delta<DeliverableEntity> delta)
+        {
+            try
+            {
+                _logger?.LogInformation($"Received PATCH request for deliverable {key}");
+
+                if (key == Guid.Empty)
+                {
+                    return BadRequest(new { error = "Invalid GUID", message = "The deliverable ID cannot be empty" });
+                }
+
+                if (delta == null)
+                {
+                    _logger?.LogWarning($"Update data is null for deliverable {key}");
+                    return BadRequest(new 
+                    { 
+                        error = "Update data cannot be null",
+                        message = "The request body must contain valid properties to update."
+                    });
+                }
+
+                // Get the existing deliverable
+                var existingDeliverable = await _repository.GetByIdAsync(key);
+                if (existingDeliverable == null)
+                {
+                    return NotFound(new { error = "Not Found", message = $"Deliverable with ID {key} was not found" });
+                }
+
+                // Create a copy of the entity to track changes
+                var updatedEntity = MapToEntity(existingDeliverable);
+                delta.CopyChangedValues(updatedEntity);
+
+                // Map back to DELIVERABLE entity
+                var deliverableToUpdate = new DELIVERABLE
+                {
+                    GUID = updatedEntity.Guid,
+                    PROJECT_GUID = updatedEntity.ProjectGuid,
+                    AREA_NUMBER = updatedEntity.AreaNumber,
+                    DISCIPLINE = updatedEntity.Discipline,
+                    DOCUMENT_TYPE = updatedEntity.DocumentType,
+                    DEPARTMENT_ID = updatedEntity.DepartmentId,
+                    DELIVERABLE_TYPE_ID = updatedEntity.DeliverableTypeId,
+                    INTERNAL_DOCUMENT_NUMBER = updatedEntity.InternalDocumentNumber,
+                    CLIENT_DOCUMENT_NUMBER = updatedEntity.ClientDocumentNumber,
+                    DOCUMENT_TITLE = updatedEntity.DocumentTitle,
+                    BUDGET_HOURS = updatedEntity.BudgetHours,
+                    VARIATION_HOURS = updatedEntity.VariationHours,
+                    TOTAL_HOURS = updatedEntity.TotalHours,
+                    TOTAL_COST = updatedEntity.TotalCost,
+                    BOOKING_CODE = updatedEntity.BookingCode
+                };
+
+                var result = await _repository.UpdateAsync(deliverableToUpdate);
+                return Updated(MapToEntity(result));
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogError(ex, "Error updating deliverable");
+                return StatusCode(500, new { error = "Internal Server Error", message = ex.Message });
+            }
         }
 
         private static DeliverableEntity MapToEntity(DELIVERABLE deliverable)
