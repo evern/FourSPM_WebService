@@ -33,56 +33,73 @@ public class AuthController : ControllerBase
     {
         try
         {
+            _logger.LogInformation("Login attempt for user: {Username}", request.Email);
+            
+            if (request == null)
+            {
+                _logger.LogError("Login request body is null");
+                return BadRequest("Invalid request format");
+            }
+
+            _logger.LogInformation("Attempting to find user in database");
             var user = await _context.USERs
                 .Where(u => u.USERNAME == request.Email && u.DELETED == null)
                 .FirstOrDefaultAsync();
 
             if (user == null)
             {
-                _logger.LogWarning("Failed login attempt for user: {Username}", request.Email);
+                _logger.LogWarning("User not found: {Username}", request.Email);
                 return Unauthorized("Invalid username or password");
             }
 
             if (string.IsNullOrEmpty(request.Password))
             {
-                _logger.LogWarning("Empty password attempt for user: {Username}", request.Email);
-                return Unauthorized("Invalid username or password");
+                _logger.LogWarning("Empty password provided");
+                return BadRequest("Password is required");
             }
 
-            if (!_authService.VerifyPassword(request.Password, user.PASSWORD))
+            try
             {
-                _logger.LogWarning("Failed login attempt for user: {Username}", request.Email);
-                return Unauthorized("Invalid username or password");
-            }
-
-            var token = _authService.GenerateJwtToken(user);
-
-            // Set the token as a cookie with the following attributes:
-            Response.Cookies.Append("token", token, new CookieOptions
-            {
-                HttpOnly = true, // Prevents JavaScript access to the cookie for security reasons
-                Secure = true,   // Ensures the cookie is only sent over HTTPS connections
-                SameSite = SameSiteMode.None, // Allows the cookie to be sent with cross-origin requests
-                Expires = DateTime.UtcNow.AddDays(7), // Sets the cookie to expire in 7 days
-                Path = "/", // The cookie is valid for all paths on the domain
-            });
-
-            return Ok(new 
-            { 
-                token,
-                user = new
+                if (!_authService.VerifyPassword(request.Password, user.PASSWORD))
                 {
-                    user.GUID,
-                    user.USERNAME,
-                    user.FIRST_NAME,
-                    user.LAST_NAME
+                    _logger.LogWarning("Invalid password for user: {Username}", request.Email);
+                    return Unauthorized("Invalid username or password");
                 }
-            });
+
+                var token = _authService.GenerateJwtToken(user);
+                _logger.LogInformation("Login successful for user: {Username}", request.Email);
+                
+                // Set the token as a cookie
+                Response.Cookies.Append("token", token, new CookieOptions
+                {
+                    HttpOnly = true,
+                    Secure = true,
+                    SameSite = SameSiteMode.None,
+                    Expires = DateTime.UtcNow.AddDays(7),
+                    Path = "/"
+                });
+
+                return Ok(new { 
+                    token,
+                    user = new
+                    {
+                        user.GUID,
+                        user.USERNAME,
+                        user.FIRST_NAME,
+                        user.LAST_NAME
+                    }
+                });
+            }
+            catch (Exception authEx)
+            {
+                _logger.LogError(authEx, "Error during authentication for user: {Username}", request.Email);
+                return StatusCode(500, $"Authentication error: {authEx.Message}");
+            }
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error during login for user: {Username}", request.Email);
-            return StatusCode(500, "An error occurred during login");
+            _logger.LogError(ex, "Unhandled error during login");
+            return StatusCode(500, $"An error occurred: {ex.Message}");
         }
     }
 

@@ -86,7 +86,7 @@ public class AuthService : IAuthService
         try
         {
             var tokenHandler = new JwtSecurityTokenHandler();
-            var key = Encoding.ASCII.GetBytes(_jwtConfig.Secret);
+            var key = Encoding.UTF8.GetBytes(_jwtConfig.Secret);
             var validationParameters = new TokenValidationParameters
             {
                 ValidateIssuerSigningKey = true,
@@ -124,7 +124,7 @@ public class AuthService : IAuthService
     public string GeneratePasswordResetToken(USER user)
     {
         var tokenHandler = new JwtSecurityTokenHandler();
-        var key = Encoding.ASCII.GetBytes(_jwtConfig.Secret);
+        var key = Encoding.UTF8.GetBytes(_jwtConfig.Secret);
         
         var tokenDescriptor = new SecurityTokenDescriptor
         {
@@ -150,7 +150,7 @@ public class AuthService : IAuthService
         try
         {
             var tokenHandler = new JwtSecurityTokenHandler();
-            var key = Encoding.ASCII.GetBytes(_jwtConfig.Secret);
+            var key = Encoding.UTF8.GetBytes(_jwtConfig.Secret);
             var validationParameters = new TokenValidationParameters
             {
                 ValidateIssuerSigningKey = true,

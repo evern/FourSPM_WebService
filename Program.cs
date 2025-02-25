@@ -30,6 +30,9 @@ if (string.IsNullOrEmpty(jwtSecret))
 var jwtConfig = builder.Configuration.GetSection("Jwt").Get<JwtConfig>()
     ?? throw new Exception("JWT configuration is missing in appsettings.json");
 
+// Ensure JWT secret is exactly 32 bytes
+jwtConfig.Secret = jwtConfig.Secret.PadRight(32).Substring(0, 32);
+
 // Register configurations
 builder.Services.AddSingleton(jwtConfig);
 
@@ -43,18 +46,16 @@ builder.Services.AddRepositories();
 // Add CORS
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowFrontend", builder =>
+    options.AddPolicy("AllowReactApp", builder =>
     {
         builder
             .WithOrigins(
-                "http://localhost:3000",
-                "https://localhost:3000",
-                "http://localhost:3001",
-                "https://localhost:3001"
+                "http://localhost:3000",      // Local development
+                "https://localhost:3000",     // Local development with HTTPS
+                "https://app.4spm.org"        // Production
             )
             .AllowAnyMethod()
             .AllowAnyHeader()
-            .WithExposedHeaders("OData-Version")
             .AllowCredentials();
     });
 });
@@ -151,21 +152,42 @@ var app = builder.Build();
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
-    app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "FourSPM Web Service API v1"));
+    app.UseSwaggerUI();
+}
+else 
+{
+    // Enable detailed errors even in production temporarily
     app.UseDeveloperExceptionPage();
 }
 
 app.UseHttpsRedirection();
-
-// Use CORS before auth
-app.UseCors("AllowFrontend");
+app.UseCors("AllowReactApp");  
 
 // Add request logging middleware
 app.Use(async (context, next) =>
 {
     var logger = context.RequestServices.GetRequiredService<ILogger<Program>>();
-    logger.LogInformation($"Incoming {context.Request.Method} request to {context.Request.Path}");
-    logger.LogDebug($"Request headers: {string.Join(", ", context.Request.Headers.Select(h => $"{h.Key}={string.Join(",", h.Value)}"))}");
+    
+    // Test database connection on first request
+    if (context.Request.Path == "/")
+    {
+        try
+        {
+            using var scope = app.Services.CreateScope();
+            var dbContext = scope.ServiceProvider.GetRequiredService<FourSPMContext>();
+            await dbContext.Database.CanConnectAsync();
+            logger.LogInformation("Database connection test successful");
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Database connection test failed");
+            throw; // This will trigger our detailed error page
+        }
+    }
+    
+    var headerString = string.Join(", ", context.Request.Headers
+        .Select(h => $"{h.Key}={string.Join(",", h.Value.Where(v => v != null))}"));
+    logger.LogDebug($"Request headers: {headerString}");
 
     if (context.Request.Method == "PATCH")
     {
