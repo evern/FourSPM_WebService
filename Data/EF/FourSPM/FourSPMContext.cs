@@ -9,11 +9,23 @@ public partial class FourSPMContext : DbContext
 {
     public FourSPMContext()
     {
+        PROJECTs = Set<PROJECT>();
+        USERs = Set<USER>();
+        DEPARTMENTs = Set<DEPARTMENT>();
+        DELIVERABLE_TYPEs = Set<DELIVERABLE_TYPE>();
+        DELIVERABLEs = Set<DELIVERABLE>();
+        PROGRESSes = Set<PROGRESS>();
     }
 
     public FourSPMContext(DbContextOptions<FourSPMContext> options)
         : base(options)
     {
+        PROJECTs = Set<PROJECT>();
+        USERs = Set<USER>();
+        DEPARTMENTs = Set<DEPARTMENT>();
+        DELIVERABLE_TYPEs = Set<DELIVERABLE_TYPE>();
+        DELIVERABLEs = Set<DELIVERABLE>();
+        PROGRESSes = Set<PROGRESS>();
     }
 
     public virtual DbSet<PROJECT> PROJECTs { get; set; }
@@ -21,6 +33,7 @@ public partial class FourSPMContext : DbContext
     public virtual DbSet<DEPARTMENT> DEPARTMENTs { get; set; }
     public virtual DbSet<DELIVERABLE_TYPE> DELIVERABLE_TYPEs { get; set; }
     public virtual DbSet<DELIVERABLE> DELIVERABLEs { get; set; }
+    public virtual DbSet<PROGRESS> PROGRESSes { get; set; }
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
 #warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see https://go.microsoft.com/fwlink/?LinkId=723263.
@@ -173,6 +186,33 @@ public partial class FourSPMContext : DbContext
             entity.HasOne(d => d.Project)
                 .WithMany(p => p.Deliverables)
                 .HasForeignKey(d => d.PROJECT_GUID)
+                .OnDelete(DeleteBehavior.NoAction);
+        });
+
+        modelBuilder.Entity<PROGRESS>(entity =>
+        {
+            entity.HasKey(e => e.GUID);
+            entity.ToTable("PROGRESS");
+
+            entity.HasIndex(e => e.GUID_DELIVERABLE).HasDatabaseName("IX_PROGRESS_DELIVERABLE_ID");
+            entity.HasIndex(e => e.PERIOD).HasDatabaseName("IX_PROGRESS_PERIOD");
+            entity.HasIndex(e => e.DELETED).HasDatabaseName("IX_PROGRESS_DELETED");
+
+            entity.Property(e => e.GUID).HasDefaultValueSql("NEWID()");
+            entity.Property(e => e.GUID_DELIVERABLE).IsRequired();
+            entity.Property(e => e.PERIOD).IsRequired();
+            entity.Property(e => e.UNITS).HasColumnType("decimal(10,2)").IsRequired();
+            entity.Property(e => e.CREATED).HasColumnType("datetime").IsRequired().HasDefaultValueSql("GETDATE()");
+            entity.Property(e => e.CREATEDBY).IsRequired();
+            entity.Property(e => e.UPDATED).HasColumnType("datetime");
+            entity.Property(e => e.UPDATEDBY);
+            entity.Property(e => e.DELETED).HasColumnType("datetime");
+            entity.Property(e => e.DELETEDBY);
+
+            // Foreign key relationship
+            entity.HasOne(d => d.Deliverable)
+                .WithMany(p => p.ProgressItems)
+                .HasForeignKey(d => d.GUID_DELIVERABLE)
                 .OnDelete(DeleteBehavior.NoAction);
         });
 

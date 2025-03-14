@@ -1,6 +1,7 @@
 using System;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Collections.Generic;
 
 namespace FourSPM_WebService.Data.EF.FourSPM
 {
@@ -83,5 +84,7 @@ namespace FourSPM_WebService.Data.EF.FourSPM
 
         [ForeignKey(nameof(PROJECT_GUID))]
         public virtual PROJECT? Project { get; set; }
+        
+        public virtual ICollection<PROGRESS> ProgressItems { get; set; } = new List<PROGRESS>();
     }
 }

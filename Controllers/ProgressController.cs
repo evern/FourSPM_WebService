@@ -1,0 +1,223 @@
+using FourSPM_WebService.Data.EF.FourSPM;
+using FourSPM_WebService.Data.OData.FourSPM;
+using FourSPM_WebService.Data.Repositories;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.OData.Query;
+using Microsoft.AspNetCore.OData.Routing.Attributes;
+using Microsoft.AspNetCore.OData.Routing.Controllers;
+using Microsoft.AspNetCore.OData.Deltas;
+using Newtonsoft.Json;
+using System;
+using System.Linq;
+using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.OData.Formatter;
+using System.Collections.Generic;
+
+namespace FourSPM_WebService.Controllers
+{
+    [Authorize]
+    [ODataRouteComponent("odata/v1")]
+    public class ProgressController : FourSPMODataController
+    {
+        private readonly IProgressRepository _repository;
+        private readonly ILogger<ProgressController> _logger;
+
+        public ProgressController(IProgressRepository repository, ILogger<ProgressController> logger)
+        {
+            _repository = repository;
+            _logger = logger;
+        }
+
+        public class ODataResponse<T>
+        {
+            public required IEnumerable<T> Value { get; set; }
+            [JsonProperty("@odata.count")]
+            public required int Count { get; set; }
+
+            public ODataResponse()
+            {
+                Value = Enumerable.Empty<T>();
+                Count = 0;
+            }
+        }
+
+        [EnableQuery]
+        public async Task<IActionResult> Get()
+        {
+            var progressItems = await _repository.GetAllAsync();
+            var entities = progressItems.Select(p => MapToEntity(p));
+            return Ok(entities);
+        }
+
+        [EnableQuery]
+        public async Task<IActionResult> Get([FromRoute] Guid key)
+        {
+            var progress = await _repository.GetByIdAsync(key);
+            if (progress == null)
+                return NotFound();
+
+            return Ok(MapToEntity(progress));
+        }
+
+        [EnableQuery]
+        [HttpGet("odata/v1/GetByDeliverable({deliverableId})")]
+        public async Task<IActionResult> GetByDeliverable([FromRoute] Guid deliverableId)
+        {
+            var progressItems = await _repository.GetByDeliverableIdAsync(deliverableId);
+            var entities = progressItems.Select(p => MapToEntity(p)).ToList();
+            
+            var response = new ODataResponse<ProgressEntity>
+            {
+                Value = entities,
+                Count = entities.Count
+            };
+
+            return Ok(response);
+        }
+
+        public async Task<IActionResult> Post([FromBody] ProgressEntity entity)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            var progress = new PROGRESS
+            {
+                GUID_DELIVERABLE = entity.DeliverableGuid,
+                PERIOD = entity.Period,
+                UNITS = entity.Units,
+                CREATEDBY = entity.CreatedBy
+            };
+
+            var result = await _repository.CreateAsync(progress);
+            return Created(MapToEntity(result));
+        }
+
+        public async Task<IActionResult> Put([FromRoute] Guid key, [FromBody] ProgressEntity entity)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            if (key != entity.Guid)
+                return BadRequest("The ID in the URL must match the ID in the request body");
+
+            try
+            {
+                var progress = new PROGRESS
+                {
+                    GUID = entity.Guid,
+                    GUID_DELIVERABLE = entity.DeliverableGuid,
+                    PERIOD = entity.Period,
+                    UNITS = entity.Units,
+                    UPDATEDBY = entity.UpdatedBy
+                };
+
+                var result = await _repository.UpdateAsync(progress);
+                return Updated(MapToEntity(result));
+            }
+            catch (KeyNotFoundException)
+            {
+                return NotFound();
+            }
+        }
+
+        public async Task<IActionResult> Delete([FromRoute] Guid key, [FromBody] Guid deletedBy)
+        {
+            var result = await _repository.DeleteAsync(key, deletedBy);
+            return result ? NoContent() : NotFound();
+        }
+
+        /// <summary>
+        /// Partially updates a progress record
+        /// </summary>
+        /// <param name="key">The GUID of the progress record to update</param>
+        /// <param name="delta">The progress properties to update</param>
+        /// <returns>The updated progress record</returns>
+        public async Task<IActionResult> Patch([FromODataUri] Guid key, [FromBody] Delta<ProgressEntity> delta)
+        {
+            try
+            {
+                _logger?.LogInformation($"Received PATCH request for progress {key}");
+
+                if (key == Guid.Empty)
+                {
+                    return BadRequest(new { error = "Invalid GUID", message = "The progress ID cannot be empty" });
+                }
+
+                if (delta == null)
+                {
+                    _logger?.LogWarning($"Update data is null for progress {key}");
+                    return BadRequest(new 
+                    { 
+                        error = "Update data cannot be null",
+                        message = "The request body must contain valid properties to update."
+                    });
+                }
+
+                // Get the existing progress
+                var existingProgress = await _repository.GetByIdAsync(key);
+                if (existingProgress == null)
+                {
+                    return NotFound(new { error = "Not Found", message = $"Progress with ID {key} was not found" });
+                }
+
+                // Create a copy of the entity to track changes
+                var updatedEntity = MapToEntity(existingProgress);
+                delta.CopyChangedValues(updatedEntity);
+
+                // Map back to PROGRESS entity
+                var progressToUpdate = new PROGRESS
+                {
+                    GUID = updatedEntity.Guid,
+                    GUID_DELIVERABLE = updatedEntity.DeliverableGuid,
+                    PERIOD = updatedEntity.Period,
+                    UNITS = updatedEntity.Units,
+                    UPDATEDBY = updatedEntity.UpdatedBy
+                };
+
+                var result = await _repository.UpdateAsync(progressToUpdate);
+                return Updated(MapToEntity(result));
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogError(ex, "Error updating progress");
+                return StatusCode(500, new { error = "Internal Server Error", message = ex.Message });
+            }
+        }
+
+        private static ProgressEntity MapToEntity(PROGRESS progress)
+        {
+            return new ProgressEntity
+            {
+                Guid = progress.GUID,
+                DeliverableGuid = progress.GUID_DELIVERABLE,
+                Period = progress.PERIOD,
+                Units = progress.UNITS,
+                Created = progress.CREATED,
+                CreatedBy = progress.CREATEDBY,
+                Updated = progress.UPDATED,
+                UpdatedBy = progress.UPDATEDBY,
+                Deleted = progress.DELETED,
+                DeletedBy = progress.DELETEDBY,
+                Deliverable = progress.Deliverable != null ? new DeliverableEntity
+                {
+                    Guid = progress.Deliverable.GUID,
+                    ProjectGuid = progress.Deliverable.PROJECT_GUID,
+                    AreaNumber = progress.Deliverable.AREA_NUMBER,
+                    Discipline = progress.Deliverable.DISCIPLINE,
+                    DocumentType = progress.Deliverable.DOCUMENT_TYPE,
+                    InternalDocumentNumber = progress.Deliverable.INTERNAL_DOCUMENT_NUMBER,
+                    DocumentTitle = progress.Deliverable.DOCUMENT_TITLE,
+                    BookingCode = progress.Deliverable.BOOKING_CODE,
+                    DepartmentId = progress.Deliverable.DEPARTMENT_ID,
+                    DeliverableTypeId = progress.Deliverable.DELIVERABLE_TYPE_ID,
+                    BudgetHours = progress.Deliverable.BUDGET_HOURS,
+                    VariationHours = progress.Deliverable.VARIATION_HOURS,
+                    TotalHours = progress.Deliverable.TOTAL_HOURS,
+                    TotalCost = progress.Deliverable.TOTAL_COST
+                } : null
+            };
+        }
+    }
+}

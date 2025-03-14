@@ -21,6 +21,7 @@ namespace FourSPM_WebService.Extensions
             services.AddScoped<IDepartmentRepository, DepartmentRepository>();
             services.AddScoped<IDeliverableTypeRepository, DeliverableTypeRepository>();
             services.AddScoped<IDeliverableRepository, DeliverableRepository>();
+            services.AddScoped<IProgressRepository, ProgressRepository>();
 
             return services;
         }

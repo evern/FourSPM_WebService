@@ -1,5 +1,6 @@
 using System;
 using System.ComponentModel.DataAnnotations;
+using System.Collections.Generic;
 
 namespace FourSPM_WebService.Data.OData.FourSPM
 {
@@ -40,5 +41,6 @@ namespace FourSPM_WebService.Data.OData.FourSPM
         public virtual DepartmentEntity? Department { get; set; }
         public virtual DeliverableTypeEntity? DeliverableType { get; set; }
         public virtual ProjectEntity? Project { get; set; }
+        public virtual ICollection<ProgressEntity> ProgressItems { get; set; } = new List<ProgressEntity>();
     }
 }

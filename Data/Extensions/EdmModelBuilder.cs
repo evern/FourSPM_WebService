@@ -19,6 +19,7 @@ namespace FourSPM_WebService.Data.Extensions
             builder.EntitySet<DepartmentEntity>("Departments").EntityType.HasKey(d => d.Guid);
             builder.EntitySet<DeliverableTypeEntity>("DeliverableTypes").EntityType.HasKey(dt => dt.Guid);
             builder.EntitySet<DeliverableEntity>("Deliverables").EntityType.HasKey(d => d.Guid);
+            builder.EntitySet<ProgressEntity>("Progress").EntityType.HasKey(p => p.Guid);
 
             return builder.GetEdmModel();
         }
