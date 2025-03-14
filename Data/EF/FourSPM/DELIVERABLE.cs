@@ -59,16 +59,8 @@ namespace FourSPM_WebService.Data.EF.FourSPM
         public decimal VARIATION_HOURS { get; set; }
 
         [Required]
-        [Column(TypeName = "decimal(10,2)")]
-        public decimal TOTAL_HOURS { get; set; }
-
-        [Required]
         [Column(TypeName = "decimal(15,2)")]
         public decimal TOTAL_COST { get; set; }
-
-        [Required]
-        [StringLength(50)]
-        public required string BOOKING_CODE { get; set; }
 
         [Required]
         public DateTime CREATED { get; set; }

@@ -95,9 +95,7 @@ namespace FourSPM_WebService.Controllers
                 DOCUMENT_TITLE = entity.DocumentTitle,
                 BUDGET_HOURS = entity.BudgetHours,
                 VARIATION_HOURS = entity.VariationHours,
-                TOTAL_HOURS = entity.TotalHours,
-                TOTAL_COST = entity.TotalCost,
-                BOOKING_CODE = entity.BookingCode
+                TOTAL_COST = entity.TotalCost
             };
 
             var result = await _repository.CreateAsync(deliverable);
@@ -128,9 +126,7 @@ namespace FourSPM_WebService.Controllers
                     DOCUMENT_TITLE = entity.DocumentTitle,
                     BUDGET_HOURS = entity.BudgetHours,
                     VARIATION_HOURS = entity.VariationHours,
-                    TOTAL_HOURS = entity.TotalHours,
-                    TOTAL_COST = entity.TotalCost,
-                    BOOKING_CODE = entity.BookingCode
+                    TOTAL_COST = entity.TotalCost
                 };
 
                 var result = await _repository.UpdateAsync(deliverable);
@@ -201,9 +197,7 @@ namespace FourSPM_WebService.Controllers
                     DOCUMENT_TITLE = updatedEntity.DocumentTitle,
                     BUDGET_HOURS = updatedEntity.BudgetHours,
                     VARIATION_HOURS = updatedEntity.VariationHours,
-                    TOTAL_HOURS = updatedEntity.TotalHours,
-                    TOTAL_COST = updatedEntity.TotalCost,
-                    BOOKING_CODE = updatedEntity.BookingCode
+                    TOTAL_COST = updatedEntity.TotalCost
                 };
 
                 var result = await _repository.UpdateAsync(deliverableToUpdate);
@@ -228,7 +222,7 @@ namespace FourSPM_WebService.Controllers
                                 !string.IsNullOrEmpty(deliverable.AREA_NUMBER) && 
                                 !string.IsNullOrEmpty(deliverable.DISCIPLINE)
                 ? $"{clientNumber}-{projectNumber}-{deliverable.AREA_NUMBER}-{deliverable.DISCIPLINE}"
-                : deliverable.BOOKING_CODE; // Fallback to stored value if calculation not possible
+                : string.Empty; // Use empty string as fallback since BOOKING_CODE no longer exists
                 
             // Always use the database-stored value for internal document number
             string internalDocumentNumber = deliverable.INTERNAL_DOCUMENT_NUMBER;

@@ -32,10 +32,9 @@ namespace FourSPM_WebService.Data.OData.FourSPM
         public required string DocumentTitle { get; set; }
         public decimal BudgetHours { get; set; }
         public decimal VariationHours { get; set; }
-        public decimal TotalHours { get; set; }
+        public decimal TotalHours { get; set; } 
         public decimal TotalCost { get; set; }
-        [Required]
-        public required string BookingCode { get; set; }
+        public string BookingCode { get; set; } = string.Empty; 
         public DateTime Created { get; set; }
         public Guid CreatedBy { get; set; }
         public DateTime? Updated { get; set; }

@@ -68,7 +68,6 @@ namespace FourSPM_WebService.Data.Repositories
             existingDeliverable.BUDGET_HOURS = deliverable.BUDGET_HOURS;
             existingDeliverable.VARIATION_HOURS = deliverable.VARIATION_HOURS;
             existingDeliverable.TOTAL_COST = deliverable.TOTAL_COST;
-            existingDeliverable.BOOKING_CODE = deliverable.BOOKING_CODE;
             existingDeliverable.UPDATED = DateTime.Now;
             existingDeliverable.UPDATEDBY = deliverable.UPDATEDBY;
 

@@ -124,7 +124,6 @@ public partial class FourSPMContext : DbContext
             entity.HasKey(e => e.GUID);
             entity.ToTable("DELIVERABLES");
 
-            entity.HasIndex(e => e.BOOKING_CODE).HasDatabaseName("IX_DELIVERABLES_BOOKING_CODE");
             entity.HasIndex(e => e.INTERNAL_DOCUMENT_NUMBER).HasDatabaseName("IX_DELIVERABLES_INTERNAL_DOC_NUM");
             entity.HasIndex(e => e.DEPARTMENT_ID).HasDatabaseName("IX_DELIVERABLES_DEPARTMENT_ID");
             entity.HasIndex(e => e.DELIVERABLE_TYPE_ID).HasDatabaseName("IX_DELIVERABLES_DELIVERABLE_TYPE_ID");
@@ -143,9 +142,7 @@ public partial class FourSPMContext : DbContext
             entity.Property(e => e.DOCUMENT_TITLE).HasMaxLength(255).IsRequired();
             entity.Property(e => e.BUDGET_HOURS).HasColumnType("decimal(10,2)").IsRequired().HasDefaultValue(0);
             entity.Property(e => e.VARIATION_HOURS).HasColumnType("decimal(10,2)").IsRequired().HasDefaultValue(0);
-            entity.Property(e => e.TOTAL_HOURS).HasColumnType("decimal(10,2)").IsRequired().HasDefaultValue(0);
             entity.Property(e => e.TOTAL_COST).HasColumnType("decimal(15,2)").IsRequired().HasDefaultValue(0);
-            entity.Property(e => e.BOOKING_CODE).HasMaxLength(50).IsRequired();
             entity.Property(e => e.CREATED).HasColumnType("datetime").IsRequired().HasDefaultValueSql("GETDATE()");
             entity.Property(e => e.CREATEDBY).IsRequired();
             entity.Property(e => e.UPDATED).HasColumnType("datetime");

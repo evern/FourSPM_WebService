@@ -209,12 +209,10 @@ namespace FourSPM_WebService.Controllers
                     DocumentType = progress.Deliverable.DOCUMENT_TYPE,
                     InternalDocumentNumber = progress.Deliverable.INTERNAL_DOCUMENT_NUMBER,
                     DocumentTitle = progress.Deliverable.DOCUMENT_TITLE,
-                    BookingCode = progress.Deliverable.BOOKING_CODE,
                     DepartmentId = progress.Deliverable.DEPARTMENT_ID,
                     DeliverableTypeId = progress.Deliverable.DELIVERABLE_TYPE_ID,
                     BudgetHours = progress.Deliverable.BUDGET_HOURS,
                     VariationHours = progress.Deliverable.VARIATION_HOURS,
-                    TotalHours = progress.Deliverable.TOTAL_HOURS,
                     TotalCost = progress.Deliverable.TOTAL_COST
                 } : null
             };
