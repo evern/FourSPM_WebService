@@ -5,6 +5,14 @@ using System.Collections.Generic;
 
 namespace FourSPM_WebService.Data.EF.FourSPM
 {
+    public enum DeliverableTypeEnum
+    {
+        Task = 0,
+        NonDeliverable = 1,
+        DeliverableICR = 2,
+        Deliverable = 3
+    }
+
     [Table("DELIVERABLES")]
     public class DELIVERABLE
     {
@@ -29,7 +37,7 @@ namespace FourSPM_WebService.Data.EF.FourSPM
 
         public Guid DEPARTMENT_ID { get; set; }
 
-        public Guid DELIVERABLE_TYPE_ID { get; set; }
+        public DeliverableTypeEnum DELIVERABLE_TYPE_ID { get; set; }
 
         [Required]
         [StringLength(50)]
@@ -78,9 +86,6 @@ namespace FourSPM_WebService.Data.EF.FourSPM
 
         [ForeignKey(nameof(DEPARTMENT_ID))]
         public virtual DEPARTMENT? Department { get; set; }
-
-        [ForeignKey(nameof(DELIVERABLE_TYPE_ID))]
-        public virtual DELIVERABLE_TYPE? DeliverableType { get; set; }
 
         [ForeignKey(nameof(PROJECT_GUID))]
         public virtual PROJECT? Project { get; set; }

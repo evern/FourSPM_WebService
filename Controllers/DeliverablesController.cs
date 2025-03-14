@@ -218,23 +218,42 @@ namespace FourSPM_WebService.Controllers
 
         private static DeliverableEntity MapToEntity(DELIVERABLE deliverable)
         {
+            // Extract client number and project number from the Project entity if available
+            string clientNumber = deliverable.Project?.CLIENT_NUMBER ?? string.Empty;
+            string projectNumber = deliverable.Project?.PROJECT_NUMBER ?? string.Empty;
+            
+            // Calculate derived fields
+            string bookingCode = !string.IsNullOrEmpty(clientNumber) && 
+                                !string.IsNullOrEmpty(projectNumber) && 
+                                !string.IsNullOrEmpty(deliverable.AREA_NUMBER) && 
+                                !string.IsNullOrEmpty(deliverable.DISCIPLINE)
+                ? $"{clientNumber}-{projectNumber}-{deliverable.AREA_NUMBER}-{deliverable.DISCIPLINE}"
+                : deliverable.BOOKING_CODE; // Fallback to stored value if calculation not possible
+                
+            // Always use the database-stored value for internal document number
+            string internalDocumentNumber = deliverable.INTERNAL_DOCUMENT_NUMBER;
+            
+            decimal totalHours = deliverable.BUDGET_HOURS + deliverable.VARIATION_HOURS;
+            
             return new DeliverableEntity
             {
                 Guid = deliverable.GUID,
                 ProjectGuid = deliverable.PROJECT_GUID,
+                ClientNumber = clientNumber,
+                ProjectNumber = projectNumber,
                 AreaNumber = deliverable.AREA_NUMBER,
                 Discipline = deliverable.DISCIPLINE,
                 DocumentType = deliverable.DOCUMENT_TYPE,
                 DepartmentId = deliverable.DEPARTMENT_ID,
                 DeliverableTypeId = deliverable.DELIVERABLE_TYPE_ID,
-                InternalDocumentNumber = deliverable.INTERNAL_DOCUMENT_NUMBER,
+                InternalDocumentNumber = internalDocumentNumber,
                 ClientDocumentNumber = deliverable.CLIENT_DOCUMENT_NUMBER,
                 DocumentTitle = deliverable.DOCUMENT_TITLE,
                 BudgetHours = deliverable.BUDGET_HOURS,
                 VariationHours = deliverable.VARIATION_HOURS,
-                TotalHours = deliverable.TOTAL_HOURS,
+                TotalHours = totalHours,
                 TotalCost = deliverable.TOTAL_COST,
-                BookingCode = deliverable.BOOKING_CODE,
+                BookingCode = bookingCode,
                 Created = deliverable.CREATED,
                 CreatedBy = deliverable.CREATEDBY,
                 Updated = deliverable.UPDATED,
@@ -246,12 +265,6 @@ namespace FourSPM_WebService.Controllers
                     Guid = deliverable.Department.GUID,
                     Name = deliverable.Department.NAME,
                     Description = deliverable.Department.DESCRIPTION
-                } : null,
-                DeliverableType = deliverable.DeliverableType != null ? new DeliverableTypeEntity
-                {
-                    Guid = deliverable.DeliverableType.GUID,
-                    Name = deliverable.DeliverableType.NAME,
-                    Description = deliverable.DeliverableType.DESCRIPTION
                 } : null,
                 Project = deliverable.Project != null ? new ProjectEntity
                 {
