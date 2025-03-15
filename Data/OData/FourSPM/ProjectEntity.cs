@@ -10,9 +10,7 @@ namespace FourSPM_WebService.Data.OData.FourSPM
         [Required]
         public Guid Guid { get; set; }
 
-        [Required]
-        [MaxLength(3)]
-        public string ClientNumber { get; set; } = null!;
+        public Guid? ClientGuid { get; set; }
 
         [Required]
         [MaxLength(2)]
@@ -20,12 +18,12 @@ namespace FourSPM_WebService.Data.OData.FourSPM
 
         public string? Name { get; set; }
 
-        public string? ClientContact { get; set; }
-
         public string? PurchaseOrderNumber { get; set; }
 
         [Required]
         public ProjectStatus ProjectStatus { get; set; }
+        
+        public DateTime? ProgressStart { get; set; }
 
         public DateTime Created { get; set; }
 
@@ -38,6 +36,8 @@ namespace FourSPM_WebService.Data.OData.FourSPM
         public DateTime? Deleted { get; set; }
 
         public Guid? DeletedBy { get; set; }
+
+        public virtual ClientEntity? Client { get; set; }
 
         public virtual ICollection<DeliverableEntity> Deliverables { get; set; } = new List<DeliverableEntity>();
     }

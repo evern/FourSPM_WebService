@@ -14,6 +14,7 @@ public partial class FourSPMContext : DbContext
         DEPARTMENTs = Set<DEPARTMENT>();
         DELIVERABLEs = Set<DELIVERABLE>();
         PROGRESSes = Set<PROGRESS>();
+        CLIENTs = Set<CLIENT>();
     }
 
     public FourSPMContext(DbContextOptions<FourSPMContext> options)
@@ -24,6 +25,7 @@ public partial class FourSPMContext : DbContext
         DEPARTMENTs = Set<DEPARTMENT>();
         DELIVERABLEs = Set<DELIVERABLE>();
         PROGRESSes = Set<PROGRESS>();
+        CLIENTs = Set<CLIENT>();
     }
 
     public virtual DbSet<PROJECT> PROJECTs { get; set; }
@@ -31,6 +33,7 @@ public partial class FourSPMContext : DbContext
     public virtual DbSet<DEPARTMENT> DEPARTMENTs { get; set; }
     public virtual DbSet<DELIVERABLE> DELIVERABLEs { get; set; }
     public virtual DbSet<PROGRESS> PROGRESSes { get; set; }
+    public virtual DbSet<CLIENT> CLIENTs { get; set; }
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
 #warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see https://go.microsoft.com/fwlink/?LinkId=723263.
@@ -38,6 +41,24 @@ public partial class FourSPMContext : DbContext
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        modelBuilder.Entity<CLIENT>(entity =>
+        {
+            entity.HasKey(e => e.GUID);
+
+            entity.ToTable("CLIENT");
+
+            entity.Property(e => e.GUID).ValueGeneratedNever();
+            entity.Property(e => e.NUMBER).HasMaxLength(3).IsRequired();
+            entity.Property(e => e.DESCRIPTION).HasMaxLength(2).IsRequired();
+            entity.Property(e => e.CLIENT_CONTACT);
+            entity.Property(e => e.CREATED).HasColumnType("datetime").IsRequired();
+            entity.Property(e => e.CREATEDBY).IsRequired();
+            entity.Property(e => e.UPDATED).HasColumnType("datetime");
+            entity.Property(e => e.UPDATEDBY);
+            entity.Property(e => e.DELETED).HasColumnType("datetime");
+            entity.Property(e => e.DELETEDBY);
+        });
+
         modelBuilder.Entity<PROJECT>(entity =>
         {
             entity.HasKey(e => e.GUID);
@@ -45,48 +66,27 @@ public partial class FourSPMContext : DbContext
             entity.ToTable("PROJECT");
 
             entity.Property(e => e.GUID).ValueGeneratedNever();
-            entity.Property(e => e.CLIENT_NUMBER).HasMaxLength(3).IsRequired();
+            entity.Property(e => e.GUID_CLIENT);
             entity.Property(e => e.PROJECT_NUMBER).HasMaxLength(2).IsRequired();
-            entity.Property(e => e.CLIENT_CONTACT);
+            entity.Property(e => e.NAME);
             entity.Property(e => e.PURCHASE_ORDER_NUMBER);
             entity.Property(e => e.PROJECT_STATUS)
                 .HasConversion<int>()
                 .HasDefaultValue(ProjectStatus.TenderInProgress);
+            entity.Property(e => e.PROGRESS_START).HasColumnType("datetime");
             entity.Property(e => e.CREATED).HasColumnType("datetime").IsRequired();
             entity.Property(e => e.CREATEDBY).IsRequired();
-            entity.Property(e => e.NAME);
             entity.Property(e => e.UPDATED).HasColumnType("datetime");
             entity.Property(e => e.UPDATEDBY);
             entity.Property(e => e.DELETED).HasColumnType("datetime");
             entity.Property(e => e.DELETEDBY);
 
-            // Add test data
-            entity.HasData(
-                new PROJECT
-                {
-                    GUID = Guid.Parse("11111111-1111-1111-1111-111111111111"),
-                    CLIENT_NUMBER = "001",
-                    PROJECT_NUMBER = "01",
-                    NAME = "Test Project 1",
-                    CLIENT_CONTACT = "John Doe",
-                    PURCHASE_ORDER_NUMBER = "PO001",
-                    PROJECT_STATUS = ProjectStatus.TenderInProgress,
-                    CREATED = DateTime.Now,
-                    CREATEDBY = Guid.Parse("00000000-0000-0000-0000-000000000001")
-                },
-                new PROJECT
-                {
-                    GUID = Guid.Parse("22222222-2222-2222-2222-222222222222"),
-                    CLIENT_NUMBER = "002",
-                    PROJECT_NUMBER = "02",
-                    NAME = "Test Project 2",
-                    CLIENT_CONTACT = "Jane Smith",
-                    PURCHASE_ORDER_NUMBER = "PO002",
-                    PROJECT_STATUS = ProjectStatus.Awarded,
-                    CREATED = DateTime.Now,
-                    CREATEDBY = Guid.Parse("00000000-0000-0000-0000-000000000001")
-                }
-            );
+            // Configure the foreign key relationship
+            entity.HasOne(d => d.Client)
+                .WithMany(p => p.Projects)
+                .HasForeignKey(d => d.GUID_CLIENT);
+
+
         });
 
         modelBuilder.Entity<USER>(entity =>

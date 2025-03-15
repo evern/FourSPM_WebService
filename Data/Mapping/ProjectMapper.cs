@@ -10,18 +10,26 @@ namespace FourSPM_WebService.Data.Mapping
             return new ProjectEntity
             {
                 Guid = project.GUID,
-                ClientNumber = project.CLIENT_NUMBER,
+                ClientGuid = project.GUID_CLIENT,
                 ProjectNumber = project.PROJECT_NUMBER,
                 Name = project.NAME,
-                ClientContact = project.CLIENT_CONTACT,
                 PurchaseOrderNumber = project.PURCHASE_ORDER_NUMBER,
                 ProjectStatus = project.PROJECT_STATUS,
+                ProgressStart = project.PROGRESS_START,
                 Created = project.CREATED,
                 CreatedBy = project.CREATEDBY,
                 Updated = project.UPDATED,
                 UpdatedBy = project.UPDATEDBY,
                 Deleted = project.DELETED,
-                DeletedBy = project.DELETEDBY
+                DeletedBy = project.DELETEDBY,
+                // Include client data if available
+                Client = project.Client != null ? new ClientEntity
+                {
+                    Guid = project.Client.GUID,
+                    Number = project.Client.NUMBER,
+                    Description = project.Client.DESCRIPTION,
+                    ClientContact = project.Client.CLIENT_CONTACT
+                } : null
             };
         }
     }

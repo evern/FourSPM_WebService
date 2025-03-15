@@ -213,7 +213,7 @@ namespace FourSPM_WebService.Controllers
         private static DeliverableEntity MapToEntity(DELIVERABLE deliverable)
         {
             // Extract client number and project number from the Project entity if available
-            string clientNumber = deliverable.Project?.CLIENT_NUMBER ?? string.Empty;
+            string clientNumber = deliverable.Project?.Client?.NUMBER ?? string.Empty;
             string projectNumber = deliverable.Project?.PROJECT_NUMBER ?? string.Empty;
             
             // Calculate derived fields
@@ -263,9 +263,14 @@ namespace FourSPM_WebService.Controllers
                 Project = deliverable.Project != null ? new ProjectEntity
                 {
                     Guid = deliverable.Project.GUID,
-                    ClientNumber = deliverable.Project.CLIENT_NUMBER,
+                    ClientGuid = deliverable.Project.GUID_CLIENT,
                     ProjectNumber = deliverable.Project.PROJECT_NUMBER,
-                    Name = deliverable.Project.NAME
+                    Name = deliverable.Project.NAME,
+                    Client = deliverable.Project.Client != null ? new ClientEntity {
+                        Guid = deliverable.Project.Client.GUID,
+                        Number = deliverable.Project.Client.NUMBER,
+                        Description = deliverable.Project.Client.DESCRIPTION
+                    } : null
                 } : null
             };
         }

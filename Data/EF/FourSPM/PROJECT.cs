@@ -8,18 +8,18 @@ public partial class PROJECT
 {
     public Guid GUID { get; set; }
 
-    public string CLIENT_NUMBER { get; set; } = null!;
+    public Guid? GUID_CLIENT { get; set; }
 
     public string PROJECT_NUMBER { get; set; } = null!;
 
-    public string? CLIENT_CONTACT { get; set; }
+    public string? NAME { get; set; }
 
     public string? PURCHASE_ORDER_NUMBER { get; set; }
 
     public ProjectStatus PROJECT_STATUS { get; set; }
 
-    public string? NAME { get; set; }
-
+    public DateTime? PROGRESS_START { get; set; }
+    
     public DateTime CREATED { get; set; }
 
     public Guid CREATEDBY { get; set; }
@@ -31,6 +31,8 @@ public partial class PROJECT
     public DateTime? DELETED { get; set; }
 
     public Guid? DELETEDBY { get; set; }
+
+    public virtual CLIENT? Client { get; set; }
 
     public virtual ICollection<DELIVERABLE> Deliverables { get; set; } = new List<DELIVERABLE>();
 }

@@ -22,7 +22,33 @@ namespace FourSPM_WebService.Data.Repositories
 
         public IQueryable<ProjectEntity> ProjectQuery()
         {
-            return ProjectQueries.UserProjectQuery(_context, _user);
+            // Updated to include CLIENT relationship
+            return _context.PROJECTs
+                .Where(p => p.DELETED == null)
+                .Select(p => new ProjectEntity
+                {
+                    Guid = p.GUID,
+                    ClientGuid = p.GUID_CLIENT,
+                    ProjectNumber = p.PROJECT_NUMBER,
+                    Name = p.NAME,
+                    PurchaseOrderNumber = p.PURCHASE_ORDER_NUMBER,
+                    ProjectStatus = p.PROJECT_STATUS,
+                    ProgressStart = p.PROGRESS_START,
+                    Created = p.CREATED,
+                    CreatedBy = p.CREATEDBY,
+                    Updated = p.UPDATED,
+                    UpdatedBy = p.UPDATEDBY,
+                    Deleted = p.DELETED,
+                    DeletedBy = p.DELETEDBY,
+                    // Include client data if available
+                    Client = p.Client != null ? new ClientEntity
+                    {
+                        Guid = p.Client.GUID,
+                        Number = p.Client.NUMBER,
+                        Description = p.Client.DESCRIPTION,
+                        ClientContact = p.Client.CLIENT_CONTACT
+                    } : null
+                });
         }
 
         public async Task<OperationResult<ProjectEntity>> CreateProject(ProjectEntity project)
@@ -39,15 +65,26 @@ namespace FourSPM_WebService.Data.Repositories
                     };
                 }
 
+                // Validate client exists if ClientGuid is provided
+                if (project.ClientGuid.HasValue && !await _context.CLIENTs.AnyAsync(c => c.GUID == project.ClientGuid && c.DELETED == null))
+                {
+                    return new OperationResult<ProjectEntity>
+                    {
+                        Status = OperationStatus.Validation,
+                        Message = $"Specified client with ID {project.ClientGuid} does not exist.",
+                        Result = project
+                    };
+                }
+
                 var newProject = new PROJECT
                 {
                     GUID = project.Guid,
-                    CLIENT_NUMBER = project.ClientNumber,
+                    GUID_CLIENT = project.ClientGuid,
                     PROJECT_NUMBER = project.ProjectNumber,
                     NAME = project.Name,
-                    CLIENT_CONTACT = project.ClientContact,
                     PURCHASE_ORDER_NUMBER = project.PurchaseOrderNumber,
                     PROJECT_STATUS = project.ProjectStatus,
+                    PROGRESS_START = project.ProgressStart,
                     CREATED = DateTime.Now,
                     CREATEDBY = _user.UserId!.Value
                 };
@@ -110,12 +147,23 @@ namespace FourSPM_WebService.Data.Repositories
                 };
             }
 
-            efProject.CLIENT_NUMBER = project.ClientNumber;
+            // Validate client exists if ClientGuid is provided
+            if (project.ClientGuid.HasValue && !await _context.CLIENTs.AnyAsync(c => c.GUID == project.ClientGuid && c.DELETED == null))
+            {
+                return new OperationResult<ProjectEntity>
+                {
+                    Status = OperationStatus.Validation,
+                    Message = $"Specified client with ID {project.ClientGuid} does not exist.",
+                    Result = project
+                };
+            }
+
+            efProject.GUID_CLIENT = project.ClientGuid;
             efProject.PROJECT_NUMBER = project.ProjectNumber;
-            efProject.CLIENT_CONTACT = project.ClientContact;
             efProject.NAME = project.Name;
             efProject.PURCHASE_ORDER_NUMBER = project.PurchaseOrderNumber;
             efProject.PROJECT_STATUS = project.ProjectStatus;
+            efProject.PROGRESS_START = project.ProgressStart;
             efProject.UPDATED = DateTime.Now;
             efProject.UPDATEDBY = _user.UserId ?? Guid.Empty;
 
@@ -158,10 +206,10 @@ namespace FourSPM_WebService.Data.Repositories
             return new OperationResult { Status = OperationStatus.Success };
         }
 
-        private async Task<bool> HasAccess(PROJECT project)
+        private Task<bool> HasAccess(PROJECT project)
         {
             // For now, everyone has access to all projects
-            return true;
+            return Task.FromResult(true);
         }
     }
 }

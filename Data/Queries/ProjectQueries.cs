@@ -16,18 +16,26 @@ namespace FourSPM_WebService.Data.Queries
                 .Select(p => new ProjectEntity
                 {
                     Guid = p.GUID,
-                    ClientNumber = p.CLIENT_NUMBER,
+                    ClientGuid = p.GUID_CLIENT,
                     ProjectNumber = p.PROJECT_NUMBER,
-                    ClientContact = p.CLIENT_CONTACT,
                     Name = p.NAME,
                     PurchaseOrderNumber = p.PURCHASE_ORDER_NUMBER,
                     ProjectStatus = p.PROJECT_STATUS,
+                    ProgressStart = p.PROGRESS_START,
                     Created = p.CREATED,
                     CreatedBy = p.CREATEDBY,
                     Updated = p.UPDATED,
                     UpdatedBy = p.UPDATEDBY,
                     Deleted = p.DELETED,
-                    DeletedBy = p.DELETEDBY
+                    DeletedBy = p.DELETEDBY,
+                    // Include client data if available
+                    Client = p.Client != null ? new ClientEntity
+                    {
+                        Guid = p.Client.GUID,
+                        Number = p.Client.NUMBER,
+                        Description = p.Client.DESCRIPTION,
+                        ClientContact = p.Client.CLIENT_CONTACT
+                    } : null
                 });
         }
     }
