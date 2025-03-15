@@ -19,152 +19,84 @@ namespace FourSPM_WebService.Data.Repositories
             _user = user;
         }
 
-        public IQueryable<ClientEntity> ClientQuery()
+        public async Task<IEnumerable<CLIENT>> GetAllAsync()
         {
-            return _context.CLIENTs
+            return await _context.CLIENTs
                 .Where(c => c.DELETED == null)
-                .Select(c => new ClientEntity
-                {
-                    Guid = c.GUID,
-                    Number = c.NUMBER,
-                    Description = c.DESCRIPTION,
-                    ClientContactName = c.CLIENT_CONTACT_NAME,
-                    ClientContactNumber = c.CLIENT_CONTACT_NUMBER,
-                    ClientContactEmail = c.CLIENT_CONTACT_EMAIL,
-                    Created = c.CREATED,
-                    CreatedBy = c.CREATEDBY,
-                    Updated = c.UPDATED,
-                    UpdatedBy = c.UPDATEDBY,
-                    Deleted = c.DELETED,
-                    DeletedBy = c.DELETEDBY
-                });
+                .ToListAsync();
+        }
+        
+        public async Task<CLIENT?> GetByIdAsync(Guid id)
+        {
+            return await _context.CLIENTs
+                .Where(c => c.GUID == id && c.DELETED == null)
+                .FirstOrDefaultAsync();
         }
 
-        public async Task<OperationResult<ClientEntity>> CreateClient(ClientEntity client)
+        public async Task<CLIENT> CreateAsync(CLIENT client)
         {
-            try
-            {
-                if (await _context.CLIENTs.AnyAsync(c => c.GUID == client.Guid))
-                {
-                    return new OperationResult<ClientEntity>
-                    {
-                        Status = OperationStatus.Validation,
-                        Message = $"Client {client.Number} already exists.",
-                        Result = client
-                    };
-                }
-
-                var newClient = new CLIENT
-                {
-                    GUID = client.Guid,
-                    NUMBER = client.Number,
-                    DESCRIPTION = client.Description,
-                    CLIENT_CONTACT_NAME = client.ClientContactName,
-                    CLIENT_CONTACT_NUMBER = client.ClientContactNumber,
-                    CLIENT_CONTACT_EMAIL = client.ClientContactEmail,
-                    CREATED = DateTime.Now,
-                    CREATEDBY = _user.UserId!.Value
-                };
-
-                _context.CLIENTs.Add(newClient);
-                await _context.SaveChangesAsync();
-
-                return new OperationResult<ClientEntity>
-                {
-                    Status = OperationStatus.Created,
-                    Result = client
-                };
-            }
-            catch (Exception ex)
-            {
-                return new OperationResult<ClientEntity>
-                {
-                    Status = OperationStatus.Error,
-                    Message = ex.Message
-                };
-            }
-        }
-
-        public async Task<OperationResult<ClientEntity>> UpdateClientByKey(Guid key, Action<ClientEntity> update)
-        {
-            var original = await ClientQuery().FirstOrDefaultAsync(x => x.Guid == key);
-
-            if (original == null)
-            {
-                return new OperationResult<ClientEntity>
-                {
-                    Status = OperationStatus.NotFound,
-                    Message = $"No client found with id {key}."
-                };
-            }
-
-            update(original);
-            return await UpdateClient(original);
-        }
-
-        public async Task<OperationResult<ClientEntity>> UpdateClient(ClientEntity client)
-        {
-            var efClient = await _context.CLIENTs.FirstOrDefaultAsync(c => c.GUID == client.Guid);
-
-            if (efClient == null)
-            {
-                return new OperationResult<ClientEntity>
-                {
-                    Status = OperationStatus.NotFound,
-                    Message = $"Client {client.Number} not found."
-                };
-            }
-
-            efClient.NUMBER = client.Number;
-            efClient.DESCRIPTION = client.Description;
-            efClient.CLIENT_CONTACT_NAME = client.ClientContactName;
-            efClient.CLIENT_CONTACT_NUMBER = client.ClientContactNumber;
-            efClient.CLIENT_CONTACT_EMAIL = client.ClientContactEmail;
-            efClient.UPDATED = DateTime.Now;
-            efClient.UPDATEDBY = _user.UserId ?? Guid.Empty;
-
+            client.CREATED = DateTime.Now;
+            client.CREATEDBY = _user.UserId!.Value;
+            
+            _context.CLIENTs.Add(client);
             await _context.SaveChangesAsync();
-
-            return new OperationResult<ClientEntity>
-            {
-                Status = OperationStatus.Updated,
-                Result = client
-            };
+            
+            return client;
         }
-
-        public async Task<OperationResult> DeleteClient(Guid key)
+        
+        public async Task<CLIENT> UpdateAsync(CLIENT client)
         {
-            var client = await _context.CLIENTs.FirstOrDefaultAsync(c => c.GUID == key);
-
+            var existingClient = await _context.CLIENTs.FirstOrDefaultAsync(c => c.GUID == client.GUID);
+            
+            if (existingClient == null)
+            {
+                throw new KeyNotFoundException($"Client with ID {client.GUID} not found");
+            }
+            
+            // Preserve creation info
+            client.CREATED = existingClient.CREATED;
+            client.CREATEDBY = existingClient.CREATEDBY;
+            
+            // Update modification info
+            client.UPDATED = DateTime.Now;
+            client.UPDATEDBY = _user.UserId!.Value;
+            
+            // Keep deletion info if present
+            client.DELETED = existingClient.DELETED;
+            client.DELETEDBY = existingClient.DELETEDBY;
+            
+            _context.Entry(existingClient).CurrentValues.SetValues(client);
+            await _context.SaveChangesAsync();
+            
+            return client;
+        }
+        
+        public async Task<bool> DeleteAsync(Guid id, Guid deletedBy)
+        {
+            var client = await _context.CLIENTs.FirstOrDefaultAsync(c => c.GUID == id);
+            
             if (client == null)
             {
-                return new OperationResult
-                {
-                    Status = OperationStatus.NotFound,
-                    Message = $"No client found with id {key}."
-                };
+                return false;
             }
-
+            
             // Check if there are any associated projects
             var hasProjects = await _context.PROJECTs
-                .Where(p => p.GUID_CLIENT == key && p.DELETED == null)
+                .Where(p => p.GUID_CLIENT == id && p.DELETED == null)
                 .AnyAsync();
-
+            
             if (hasProjects)
             {
-                return new OperationResult
-                {
-                    Status = OperationStatus.Validation,
-                    Message = "Cannot delete client with associated projects."
-                };
+                throw new InvalidOperationException("Cannot delete client with associated projects.");
             }
-
+            
+            // Soft delete
             client.DELETED = DateTime.Now;
-            client.DELETEDBY = _user.UserId;
-
+            client.DELETEDBY = deletedBy;
+            
             await _context.SaveChangesAsync();
-
-            return new OperationResult { Status = OperationStatus.Success };
+            
+            return true;
         }
     }
 }

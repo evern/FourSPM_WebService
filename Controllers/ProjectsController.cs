@@ -73,6 +73,12 @@ public class ProjectsController : FourSPMODataController
     {
         if (!ModelState.IsValid)
             return BadRequest(ModelState);
+            
+        // Check if project number is unique
+        if (!await IsProjectNumberUnique(entity.ProjectNumber, null))
+        {
+            return BadRequest($"A project with number '{entity.ProjectNumber}' already exists.");
+        }
 
         var project = new PROJECT
         {
@@ -117,6 +123,12 @@ public class ProjectsController : FourSPMODataController
 
         try
         {
+            // Check if project number is unique (excluding the current project)
+            if (!await IsProjectNumberUnique(entity.ProjectNumber, key))
+            {
+                return BadRequest($"A project with number '{entity.ProjectNumber}' already exists.");
+            }
+            
             var project = new PROJECT
             {
                 GUID = entity.Guid,
@@ -174,6 +186,13 @@ public class ProjectsController : FourSPMODataController
             // Create a copy of the entity to track changes
             var updatedEntity = MapToEntity(existingProject);
             delta.CopyChangedValues(updatedEntity);
+            
+            // Check if project number is being changed and is unique (if it's being updated)
+            if (delta.GetChangedPropertyNames().Contains("ProjectNumber") && 
+                !await IsProjectNumberUnique(updatedEntity.ProjectNumber, key))
+            {
+                return BadRequest($"A project with number '{updatedEntity.ProjectNumber}' already exists.");
+            }
 
             // Map back to PROJECT entity
             var projectToUpdate = new PROJECT
@@ -231,5 +250,28 @@ public class ProjectsController : FourSPMODataController
             ClientContactNumber = project.Client?.CLIENT_CONTACT_NUMBER,
             ClientContactEmail = project.Client?.CLIENT_CONTACT_EMAIL
         };
+    }
+    
+    /// <summary>
+    /// Checks if a project number is unique in the database
+    /// </summary>
+    /// <param name="projectNumber">The project number to check</param>
+    /// <param name="excludeProjectGuid">Optional GUID of the project to exclude from the check (for updates)</param>
+    /// <returns>True if the project number is unique, false otherwise</returns>
+    private async Task<bool> IsProjectNumberUnique(string projectNumber, Guid? excludeProjectGuid)
+    {
+        if (string.IsNullOrEmpty(projectNumber))
+            return true; // Empty project numbers are handled by model validation
+            
+        var query = _context.PROJECTs
+            .Where(p => p.PROJECT_NUMBER == projectNumber && p.DELETED == null);
+            
+        // If we're updating an existing project, exclude it from the uniqueness check
+        if (excludeProjectGuid.HasValue)
+        {
+            query = query.Where(p => p.GUID != excludeProjectGuid.Value);
+        }
+        
+        return await query.CountAsync() == 0;
     }
 }
