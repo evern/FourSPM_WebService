@@ -23,7 +23,7 @@ namespace FourSPM_WebService.Data.OData.FourSPM
         [RegularExpression(@"[A-Z][A-Z][A-Z]")]
         [Required]
         public required string DocumentType { get; set; }
-        public Guid DepartmentId { get; set; }
+        public DepartmentEnum DepartmentId { get; set; }
         public DeliverableTypeEnum DeliverableTypeId { get; set; }
         [Required]
         public required string InternalDocumentNumber { get; set; }
@@ -42,7 +42,6 @@ namespace FourSPM_WebService.Data.OData.FourSPM
         public DateTime? Deleted { get; set; }
         public Guid? DeletedBy { get; set; }
 
-        public virtual DepartmentEntity? Department { get; set; }
         public virtual ProjectEntity? Project { get; set; }
         public virtual ICollection<ProgressEntity> ProgressItems { get; set; } = new List<ProgressEntity>();
     }

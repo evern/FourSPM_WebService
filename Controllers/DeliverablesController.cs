@@ -255,12 +255,6 @@ namespace FourSPM_WebService.Controllers
                 UpdatedBy = deliverable.UPDATEDBY,
                 Deleted = deliverable.DELETED,
                 DeletedBy = deliverable.DELETEDBY,
-                Department = deliverable.Department != null ? new DepartmentEntity
-                {
-                    Guid = deliverable.Department.GUID,
-                    Name = deliverable.Department.NAME,
-                    Description = deliverable.Department.DESCRIPTION
-                } : null,
                 Project = deliverable.Project != null ? new ProjectEntity
                 {
                     Guid = deliverable.Project.GUID,

@@ -13,6 +13,14 @@ namespace FourSPM_WebService.Data.EF.FourSPM
         Deliverable = 3
     }
 
+    public enum DepartmentEnum
+    {
+        Administration = 0,
+        Design = 1,
+        Engineering = 2,
+        Management = 3
+    }
+
     [Table("DELIVERABLES")]
     public class DELIVERABLE
     {
@@ -35,7 +43,7 @@ namespace FourSPM_WebService.Data.EF.FourSPM
         [RegularExpression(@"[A-Z][A-Z][A-Z]", ErrorMessage = "DOCUMENT_TYPE must be 3 uppercase letters")]
         public required string DOCUMENT_TYPE { get; set; }
 
-        public Guid DEPARTMENT_ID { get; set; }
+        public DepartmentEnum DEPARTMENT_ID { get; set; }
 
         public DeliverableTypeEnum DELIVERABLE_TYPE_ID { get; set; }
 
@@ -75,9 +83,6 @@ namespace FourSPM_WebService.Data.EF.FourSPM
         public DateTime? DELETED { get; set; }
 
         public Guid? DELETEDBY { get; set; }
-
-        [ForeignKey(nameof(DEPARTMENT_ID))]
-        public virtual DEPARTMENT? Department { get; set; }
 
         [ForeignKey(nameof(PROJECT_GUID))]
         public virtual PROJECT? Project { get; set; }

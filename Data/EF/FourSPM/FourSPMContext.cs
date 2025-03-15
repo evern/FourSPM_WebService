@@ -11,7 +11,6 @@ public partial class FourSPMContext : DbContext
     {
         PROJECTs = Set<PROJECT>();
         USERs = Set<USER>();
-        DEPARTMENTs = Set<DEPARTMENT>();
         DELIVERABLEs = Set<DELIVERABLE>();
         PROGRESSes = Set<PROGRESS>();
         CLIENTs = Set<CLIENT>();
@@ -22,7 +21,6 @@ public partial class FourSPMContext : DbContext
     {
         PROJECTs = Set<PROJECT>();
         USERs = Set<USER>();
-        DEPARTMENTs = Set<DEPARTMENT>();
         DELIVERABLEs = Set<DELIVERABLE>();
         PROGRESSes = Set<PROGRESS>();
         CLIENTs = Set<CLIENT>();
@@ -30,7 +28,6 @@ public partial class FourSPMContext : DbContext
 
     public virtual DbSet<PROJECT> PROJECTs { get; set; }
     public virtual DbSet<USER> USERs { get; set; }
-    public virtual DbSet<DEPARTMENT> DEPARTMENTs { get; set; }
     public virtual DbSet<DELIVERABLE> DELIVERABLEs { get; set; }
     public virtual DbSet<PROGRESS> PROGRESSes { get; set; }
     public virtual DbSet<CLIENT> CLIENTs { get; set; }
@@ -105,22 +102,6 @@ public partial class FourSPMContext : DbContext
             entity.Property(e => e.UPDATED).HasColumnType("datetime");
         });
 
-        modelBuilder.Entity<DEPARTMENT>(entity =>
-        {
-            entity.HasKey(e => e.GUID);
-            entity.ToTable("DEPARTMENTS");
-
-            entity.Property(e => e.GUID).HasDefaultValueSql("NEWID()");
-            entity.Property(e => e.NAME).HasMaxLength(50).IsRequired();
-            entity.Property(e => e.DESCRIPTION).HasMaxLength(500);
-            entity.Property(e => e.CREATED).HasColumnType("datetime").IsRequired().HasDefaultValueSql("GETDATE()");
-            entity.Property(e => e.CREATEDBY).IsRequired();
-            entity.Property(e => e.UPDATED).HasColumnType("datetime");
-            entity.Property(e => e.UPDATEDBY);
-            entity.Property(e => e.DELETED).HasColumnType("datetime");
-            entity.Property(e => e.DELETEDBY);
-        });
-
         modelBuilder.Entity<DELIVERABLE>(entity =>
         {
             entity.HasKey(e => e.GUID);
@@ -152,17 +133,16 @@ public partial class FourSPMContext : DbContext
             entity.Property(e => e.DELETED).HasColumnType("datetime");
             entity.Property(e => e.DELETEDBY);
 
-            // Configure the enum property
+            // Configure the enum properties
             entity.Property(e => e.DELIVERABLE_TYPE_ID)
                 .HasColumnType("int")
                 .IsRequired();
 
-            // Foreign key relationships
-            entity.HasOne(d => d.Department)
-                .WithMany()
-                .HasForeignKey(d => d.DEPARTMENT_ID)
-                .OnDelete(DeleteBehavior.NoAction);
+            entity.Property(e => e.DEPARTMENT_ID)
+                .HasColumnType("int")
+                .IsRequired();
 
+            // Foreign key relationships
             entity.HasOne(d => d.Project)
                 .WithMany(p => p.Deliverables)
                 .HasForeignKey(d => d.PROJECT_GUID)
