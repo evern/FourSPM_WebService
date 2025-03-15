@@ -28,7 +28,9 @@ namespace FourSPM_WebService.Data.Mapping
                     Guid = project.Client.GUID,
                     Number = project.Client.NUMBER,
                     Description = project.Client.DESCRIPTION,
-                    ClientContact = project.Client.CLIENT_CONTACT
+                    ClientContactName = project.Client.CLIENT_CONTACT_NAME,
+                    ClientContactNumber = project.Client.CLIENT_CONTACT_NUMBER,
+                    ClientContactEmail = project.Client.CLIENT_CONTACT_EMAIL
                 } : null
             };
         }

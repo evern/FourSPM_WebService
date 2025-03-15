@@ -13,11 +13,17 @@ namespace FourSPM_WebService.Data.OData.FourSPM
         [MaxLength(3)]
         public string Number { get; set; } = null!;
 
-        [Required]
-        [MaxLength(2)]
-        public string Description { get; set; } = null!;
+        [MaxLength(500)]
+        public string? Description { get; set; }
 
-        public string? ClientContact { get; set; }
+        [MaxLength(500)]
+        public string? ClientContactName { get; set; }
+
+        [MaxLength(100)]
+        public string? ClientContactNumber { get; set; }
+
+        [MaxLength(100)]
+        public string? ClientContactEmail { get; set; }
 
         public DateTime Created { get; set; }
 

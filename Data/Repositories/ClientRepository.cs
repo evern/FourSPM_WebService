@@ -28,7 +28,9 @@ namespace FourSPM_WebService.Data.Repositories
                     Guid = c.GUID,
                     Number = c.NUMBER,
                     Description = c.DESCRIPTION,
-                    ClientContact = c.CLIENT_CONTACT,
+                    ClientContactName = c.CLIENT_CONTACT_NAME,
+                    ClientContactNumber = c.CLIENT_CONTACT_NUMBER,
+                    ClientContactEmail = c.CLIENT_CONTACT_EMAIL,
                     Created = c.CREATED,
                     CreatedBy = c.CREATEDBY,
                     Updated = c.UPDATED,
@@ -57,7 +59,9 @@ namespace FourSPM_WebService.Data.Repositories
                     GUID = client.Guid,
                     NUMBER = client.Number,
                     DESCRIPTION = client.Description,
-                    CLIENT_CONTACT = client.ClientContact,
+                    CLIENT_CONTACT_NAME = client.ClientContactName,
+                    CLIENT_CONTACT_NUMBER = client.ClientContactNumber,
+                    CLIENT_CONTACT_EMAIL = client.ClientContactEmail,
                     CREATED = DateTime.Now,
                     CREATEDBY = _user.UserId!.Value
                 };
@@ -113,7 +117,9 @@ namespace FourSPM_WebService.Data.Repositories
 
             efClient.NUMBER = client.Number;
             efClient.DESCRIPTION = client.Description;
-            efClient.CLIENT_CONTACT = client.ClientContact;
+            efClient.CLIENT_CONTACT_NAME = client.ClientContactName;
+            efClient.CLIENT_CONTACT_NUMBER = client.ClientContactNumber;
+            efClient.CLIENT_CONTACT_EMAIL = client.ClientContactEmail;
             efClient.UPDATED = DateTime.Now;
             efClient.UPDATEDBY = _user.UserId ?? Guid.Empty;
 

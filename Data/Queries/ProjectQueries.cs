@@ -34,7 +34,9 @@ namespace FourSPM_WebService.Data.Queries
                         Guid = p.Client.GUID,
                         Number = p.Client.NUMBER,
                         Description = p.Client.DESCRIPTION,
-                        ClientContact = p.Client.CLIENT_CONTACT
+                        ClientContactName = p.Client.CLIENT_CONTACT_NAME,
+                        ClientContactNumber = p.Client.CLIENT_CONTACT_NUMBER,
+                        ClientContactEmail = p.Client.CLIENT_CONTACT_EMAIL
                     } : null
                 });
         }

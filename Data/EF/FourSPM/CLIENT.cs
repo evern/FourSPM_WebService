@@ -9,9 +9,13 @@ public partial class CLIENT
 
     public string NUMBER { get; set; } = null!;
 
-    public string DESCRIPTION { get; set; } = null!;
+    public string? DESCRIPTION { get; set; }
 
-    public string? CLIENT_CONTACT { get; set; }
+    public string? CLIENT_CONTACT_NAME { get; set; }
+    
+    public string? CLIENT_CONTACT_NUMBER { get; set; }
+    
+    public string? CLIENT_CONTACT_EMAIL { get; set; }
 
     public DateTime CREATED { get; set; }
 

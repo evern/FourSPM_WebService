@@ -49,8 +49,10 @@ public partial class FourSPMContext : DbContext
 
             entity.Property(e => e.GUID).ValueGeneratedNever();
             entity.Property(e => e.NUMBER).HasMaxLength(3).IsRequired();
-            entity.Property(e => e.DESCRIPTION).HasMaxLength(2).IsRequired();
-            entity.Property(e => e.CLIENT_CONTACT);
+            entity.Property(e => e.DESCRIPTION).HasMaxLength(500);
+            entity.Property(e => e.CLIENT_CONTACT_NAME).HasMaxLength(500);
+            entity.Property(e => e.CLIENT_CONTACT_NUMBER).HasMaxLength(100);
+            entity.Property(e => e.CLIENT_CONTACT_EMAIL).HasMaxLength(100);
             entity.Property(e => e.CREATED).HasColumnType("datetime").IsRequired();
             entity.Property(e => e.CREATEDBY).IsRequired();
             entity.Property(e => e.UPDATED).HasColumnType("datetime");
