@@ -18,6 +18,7 @@ using Microsoft.EntityFrameworkCore;
 using System.Net;
 using Microsoft.AspNetCore.OData.Formatter;
 using Microsoft.AspNetCore.OData.Routing.Attributes;
+using FourSPM_WebService.Data.EF.FourSPM;
 
 namespace FourSPM_WebService.Controllers;
 
@@ -27,11 +28,13 @@ public class ProjectsController : FourSPMODataController
 {
     private readonly IProjectRepository _projectRepository;
     private readonly ILogger<ProjectsController> _logger;
+    private readonly FourSPMContext _context;
 
-    public ProjectsController(IProjectRepository projectRepository, ILogger<ProjectsController> logger)
+    public ProjectsController(IProjectRepository projectRepository, ILogger<ProjectsController> logger, FourSPMContext context)
     {
         _projectRepository = projectRepository;
         _logger = logger;
+        _context = context;
     }
 
     /// <summary>
@@ -39,16 +42,11 @@ public class ProjectsController : FourSPMODataController
     /// </summary>
     /// <returns>A list of projects</returns>
     [EnableQuery]
-    public IActionResult Get()
+    public async Task<IActionResult> Get()
     {
-        try
-        {
-            return Ok(_projectRepository.ProjectQuery());
-        }
-        catch (Exception ex)
-        {
-            return StatusCode(500, new { error = ex.Message });
-        }
+        var projects = await _projectRepository.GetAllAsync();
+        var entities = projects.Select(p => MapToEntity(p));
+        return Ok(entities);
     }
 
     /// <summary>
@@ -57,27 +55,13 @@ public class ProjectsController : FourSPMODataController
     /// <param name="key">The GUID of the project to retrieve</param>
     /// <returns>The project with the specified GUID</returns>
     [EnableQuery]
-    public IActionResult Get([FromRoute] Guid key)
+    public async Task<IActionResult> Get([FromODataUri] Guid key)
     {
-        try
-        {
-            _logger.LogInformation($"Fetching project with GUID: {key}");
-            var project = _projectRepository.ProjectQuery().FirstOrDefault(p => p.Guid == key);
-            
-            if (project == null)
-            {
-                _logger.LogWarning($"Project not found with GUID: {key}");
-                return NotFound($"Project with GUID {key} not found");
-            }
+        var project = await _projectRepository.GetByIdAsync(key);
+        if (project == null)
+            return NotFound();
 
-            _logger.LogInformation($"Successfully retrieved project: {project.ProjectNumber}");
-            return Ok(project);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, $"Error retrieving project with GUID: {key}");
-            return StatusCode(500, "Internal server error occurred while retrieving the project");
-        }
+        return Ok(MapToEntity(project));
     }
 
     /// <summary>
@@ -85,10 +69,25 @@ public class ProjectsController : FourSPMODataController
     /// </summary>
     /// <param name="project">The project to create</param>
     /// <returns>The created project</returns>
-    public async Task<IActionResult> Post([FromBody] ProjectEntity project)
+    public async Task<IActionResult> Post([FromBody] ProjectEntity entity)
     {
-        var result = await _projectRepository.CreateProject(project);
-        return GetResult(result);
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
+
+        var project = new PROJECT
+        {
+            GUID = entity.Guid,
+            GUID_CLIENT = entity.ClientGuid,
+            PROJECT_NUMBER = entity.ProjectNumber,
+            NAME = entity.Name,
+            PURCHASE_ORDER_NUMBER = entity.PurchaseOrderNumber,
+            PROJECT_STATUS = entity.ProjectStatus,
+            PROGRESS_START = entity.ProgressStart
+        };
+
+        // Create the project using the repository
+        var result = await _projectRepository.CreateAsync(project);
+        return Created(MapToEntity(result));
     }
 
     /// <summary>
@@ -96,26 +95,46 @@ public class ProjectsController : FourSPMODataController
     /// </summary>
     /// <param name="key">The GUID of the project to delete</param>
     /// <returns>A success message if the project was deleted successfully</returns>
-    public async Task<IActionResult> Delete([FromRoute] Guid key)
+    public async Task<IActionResult> Delete([FromRoute] Guid key, [FromBody] Guid deletedBy)
     {
-        var result = await _projectRepository.DeleteProject(key);
-        return GetResult(result);
+        var result = await _projectRepository.DeleteAsync(key, deletedBy);
+        return result ? NoContent() : NotFound();
     }
 
     /// <summary>
     /// Updates a project
     /// </summary>
     /// <param name="key">The GUID of the project to update</param>
-    /// <param name="update">The project properties to update</param>
+    /// <param name="entity">The project properties to update</param>
     /// <returns>The updated project</returns>
-    public async Task<IActionResult> Put([FromRoute] Guid key, [FromBody] ProjectEntity update)
+    public async Task<IActionResult> Put([FromRoute] Guid key, [FromBody] ProjectEntity entity)
     {
-        if (key != update.Guid)
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
+
+        if (key != entity.Guid)
+            return BadRequest("The ID in the URL must match the ID in the request body");
+
+        try
         {
-            return BadRequest(new { error = "Route key and project GUID do not match" });
+            var project = new PROJECT
+            {
+                GUID = entity.Guid,
+                GUID_CLIENT = entity.ClientGuid,
+                PROJECT_NUMBER = entity.ProjectNumber,
+                NAME = entity.Name,
+                PURCHASE_ORDER_NUMBER = entity.PurchaseOrderNumber,
+                PROJECT_STATUS = entity.ProjectStatus,
+                PROGRESS_START = entity.ProgressStart
+            };
+
+            var result = await _projectRepository.UpdateAsync(project);
+            return Updated(MapToEntity(result));
         }
-        var result = await _projectRepository.UpdateProject(update);
-        return GetResult(result);
+        catch (KeyNotFoundException)
+        {
+            return NotFound();
+        }
     }
 
     /// <summary>
@@ -124,7 +143,7 @@ public class ProjectsController : FourSPMODataController
     /// <param name="key">The GUID of the project to update</param>
     /// <param name="delta">The project properties to update</param>
     /// <returns>The updated project</returns>
-    public async Task<IActionResult> Patch([FromRoute] Guid key, [FromBody] Delta<ProjectEntity> delta)
+    public async Task<IActionResult> Patch([FromODataUri] Guid key, [FromBody] Delta<ProjectEntity> delta)
     {
         try
         {
@@ -145,41 +164,72 @@ public class ProjectsController : FourSPMODataController
                 });
             }
 
-            // Get the project to update first
-            var entity = await _projectRepository.ProjectQuery()
-                .FirstOrDefaultAsync(x => x.Guid == key);
-
-            if (entity == null)
+            // Get the existing project
+            var existingProject = await _projectRepository.GetByIdAsync(key);
+            if (existingProject == null)
             {
                 return NotFound(new { error = "Not Found", message = $"Project with ID {key} was not found" });
             }
 
             // Create a copy of the entity to track changes
-            var updatedEntity = new ProjectEntity();
+            var updatedEntity = MapToEntity(existingProject);
             delta.CopyChangedValues(updatedEntity);
 
-            // Save the changes
-            var updateResult = await _projectRepository.UpdateProjectByKey(
-                key,
-                e => {
-                    foreach (var propName in delta.GetChangedPropertyNames())
-                    {
-                        var prop = typeof(ProjectEntity).GetProperty(propName);
-                        if (prop != null)
-                        {
-                            var value = prop.GetValue(updatedEntity);
-                            prop.SetValue(e, value);
-                        }
-                    }
-                }
-            );
+            // Map back to PROJECT entity
+            var projectToUpdate = new PROJECT
+            {
+                GUID = updatedEntity.Guid,
+                GUID_CLIENT = updatedEntity.ClientGuid,
+                PROJECT_NUMBER = updatedEntity.ProjectNumber,
+                NAME = updatedEntity.Name,
+                PURCHASE_ORDER_NUMBER = updatedEntity.PurchaseOrderNumber,
+                PROJECT_STATUS = updatedEntity.ProjectStatus,
+                PROGRESS_START = updatedEntity.ProgressStart,
+                CREATED = existingProject.CREATED,
+                CREATEDBY = existingProject.CREATEDBY,
+                UPDATED = existingProject.UPDATED,
+                UPDATEDBY = existingProject.UPDATEDBY,
+                DELETED = existingProject.DELETED,
+                DELETEDBY = existingProject.DELETEDBY
+            };
 
-            return GetResult(updateResult);
+            var result = await _projectRepository.UpdateAsync(projectToUpdate);
+            return Updated(MapToEntity(result));
         }
         catch (Exception ex)
         {
             _logger?.LogError(ex, "Error updating project");
             return StatusCode(500, new { error = "Internal Server Error", message = ex.Message });
         }
+    }
+
+    /// <summary>
+    /// Maps a PROJECT database entity to a ProjectEntity OData entity
+    /// </summary>
+    /// <param name="project">The PROJECT database entity</param>
+    /// <returns>A ProjectEntity OData entity</returns>
+    private ProjectEntity MapToEntity(PROJECT project)
+    {
+        return new ProjectEntity
+        {
+            Guid = project.GUID,
+            ClientGuid = project.GUID_CLIENT,
+            ProjectNumber = project.PROJECT_NUMBER,
+            Name = project.NAME,
+            PurchaseOrderNumber = project.PURCHASE_ORDER_NUMBER,
+            ProjectStatus = project.PROJECT_STATUS,
+            ProgressStart = project.PROGRESS_START,
+            Created = project.CREATED,
+            CreatedBy = project.CREATEDBY,
+            Updated = project.UPDATED,
+            UpdatedBy = project.UPDATEDBY,
+            Deleted = project.DELETED,
+            DeletedBy = project.DELETEDBY,
+            
+            // Use the navigation property instead of explicit query
+            ClientContactName = project.Client?.CLIENT_CONTACT_NAME,
+            ClientContactNumber = project.Client?.CLIENT_CONTACT_NUMBER,
+            ClientContactEmail = project.Client?.CLIENT_CONTACT_EMAIL
+        };
     }
 }

@@ -37,6 +37,16 @@ namespace FourSPM_WebService.Data.OData.FourSPM
 
         public Guid? DeletedBy { get; set; }
 
+        // Client contact information calculated fields
+        [MaxLength(500)]
+        public string? ClientContactName { get; set; }
+
+        [MaxLength(100)]
+        public string? ClientContactNumber { get; set; }
+
+        [MaxLength(100)]
+        public string? ClientContactEmail { get; set; }
+
         public virtual ClientEntity? Client { get; set; }
 
         public virtual ICollection<DeliverableEntity> Deliverables { get; set; } = new List<DeliverableEntity>();

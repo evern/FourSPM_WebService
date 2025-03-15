@@ -84,6 +84,7 @@ namespace FourSPM_WebService.Controllers
 
             var deliverable = new DELIVERABLE
             {
+                GUID = entity.Guid,
                 PROJECT_GUID = entity.ProjectGuid,
                 AREA_NUMBER = entity.AreaNumber,
                 DISCIPLINE = entity.Discipline,

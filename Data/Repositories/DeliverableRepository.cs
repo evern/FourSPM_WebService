@@ -21,6 +21,7 @@ namespace FourSPM_WebService.Data.Repositories
                 .Include(d => d.Department)
                 .Include(d => d.Project)
                 .Where(d => d.DELETED == null)
+                .OrderByDescending(d => d.CREATED)
                 .ToListAsync();
         }
 
