@@ -98,5 +98,10 @@ namespace FourSPM_WebService.Data.Repositories
             return await _context.DELIVERABLEs
                 .AnyAsync(d => d.GUID == id && d.DELETED == null);
         }
+
+        public FourSPMContext GetDbContext()
+        {
+            return _context;
+        }
     }
 }
