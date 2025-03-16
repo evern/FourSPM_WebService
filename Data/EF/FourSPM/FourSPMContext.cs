@@ -15,6 +15,7 @@ public partial class FourSPMContext : DbContext
         PROGRESSes = Set<PROGRESS>();
         CLIENTs = Set<CLIENT>();
         DISCIPLINEs = Set<DISCIPLINE>();
+        DOCUMENT_TYPEs = Set<DOCUMENT_TYPE>();
     }
 
     public FourSPMContext(DbContextOptions<FourSPMContext> options)
@@ -26,6 +27,7 @@ public partial class FourSPMContext : DbContext
         PROGRESSes = Set<PROGRESS>();
         CLIENTs = Set<CLIENT>();
         DISCIPLINEs = Set<DISCIPLINE>();
+        DOCUMENT_TYPEs = Set<DOCUMENT_TYPE>();
     }
 
     public virtual DbSet<PROJECT> PROJECTs { get; set; }
@@ -34,6 +36,7 @@ public partial class FourSPMContext : DbContext
     public virtual DbSet<PROGRESS> PROGRESSes { get; set; }
     public virtual DbSet<CLIENT> CLIENTs { get; set; }
     public virtual DbSet<DISCIPLINE> DISCIPLINEs { get; set; }
+    public virtual DbSet<DOCUMENT_TYPE> DOCUMENT_TYPEs { get; set; }
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
 #warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see https://go.microsoft.com/fwlink/?LinkId=723263.
@@ -187,6 +190,25 @@ public partial class FourSPMContext : DbContext
 
             entity.Property(e => e.GUID).ValueGeneratedNever();
             entity.Property(e => e.CODE).HasMaxLength(2).IsRequired();
+            entity.Property(e => e.NAME).HasMaxLength(500);
+            entity.Property(e => e.CREATED).HasColumnType("datetime").IsRequired();
+            entity.Property(e => e.CREATEDBY).IsRequired();
+            entity.Property(e => e.UPDATED).HasColumnType("datetime");
+            entity.Property(e => e.UPDATEDBY);
+            entity.Property(e => e.DELETED).HasColumnType("datetime");
+            entity.Property(e => e.DELETEDBY);
+        });
+
+        modelBuilder.Entity<DOCUMENT_TYPE>(entity =>
+        {
+            entity.HasKey(e => e.GUID);
+            entity.ToTable("DOCUMENT_TYPE");
+
+            entity.HasIndex(e => e.CODE).HasDatabaseName("IX_DOCUMENT_TYPE_CODE");
+            entity.HasIndex(e => e.DELETED).HasDatabaseName("IX_DOCUMENT_TYPE_DELETED");
+
+            entity.Property(e => e.GUID).ValueGeneratedNever();
+            entity.Property(e => e.CODE).HasMaxLength(3).IsRequired();
             entity.Property(e => e.NAME).HasMaxLength(500);
             entity.Property(e => e.CREATED).HasColumnType("datetime").IsRequired();
             entity.Property(e => e.CREATEDBY).IsRequired();

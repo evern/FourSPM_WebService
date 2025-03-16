@@ -2,7 +2,7 @@ using System;
 
 namespace FourSPM_WebService.Data.EF.FourSPM
 {
-    public class DISCIPLINE
+    public class DOCUMENT_TYPE
     {
         public Guid GUID { get; set; }
         public required string CODE { get; set; }
