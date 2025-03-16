@@ -62,22 +62,6 @@ namespace FourSPM_WebService.Controllers
             return Ok(MapToEntity(deliverable));
         }
 
-        [EnableQuery]
-        [HttpGet("odata/v1/GetByProject({projectId})")]
-        public async Task<IActionResult> GetByProject([FromRoute] Guid projectId)
-        {
-            var deliverables = await _repository.GetByProjectIdAsync(projectId);
-            var entities = deliverables.Select(d => MapToEntity(d)).ToList();
-            
-            var response = new ODataResponse<DeliverableEntity>
-            {
-                Value = entities,
-                Count = entities.Count
-            };
-
-            return Ok(response);
-        }
-
         public async Task<IActionResult> Post([FromBody] DeliverableEntity entity)
         {
             if (!ModelState.IsValid)

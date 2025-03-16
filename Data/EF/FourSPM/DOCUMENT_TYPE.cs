@@ -5,6 +5,7 @@ namespace FourSPM_WebService.Data.EF.FourSPM
 {
     public class DOCUMENT_TYPE
     {
+        [Key]
         public Guid GUID { get; set; }
         [StringLength(3)]
         public required string CODE { get; set; }

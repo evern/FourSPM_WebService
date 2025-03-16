@@ -4,20 +4,16 @@ using System.ComponentModel.DataAnnotations;
 
 namespace FourSPM_WebService.Data.EF.FourSPM;
 
-public partial class CLIENT
+public partial class AREA
 {
     [Key]
     public Guid GUID { get; set; }
 
+    public Guid GUID_PROJECT { get; set; }
+
     public string NUMBER { get; set; } = null!;
 
-    public string? DESCRIPTION { get; set; }
-
-    public string? CLIENT_CONTACT_NAME { get; set; }
-    
-    public string? CLIENT_CONTACT_NUMBER { get; set; }
-    
-    public string? CLIENT_CONTACT_EMAIL { get; set; }
+    public string DESCRIPTION { get; set; } = null!;
 
     public DateTime CREATED { get; set; }
 
@@ -31,5 +27,5 @@ public partial class CLIENT
 
     public Guid? DELETEDBY { get; set; }
 
-    public virtual ICollection<PROJECT> Projects { get; set; } = new List<PROJECT>();
+    public virtual PROJECT Project { get; set; } = null!;
 }

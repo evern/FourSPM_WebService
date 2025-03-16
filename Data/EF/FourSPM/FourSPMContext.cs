@@ -16,6 +16,7 @@ public partial class FourSPMContext : DbContext
         CLIENTs = Set<CLIENT>();
         DISCIPLINEs = Set<DISCIPLINE>();
         DOCUMENT_TYPEs = Set<DOCUMENT_TYPE>();
+        AREAs = Set<AREA>();
     }
 
     public FourSPMContext(DbContextOptions<FourSPMContext> options)
@@ -28,6 +29,7 @@ public partial class FourSPMContext : DbContext
         CLIENTs = Set<CLIENT>();
         DISCIPLINEs = Set<DISCIPLINE>();
         DOCUMENT_TYPEs = Set<DOCUMENT_TYPE>();
+        AREAs = Set<AREA>();
     }
 
     public virtual DbSet<PROJECT> PROJECTs { get; set; }
@@ -37,6 +39,7 @@ public partial class FourSPMContext : DbContext
     public virtual DbSet<CLIENT> CLIENTs { get; set; }
     public virtual DbSet<DISCIPLINE> DISCIPLINEs { get; set; }
     public virtual DbSet<DOCUMENT_TYPE> DOCUMENT_TYPEs { get; set; }
+    public virtual DbSet<AREA> AREAs { get; set; }
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
 #warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see https://go.microsoft.com/fwlink/?LinkId=723263.
@@ -67,8 +70,12 @@ public partial class FourSPMContext : DbContext
         modelBuilder.Entity<PROJECT>(entity =>
         {
             entity.HasKey(e => e.GUID);
-
             entity.ToTable("PROJECT");
+
+            entity.HasIndex(e => e.GUID_CLIENT).HasDatabaseName("IX_PROJECT_CLIENT_ID");
+            entity.HasIndex(e => e.PROJECT_NUMBER).HasDatabaseName("IX_PROJECT_NUMBER");
+            entity.HasIndex(e => e.NAME).HasDatabaseName("IX_PROJECT_NAME");
+            entity.HasIndex(e => e.DELETED).HasDatabaseName("IX_PROJECT_DELETED");
 
             entity.Property(e => e.GUID).ValueGeneratedNever();
             entity.Property(e => e.GUID_CLIENT);
@@ -86,10 +93,15 @@ public partial class FourSPMContext : DbContext
             entity.Property(e => e.DELETED).HasColumnType("datetime");
             entity.Property(e => e.DELETEDBY);
 
-            // Configure the foreign key relationship
             entity.HasOne(d => d.Client)
                 .WithMany(p => p.Projects)
                 .HasForeignKey(d => d.GUID_CLIENT);
+
+            // Add the relationship between PROJECT and AREA
+            entity.HasMany(p => p.Areas)
+                .WithOne(a => a.Project)
+                .HasForeignKey(a => a.GUID_PROJECT)
+                .OnDelete(DeleteBehavior.NoAction);
         });
 
         modelBuilder.Entity<USER>(entity =>
@@ -119,7 +131,6 @@ public partial class FourSPMContext : DbContext
 
             entity.Property(e => e.GUID).HasDefaultValueSql("NEWID()");
             entity.Property(e => e.PROJECT_GUID).IsRequired();
-            entity.Property(e => e.AREA_NUMBER).HasMaxLength(2);
             entity.Property(e => e.DISCIPLINE).HasMaxLength(2).IsRequired();
             entity.Property(e => e.DOCUMENT_TYPE).HasMaxLength(3).IsRequired();
             entity.Property(e => e.DEPARTMENT_ID).IsRequired();
@@ -216,6 +227,29 @@ public partial class FourSPMContext : DbContext
             entity.Property(e => e.UPDATEDBY);
             entity.Property(e => e.DELETED).HasColumnType("datetime");
             entity.Property(e => e.DELETEDBY);
+        });
+
+        modelBuilder.Entity<AREA>(entity =>
+        {
+            entity.HasKey(e => e.GUID);
+            entity.ToTable("AREA");
+
+            entity.Property(e => e.GUID).ValueGeneratedNever();
+            entity.Property(e => e.GUID_PROJECT).IsRequired();
+            entity.Property(e => e.NUMBER).HasMaxLength(2).IsRequired();
+            entity.Property(e => e.DESCRIPTION).HasMaxLength(500).IsRequired();
+            entity.Property(e => e.CREATED).HasColumnType("datetime").IsRequired();
+            entity.Property(e => e.CREATEDBY).IsRequired();
+            entity.Property(e => e.UPDATED).HasColumnType("datetime");
+            entity.Property(e => e.UPDATEDBY);
+            entity.Property(e => e.DELETED).HasColumnType("datetime");
+            entity.Property(e => e.DELETEDBY);
+
+            // Configure the foreign key relationship
+            entity.HasOne(d => d.Project)
+                .WithMany(p => p.Areas)
+                .HasForeignKey(d => d.GUID_PROJECT)
+                .OnDelete(DeleteBehavior.NoAction);
         });
 
         OnModelCreatingPartial(modelBuilder);

@@ -26,6 +26,7 @@ namespace FourSPM_WebService.Data.Extensions
             builder.EntitySet<ClientEntity>("Clients").EntityType.HasKey(c => c.Guid);
             builder.EntitySet<DisciplineEntity>("Disciplines").EntityType.HasKey(d => d.Guid);
             builder.EntitySet<DocumentTypeEntity>("DocumentTypes").EntityType.HasKey(d => d.Guid);
+            builder.EntitySet<AreaEntity>("Areas").EntityType.HasKey(a => a.Guid);
 
             return builder.GetEdmModel();
         }

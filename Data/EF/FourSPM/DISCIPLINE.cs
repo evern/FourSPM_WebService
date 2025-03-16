@@ -1,9 +1,11 @@
 using System;
+using System.ComponentModel.DataAnnotations;
 
 namespace FourSPM_WebService.Data.EF.FourSPM
 {
     public class DISCIPLINE
     {
+        [Key]
         public Guid GUID { get; set; }
         public required string CODE { get; set; }
         public string? NAME { get; set; }

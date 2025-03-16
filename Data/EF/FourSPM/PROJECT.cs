@@ -1,11 +1,13 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using FourSPM_WebService.Models.Shared.Enums;
 
 namespace FourSPM_WebService.Data.EF.FourSPM;
 
 public partial class PROJECT
 {
+    [Key]
     public Guid GUID { get; set; }
 
     public Guid? GUID_CLIENT { get; set; }
@@ -35,4 +37,6 @@ public partial class PROJECT
     public virtual CLIENT? Client { get; set; }
 
     public virtual ICollection<DELIVERABLE> Deliverables { get; set; } = new List<DELIVERABLE>();
+
+    public virtual ICollection<AREA> Areas { get; set; } = new List<AREA>();
 }
