@@ -14,6 +14,6 @@ namespace FourSPM_WebService.Data.Interfaces
         Task<DELIVERABLE> UpdateAsync(DELIVERABLE deliverable);
         Task<bool> DeleteAsync(Guid id, Guid deletedBy);
         Task<bool> ExistsAsync(Guid id);
-        FourSPMContext GetDbContext();
+        Task<IEnumerable<DELIVERABLE>> GetDeliverablesByNumberPatternAsync(Guid projectId, string pattern);
     }
 }

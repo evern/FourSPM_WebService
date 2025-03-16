@@ -99,9 +99,14 @@ namespace FourSPM_WebService.Data.Repositories
                 .AnyAsync(d => d.GUID == id && d.DELETED == null);
         }
 
-        public FourSPMContext GetDbContext()
+        public async Task<IEnumerable<DELIVERABLE>> GetDeliverablesByNumberPatternAsync(Guid projectId, string pattern)
         {
-            return _context;
+            return await _context.DELIVERABLEs
+                .Where(d => d.PROJECT_GUID == projectId && 
+                       d.DELETED == null && 
+                       d.INTERNAL_DOCUMENT_NUMBER != null && 
+                       d.INTERNAL_DOCUMENT_NUMBER.StartsWith(pattern))
+                .ToListAsync();
         }
     }
 }

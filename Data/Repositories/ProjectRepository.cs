@@ -43,6 +43,14 @@ namespace FourSPM_WebService.Data.Repositories
                 .FirstOrDefaultAsync();
         }
 
+        public async Task<PROJECT?> GetProjectWithClientAsync(Guid id)
+        {
+            return await _context.PROJECTs
+                .Where(p => p.GUID == id && p.DELETED == null)
+                .Include(p => p.Client)
+                .FirstOrDefaultAsync();
+        }
+
         public async Task<PROJECT> CreateAsync(PROJECT project)
         {
             project.CREATED = DateTime.Now;

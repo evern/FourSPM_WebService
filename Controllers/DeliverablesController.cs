@@ -23,11 +23,13 @@ namespace FourSPM_WebService.Controllers
     public class DeliverablesController : FourSPMODataController
     {
         private readonly IDeliverableRepository _repository;
+        private readonly IProjectRepository _projectRepository;
         private readonly ILogger<DeliverablesController> _logger;
 
-        public DeliverablesController(IDeliverableRepository repository, ILogger<DeliverablesController> logger)
+        public DeliverablesController(IDeliverableRepository repository, IProjectRepository projectRepository, ILogger<DeliverablesController> logger)
         {
             _repository = repository;
+            _projectRepository = projectRepository;
             _logger = logger;
         }
 
@@ -201,10 +203,7 @@ namespace FourSPM_WebService.Controllers
                 _logger?.LogInformation($"Generating suggested internal document number for project {projectGuid}");
                 
                 // Get the project details to get client and project numbers
-                var context = _repository.GetDbContext();
-                var project = await context.PROJECTs
-                    .Include(p => p.Client)
-                    .FirstOrDefaultAsync(p => p.GUID == projectGuid);
+                var project = await _projectRepository.GetProjectWithClientAsync(projectGuid);
                 
                 if (project == null)
                 {
@@ -249,11 +248,7 @@ namespace FourSPM_WebService.Controllers
                 }
                 
                 // Find the highest sequence number for documents with this format
-                var existingDeliverables = await context.DELIVERABLEs
-                    .Where(d => d.PROJECT_GUID == projectGuid && 
-                           d.INTERNAL_DOCUMENT_NUMBER != null && 
-                           d.INTERNAL_DOCUMENT_NUMBER.StartsWith(baseFormat))
-                    .ToListAsync();
+                var existingDeliverables = await _repository.GetDeliverablesByNumberPatternAsync(projectGuid, baseFormat);
                 
                 int nextSequence = 1;
                 
