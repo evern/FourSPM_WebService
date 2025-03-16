@@ -21,6 +21,7 @@ namespace FourSPM_WebService.Data.Repositories
         {
             return await _context.DELIVERABLEs
                 .Include(d => d.Project)
+                    .ThenInclude(p => p != null ? p.Client : null!)
                 .Where(d => d.DELETED == null)
                 .OrderByDescending(d => d.CREATED)
                 .ToListAsync();
@@ -30,6 +31,7 @@ namespace FourSPM_WebService.Data.Repositories
         {
             return await _context.DELIVERABLEs
                 .Include(d => d.Project)
+                    .ThenInclude(p => p != null ? p.Client : null!)
                 .Where(d => d.PROJECT_GUID == projectId && d.DELETED == null)
                 .ToListAsync();
         }
@@ -38,6 +40,7 @@ namespace FourSPM_WebService.Data.Repositories
         {
             return await _context.DELIVERABLEs
                 .Include(d => d.Project)
+                    .ThenInclude(p => p != null ? p.Client : null!)
                 .FirstOrDefaultAsync(d => d.GUID == id && d.DELETED == null);
         }
 
