@@ -143,24 +143,20 @@ namespace FourSPM_WebService.Controllers
 
                 if (key == Guid.Empty)
                 {
-                    return BadRequest(new { error = "Invalid GUID", message = "The progress ID cannot be empty" });
+                    return BadRequest("Invalid GUID - The progress ID cannot be empty");
                 }
 
                 if (delta == null)
                 {
                     _logger?.LogWarning($"Update data is null for progress {key}");
-                    return BadRequest(new 
-                    { 
-                        error = "Update data cannot be null",
-                        message = "The request body must contain valid properties to update."
-                    });
+                    return BadRequest("Update data cannot be null. The request body must contain valid properties to update.");
                 }
 
                 // Get the existing progress
                 var existingProgress = await _repository.GetByIdAsync(key);
                 if (existingProgress == null)
                 {
-                    return NotFound(new { error = "Not Found", message = $"Progress with ID {key} was not found" });
+                    return NotFound("Progress with ID " + key + " was not found");
                 }
 
                 // Create a copy of the entity to track changes
@@ -183,7 +179,7 @@ namespace FourSPM_WebService.Controllers
             catch (Exception ex)
             {
                 _logger?.LogError(ex, "Error updating progress");
-                return StatusCode(500, new { error = "Internal Server Error", message = ex.Message });
+                return StatusCode(500, "Internal Server Error - " + ex.Message);
             }
         }
 

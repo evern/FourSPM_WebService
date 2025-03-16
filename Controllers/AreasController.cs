@@ -12,6 +12,7 @@ using System;
 using System.Linq;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
+using Microsoft.EntityFrameworkCore;
 
 namespace FourSPM_WebService.Controllers
 {
@@ -21,11 +22,13 @@ namespace FourSPM_WebService.Controllers
     {
         private readonly IAreaRepository _repository;
         private readonly ILogger<AreasController> _logger;
+        private readonly FourSPMContext _context;
 
-        public AreasController(IAreaRepository repository, ILogger<AreasController> logger)
+        public AreasController(IAreaRepository repository, ILogger<AreasController> logger, FourSPMContext context)
         {
             _repository = repository;
             _logger = logger;
+            _context = context;
         }
 
         public class ODataResponse<T>
@@ -64,6 +67,12 @@ namespace FourSPM_WebService.Controllers
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
+            // Check if area number is unique within the project
+            if (!await IsAreaNumberUniqueInProject(entity.Number, entity.ProjectGuid, null))
+            {
+                return BadRequest($"An area with number '{entity.Number}' already exists in this project.");
+            }
+
             var area = new AREA
             {
                 GUID = entity.Guid,
@@ -83,6 +92,12 @@ namespace FourSPM_WebService.Controllers
 
             if (key != entity.Guid)
                 return BadRequest("The ID in the URL must match the ID in the request body");
+
+            // Check if area number is unique within the project
+            if (!await IsAreaNumberUniqueInProject(entity.Number, entity.ProjectGuid, entity.Guid))
+            {
+                return BadRequest($"An area with number '{entity.Number}' already exists in this project.");
+            }
 
             try
             {
@@ -117,29 +132,32 @@ namespace FourSPM_WebService.Controllers
 
                 if (key == Guid.Empty)
                 {
-                    return BadRequest(new { error = "Invalid GUID", message = "The area ID cannot be empty" });
+                    return BadRequest("Invalid GUID");
                 }
 
                 if (delta == null)
                 {
                     _logger?.LogWarning($"Update data is null for area {key}");
-                    return BadRequest(new
-                    {
-                        error = "Update data cannot be null",
-                        message = "The request body must contain valid properties to update."
-                    });
+                    return BadRequest("Update data cannot be null");
                 }
 
                 // Get the existing area
                 var existingArea = await _repository.GetByIdAsync(key);
                 if (existingArea == null)
                 {
-                    return NotFound(new { error = "Not Found", message = $"Area with ID {key} was not found" });
+                    return NotFound("Area with ID was not found");
                 }
 
                 // Create a copy of the entity to track changes
                 var updatedEntity = MapToEntity(existingArea);
                 delta.CopyChangedValues(updatedEntity);
+
+                // Check if area number is unique within the project if it was changed
+                if (delta.GetChangedPropertyNames().Contains("Number") && 
+                    !await IsAreaNumberUniqueInProject(updatedEntity.Number, updatedEntity.ProjectGuid, key))
+                {
+                    return BadRequest($"An area with number '{updatedEntity.Number}' already exists in this project.");
+                }
 
                 // Map back to AREA entity
                 var areaToUpdate = new AREA
@@ -156,8 +174,23 @@ namespace FourSPM_WebService.Controllers
             catch (Exception ex)
             {
                 _logger?.LogError(ex, $"Error updating area {key}");
-                return StatusCode(500, new { error = "Internal Server Error", message = ex.Message });
+                return StatusCode(500, "Internal Server Error");
             }
+        }
+
+        private async Task<bool> IsAreaNumberUniqueInProject(string number, Guid projectGuid, Guid? excludeAreaGuid)
+        {
+            // Check if an area with the same number already exists in the project
+            var query = _context.AREAs
+                .Where(a => a.NUMBER == number && a.GUID_PROJECT == projectGuid && a.DELETED == null);
+                
+            // If we're updating an existing area, exclude it from the uniqueness check
+            if (excludeAreaGuid.HasValue)
+            {
+                query = query.Where(a => a.GUID != excludeAreaGuid.Value);
+            }
+            
+            return await query.CountAsync() == 0;
         }
 
         private static AreaEntity MapToEntity(AREA area)

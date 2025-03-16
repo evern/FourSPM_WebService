@@ -118,24 +118,20 @@ namespace FourSPM_WebService.Controllers
 
                 if (key == Guid.Empty)
                 {
-                    return BadRequest(new { error = "Invalid GUID", message = "The document type ID cannot be empty" });
+                    return BadRequest("Invalid GUID - The document type ID cannot be empty");
                 }
 
                 if (delta == null)
                 {
                     _logger?.LogWarning($"Update data is null for document type {key}");
-                    return BadRequest(new
-                    {
-                        error = "Update data cannot be null",
-                        message = "The request body must contain valid properties to update."
-                    });
+                    return BadRequest("Update data cannot be null. The request body must contain valid properties to update.");
                 }
 
                 // Get the existing document type
                 var existingDocumentType = await _repository.GetByIdAsync(key);
                 if (existingDocumentType == null)
                 {
-                    return NotFound(new { error = "Not Found", message = $"Document type with ID {key} was not found" });
+                    return NotFound("Document type with ID " + key + " was not found");
                 }
 
                 // Create a copy of the entity to track changes
@@ -157,7 +153,7 @@ namespace FourSPM_WebService.Controllers
             catch (Exception ex)
             {
                 _logger?.LogError(ex, "Error updating document type");
-                return StatusCode(500, new { error = "Internal Server Error", message = ex.Message });
+                return StatusCode(500, "Internal Server Error - " + ex.Message);
             }
         }
 

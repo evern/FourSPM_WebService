@@ -249,14 +249,14 @@ public class AuthController : ControllerBase
 
             if (string.IsNullOrEmpty(request.CurrentPassword))
             {
-                return BadRequest(new { message = "Current password is required" });
+                return BadRequest("Current password is required");
             }
 
             // Get user ID from claims
             var userIdClaim = HttpContext.User.Claims.FirstOrDefault(x => x.Type == ClaimTypes.NameIdentifier);
             if (userIdClaim == null || !Guid.TryParse(userIdClaim.Value, out var userId))
             {
-                return Unauthorized(new { message = "Invalid token" });
+                return Unauthorized("Invalid token");
             }
 
             var user = await _context.USERs
@@ -265,13 +265,13 @@ public class AuthController : ControllerBase
 
             if (user == null)
             {
-                return NotFound(new { message = "User not found" });
+                return NotFound("User not found");
             }
 
             // Verify current password
             if (!_authService.VerifyPassword(request.CurrentPassword, user.PASSWORD))
             {
-                return BadRequest(new { message = "Current password is incorrect" });
+                return BadRequest("Current password is incorrect");
             }
 
             // Update password

@@ -135,17 +135,13 @@ namespace FourSPM_WebService.Controllers
 
                 if (key == Guid.Empty)
                 {
-                    return BadRequest(new { error = "Invalid GUID", message = "The discipline ID cannot be empty" });
+                    return BadRequest("Invalid GUID - The discipline ID cannot be empty");
                 }
 
                 if (delta == null)
                 {
                     _logger?.LogWarning($"Update data is null for discipline {key}");
-                    return BadRequest(new
-                    {
-                        error = "Update data cannot be null",
-                        message = "The request body must contain valid properties to update."
-                    });
+                    return BadRequest("Update data cannot be null. The request body must contain valid properties to update.");
                 }
 
                 // Get the existing discipline

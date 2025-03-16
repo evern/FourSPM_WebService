@@ -163,17 +163,13 @@ public class ProjectsController : FourSPMODataController
 
             if (key == Guid.Empty)
             {
-                return BadRequest(new { error = "Invalid GUID", message = "The project ID cannot be empty" });
+                return BadRequest("Invalid GUID - The project ID cannot be empty");
             }
 
             if (delta == null)
             {
                 _logger?.LogWarning($"Update data is null for project {key}");
-                return BadRequest(new 
-                { 
-                    error = "Update data cannot be null",
-                    message = "The request body must contain valid properties to update."
-                });
+                return BadRequest("Update data cannot be null. The request body must contain valid properties to update.");
             }
 
             // Get the existing project
