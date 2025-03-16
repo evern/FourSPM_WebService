@@ -14,6 +14,7 @@ public partial class FourSPMContext : DbContext
         DELIVERABLEs = Set<DELIVERABLE>();
         PROGRESSes = Set<PROGRESS>();
         CLIENTs = Set<CLIENT>();
+        DISCIPLINEs = Set<DISCIPLINE>();
     }
 
     public FourSPMContext(DbContextOptions<FourSPMContext> options)
@@ -24,6 +25,7 @@ public partial class FourSPMContext : DbContext
         DELIVERABLEs = Set<DELIVERABLE>();
         PROGRESSes = Set<PROGRESS>();
         CLIENTs = Set<CLIENT>();
+        DISCIPLINEs = Set<DISCIPLINE>();
     }
 
     public virtual DbSet<PROJECT> PROJECTs { get; set; }
@@ -31,6 +33,7 @@ public partial class FourSPMContext : DbContext
     public virtual DbSet<DELIVERABLE> DELIVERABLEs { get; set; }
     public virtual DbSet<PROGRESS> PROGRESSes { get; set; }
     public virtual DbSet<CLIENT> CLIENTs { get; set; }
+    public virtual DbSet<DISCIPLINE> DISCIPLINEs { get; set; }
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
 #warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see https://go.microsoft.com/fwlink/?LinkId=723263.
@@ -84,8 +87,6 @@ public partial class FourSPMContext : DbContext
             entity.HasOne(d => d.Client)
                 .WithMany(p => p.Projects)
                 .HasForeignKey(d => d.GUID_CLIENT);
-
-
         });
 
         modelBuilder.Entity<USER>(entity =>
@@ -174,6 +175,25 @@ public partial class FourSPMContext : DbContext
                 .WithMany(p => p.ProgressItems)
                 .HasForeignKey(d => d.GUID_DELIVERABLE)
                 .OnDelete(DeleteBehavior.NoAction);
+        });
+
+        modelBuilder.Entity<DISCIPLINE>(entity =>
+        {
+            entity.HasKey(e => e.GUID);
+            entity.ToTable("DISCIPLINE");
+
+            entity.HasIndex(e => e.CODE).HasDatabaseName("IX_DISCIPLINE_CODE");
+            entity.HasIndex(e => e.DELETED).HasDatabaseName("IX_DISCIPLINE_DELETED");
+
+            entity.Property(e => e.GUID).ValueGeneratedNever();
+            entity.Property(e => e.CODE).HasMaxLength(2).IsRequired();
+            entity.Property(e => e.NAME).HasMaxLength(500);
+            entity.Property(e => e.CREATED).HasColumnType("datetime").IsRequired();
+            entity.Property(e => e.CREATEDBY).IsRequired();
+            entity.Property(e => e.UPDATED).HasColumnType("datetime");
+            entity.Property(e => e.UPDATEDBY);
+            entity.Property(e => e.DELETED).HasColumnType("datetime");
+            entity.Property(e => e.DELETEDBY);
         });
 
         OnModelCreatingPartial(modelBuilder);
