@@ -5,6 +5,10 @@ using FourSPM_WebService.Models.Results;
 using FourSPM_WebService.Models.Session;
 using FourSPM_WebService.Models.Shared;
 using Microsoft.EntityFrameworkCore;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace FourSPM_WebService.Data.Repositories
 {
@@ -23,14 +27,14 @@ namespace FourSPM_WebService.Data.Repositories
         {
             return await _context.CLIENTs
                 .Where(c => c.DELETED == null)
+                .OrderByDescending(c => c.CREATED)
                 .ToListAsync();
         }
         
         public async Task<CLIENT?> GetByIdAsync(Guid id)
         {
             return await _context.CLIENTs
-                .Where(c => c.GUID == id && c.DELETED == null)
-                .FirstOrDefaultAsync();
+                .FirstOrDefaultAsync(c => c.GUID == id && c.DELETED == null);
         }
 
         public async Task<CLIENT> CreateAsync(CLIENT client)
@@ -41,39 +45,32 @@ namespace FourSPM_WebService.Data.Repositories
             _context.CLIENTs.Add(client);
             await _context.SaveChangesAsync();
             
-            return client;
+            return await GetByIdAsync(client.GUID) ?? client;
         }
         
         public async Task<CLIENT> UpdateAsync(CLIENT client)
         {
-            var existingClient = await _context.CLIENTs.FirstOrDefaultAsync(c => c.GUID == client.GUID);
+            var existingClient = await _context.CLIENTs
+                .FirstOrDefaultAsync(c => c.GUID == client.GUID && c.DELETED == null);
             
             if (existingClient == null)
             {
                 throw new KeyNotFoundException($"Client with ID {client.GUID} not found");
             }
             
-            // Preserve creation info
-            client.CREATED = existingClient.CREATED;
-            client.CREATEDBY = existingClient.CREATEDBY;
+            // Update properties
+            existingClient.UPDATED = DateTime.Now;
+            existingClient.UPDATEDBY = _user.UserId!.Value;
             
-            // Update modification info
-            client.UPDATED = DateTime.Now;
-            client.UPDATEDBY = _user.UserId!.Value;
-            
-            // Keep deletion info if present
-            client.DELETED = existingClient.DELETED;
-            client.DELETEDBY = existingClient.DELETEDBY;
-            
-            _context.Entry(existingClient).CurrentValues.SetValues(client);
             await _context.SaveChangesAsync();
             
-            return client;
+            return await GetByIdAsync(existingClient.GUID) ?? existingClient;
         }
         
         public async Task<bool> DeleteAsync(Guid id, Guid deletedBy)
         {
-            var client = await _context.CLIENTs.FirstOrDefaultAsync(c => c.GUID == id);
+            var client = await _context.CLIENTs
+                .FirstOrDefaultAsync(c => c.GUID == id && c.DELETED == null);
             
             if (client == null)
             {
@@ -97,6 +94,12 @@ namespace FourSPM_WebService.Data.Repositories
             await _context.SaveChangesAsync();
             
             return true;
+        }
+
+        public async Task<bool> ExistsAsync(Guid id)
+        {
+            return await _context.CLIENTs
+                .AnyAsync(c => c.GUID == id && c.DELETED == null);
         }
     }
 }

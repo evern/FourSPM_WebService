@@ -1,7 +1,9 @@
 using FourSPM_WebService.Data.EF.FourSPM;
+using FourSPM_WebService.Data.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace FourSPM_WebService.Data.Repositories
@@ -86,6 +88,12 @@ namespace FourSPM_WebService.Data.Repositories
 
             await _context.SaveChangesAsync();
             return true;
+        }
+        
+        public async Task<bool> ExistsAsync(Guid id)
+        {
+            return await _context.DELIVERABLEs
+                .AnyAsync(d => d.GUID == id && d.DELETED == null);
         }
     }
 }

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using FourSPM_WebService.Data.EF.FourSPM;
+using FourSPM_WebService.Data.Interfaces;
 using Microsoft.EntityFrameworkCore;
 
 namespace FourSPM_WebService.Data.Repositories

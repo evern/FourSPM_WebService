@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using FourSPM_WebService.Data.EF.FourSPM;
 
-namespace FourSPM_WebService.Data.Repositories
+namespace FourSPM_WebService.Data.Interfaces
 {
     public interface IDocumentTypeRepository
     {

@@ -1,6 +1,6 @@
 using FourSPM_WebService.Data.EF.FourSPM;
+using FourSPM_WebService.Data.Interfaces;
 using FourSPM_WebService.Data.OData.FourSPM;
-using FourSPM_WebService.Data.Repositories;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.OData.Query;
@@ -14,6 +14,7 @@ using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.OData.Formatter;
 using System.Collections.Generic;
+using Microsoft.Extensions.Logging;
 
 namespace FourSPM_WebService.Controllers
 {

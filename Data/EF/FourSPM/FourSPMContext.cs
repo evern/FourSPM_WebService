@@ -109,7 +109,7 @@ public partial class FourSPMContext : DbContext
         modelBuilder.Entity<DELIVERABLE>(entity =>
         {
             entity.HasKey(e => e.GUID);
-            entity.ToTable("DELIVERABLES");
+            entity.ToTable("DELIVERABLE");
 
             entity.HasIndex(e => e.INTERNAL_DOCUMENT_NUMBER).HasDatabaseName("IX_DELIVERABLES_INTERNAL_DOC_NUM");
             entity.HasIndex(e => e.DEPARTMENT_ID).HasDatabaseName("IX_DELIVERABLES_DEPARTMENT_ID");

@@ -21,7 +21,6 @@ namespace FourSPM_WebService.Data.EF.FourSPM
         Management = 3
     }
 
-    [Table("DELIVERABLES")]
     public class DELIVERABLE
     {
         [Key]

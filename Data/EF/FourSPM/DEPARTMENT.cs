@@ -4,7 +4,6 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace FourSPM_WebService.Data.EF.FourSPM
 {
-    [Table("DEPARTMENTS")]
     public class DEPARTMENT
     {
         [Key]

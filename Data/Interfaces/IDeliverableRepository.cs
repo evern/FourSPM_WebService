@@ -3,7 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
-namespace FourSPM_WebService.Data.Repositories
+namespace FourSPM_WebService.Data.Interfaces
 {
     public interface IDeliverableRepository
     {
@@ -13,5 +13,6 @@ namespace FourSPM_WebService.Data.Repositories
         Task<DELIVERABLE> CreateAsync(DELIVERABLE deliverable);
         Task<DELIVERABLE> UpdateAsync(DELIVERABLE deliverable);
         Task<bool> DeleteAsync(Guid id, Guid deletedBy);
+        Task<bool> ExistsAsync(Guid id);
     }
 }
