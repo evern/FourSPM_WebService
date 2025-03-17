@@ -12,6 +12,8 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Microsoft.AspNetCore.OData.Formatter;
+using Newtonsoft.Json;
+using System.Text.Json;
 
 namespace FourSPM_WebService.Controllers
 {
@@ -51,7 +53,7 @@ namespace FourSPM_WebService.Controllers
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
-            var gate = new DELIVERABLE_GATE
+            var deliverableGate = new DELIVERABLE_GATE
             {
                 GUID = entity.Guid,
                 NAME = entity.Name,
@@ -60,14 +62,19 @@ namespace FourSPM_WebService.Controllers
                 CREATEDBY = entity.CreatedBy
             };
 
-            var result = await _repository.CreateAsync(gate);
+            var result = await _repository.CreateAsync(deliverableGate);
             return Created(MapToEntity(result));
         }
 
         public async Task<IActionResult> Put([FromRoute] Guid key, [FromBody] DeliverableGateEntity entity)
         {
+            _logger.LogInformation($"Received PUT request for DeliverableGate {key}: {JsonConvert.SerializeObject(entity)}");
+            
             if (!ModelState.IsValid)
+            {
+                _logger.LogWarning($"ModelState is invalid: {JsonConvert.SerializeObject(ModelState)}");
                 return BadRequest(ModelState);
+            }
 
             if (key != entity.Guid)
                 return BadRequest("The ID in the URL must match the ID in the request body");
@@ -79,23 +86,39 @@ namespace FourSPM_WebService.Controllers
                     GUID = entity.Guid,
                     NAME = entity.Name,
                     MAX_PERCENTAGE = entity.MaxPercentage,
-                    AUTO_PERCENTAGE = entity.AutoPercentage,
+                    AUTO_PERCENTAGE = entity.AutoPercentage ?? 0,
                     UPDATEDBY = entity.UpdatedBy
                 };
 
                 var result = await _repository.UpdateAsync(gate);
+                _logger.LogInformation($"Successfully updated DeliverableGate with GUID: {result.GUID}");
                 return Updated(MapToEntity(result));
             }
             catch (KeyNotFoundException)
             {
                 return NotFound();
             }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error updating deliverable gate");
+                return StatusCode(500, new { error = "Internal Server Error", message = ex.Message });
+            }
         }
 
         public async Task<IActionResult> Delete([FromRoute] Guid key, [FromBody] Guid deletedBy)
         {
-            var result = await _repository.DeleteAsync(key, deletedBy);
-            return result ? NoContent() : NotFound();
+            _logger.LogInformation($"Received DELETE request for DeliverableGate {key}");
+            
+            try
+            {
+                var result = await _repository.DeleteAsync(key, deletedBy);
+                return result ? NoContent() : NotFound();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error deleting deliverable gate");
+                return StatusCode(500, new { error = "Internal Server Error", message = ex.Message });
+            }
         }
 
         public async Task<IActionResult> Patch([FromODataUri] Guid key, [FromBody] Delta<DeliverableGateEntity> delta)
@@ -119,7 +142,7 @@ namespace FourSPM_WebService.Controllers
                 var existingGate = await _repository.GetByIdAsync(key);
                 if (existingGate == null)
                 {
-                    return NotFound("Deliverable gate with ID " + key + " was not found");
+                    return NotFound(new { error = "Not Found", message = $"Deliverable gate with ID {key} was not found" });
                 }
 
                 // Create a copy of the entity to track changes
@@ -132,7 +155,7 @@ namespace FourSPM_WebService.Controllers
                     GUID = updatedEntity.Guid,
                     NAME = updatedEntity.Name,
                     MAX_PERCENTAGE = updatedEntity.MaxPercentage,
-                    AUTO_PERCENTAGE = updatedEntity.AutoPercentage,
+                    AUTO_PERCENTAGE = updatedEntity.AutoPercentage ?? 0,
                     UPDATEDBY = updatedEntity.UpdatedBy
                 };
 
@@ -142,7 +165,7 @@ namespace FourSPM_WebService.Controllers
             catch (Exception ex)
             {
                 _logger?.LogError(ex, "Error updating deliverable gate");
-                return StatusCode(500, "Internal Server Error - " + ex.Message);
+                return StatusCode(500, new { error = "Internal Server Error", message = ex.Message });
             }
         }
 

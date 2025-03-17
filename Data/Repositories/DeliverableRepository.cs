@@ -32,7 +32,7 @@ namespace FourSPM_WebService.Data.Repositories
             return await _context.DELIVERABLEs
                 .Include(d => d.Project)
                     .ThenInclude(p => p != null ? p.Client : null!)
-                .Where(d => d.PROJECT_GUID == projectId && d.DELETED == null)
+                .Where(d => d.GUID_PROJECT == projectId && d.DELETED == null)
                 .ToListAsync();
         }
 
@@ -102,7 +102,7 @@ namespace FourSPM_WebService.Data.Repositories
         public async Task<IEnumerable<DELIVERABLE>> GetDeliverablesByNumberPatternAsync(Guid projectId, string pattern)
         {
             return await _context.DELIVERABLEs
-                .Where(d => d.PROJECT_GUID == projectId && 
+                .Where(d => d.GUID_PROJECT == projectId && 
                        d.DELETED == null && 
                        d.INTERNAL_DOCUMENT_NUMBER != null && 
                        d.INTERNAL_DOCUMENT_NUMBER.StartsWith(pattern))

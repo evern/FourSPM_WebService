@@ -129,11 +129,11 @@ public partial class FourSPMContext : DbContext
             entity.HasIndex(e => e.INTERNAL_DOCUMENT_NUMBER).HasDatabaseName("IX_DELIVERABLES_INTERNAL_DOC_NUM");
             entity.HasIndex(e => e.DEPARTMENT_ID).HasDatabaseName("IX_DELIVERABLES_DEPARTMENT_ID");
             entity.HasIndex(e => e.DELIVERABLE_TYPE_ID).HasDatabaseName("IX_DELIVERABLES_DELIVERABLE_TYPE_ID");
-            entity.HasIndex(e => e.PROJECT_GUID).HasDatabaseName("IX_DELIVERABLES_PROJECT_ID");
+            entity.HasIndex(e => e.GUID_PROJECT).HasDatabaseName("IX_DELIVERABLES_PROJECT_ID");
             entity.HasIndex(e => e.DELETED).HasDatabaseName("IX_DELIVERABLES_DELETED");
 
             entity.Property(e => e.GUID).HasDefaultValueSql("NEWID()");
-            entity.Property(e => e.PROJECT_GUID).IsRequired();
+            entity.Property(e => e.GUID_PROJECT).IsRequired();
             entity.Property(e => e.DISCIPLINE).HasMaxLength(2).IsRequired();
             entity.Property(e => e.DOCUMENT_TYPE).HasMaxLength(3).IsRequired();
             entity.Property(e => e.DEPARTMENT_ID).IsRequired();
@@ -163,7 +163,7 @@ public partial class FourSPMContext : DbContext
             // Foreign key relationships
             entity.HasOne(d => d.Project)
                 .WithMany(p => p.Deliverables)
-                .HasForeignKey(d => d.PROJECT_GUID)
+                .HasForeignKey(d => d.GUID_PROJECT)
                 .OnDelete(DeleteBehavior.NoAction);
         });
 

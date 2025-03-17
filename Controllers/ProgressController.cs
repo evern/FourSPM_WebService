@@ -202,7 +202,7 @@ namespace FourSPM_WebService.Controllers
                 Deliverable = progress.Deliverable != null ? new DeliverableEntity
                 {
                     Guid = progress.Deliverable.GUID,
-                    ProjectGuid = progress.Deliverable.PROJECT_GUID,
+                    ProjectGuid = progress.Deliverable.GUID_PROJECT,
                     AreaNumber = progress.Deliverable.AREA_NUMBER,
                     Discipline = progress.Deliverable.DISCIPLINE,
                     DocumentType = progress.Deliverable.DOCUMENT_TYPE,

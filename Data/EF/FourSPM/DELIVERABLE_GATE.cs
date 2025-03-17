@@ -6,7 +6,7 @@ namespace FourSPM_WebService.Data.EF.FourSPM
     public class DELIVERABLE_GATE
     {
         public Guid GUID { get; set; }
-        public string NAME { get; set; } = string.Empty;
+        public required string NAME { get; set; }
         public decimal MAX_PERCENTAGE { get; set; }
         public decimal? AUTO_PERCENTAGE { get; set; }
         
