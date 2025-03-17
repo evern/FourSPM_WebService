@@ -72,7 +72,7 @@ namespace FourSPM_WebService.Controllers
             var deliverable = new DELIVERABLE
             {
                 GUID = entity.Guid,
-                PROJECT_GUID = entity.ProjectGuid,
+                GUID_PROJECT = entity.ProjectGuid,
                 AREA_NUMBER = entity.AreaNumber,
                 DISCIPLINE = entity.Discipline,
                 DOCUMENT_TYPE = entity.DocumentType,
@@ -103,7 +103,7 @@ namespace FourSPM_WebService.Controllers
                 var deliverable = new DELIVERABLE
                 {
                     GUID = entity.Guid,
-                    PROJECT_GUID = entity.ProjectGuid,
+                    GUID_PROJECT = entity.ProjectGuid,
                     AREA_NUMBER = entity.AreaNumber,
                     DISCIPLINE = entity.Discipline,
                     DOCUMENT_TYPE = entity.DocumentType,
@@ -170,7 +170,7 @@ namespace FourSPM_WebService.Controllers
                 var deliverableToUpdate = new DELIVERABLE
                 {
                     GUID = updatedEntity.Guid,
-                    PROJECT_GUID = updatedEntity.ProjectGuid,
+                    GUID_PROJECT = updatedEntity.ProjectGuid,
                     AREA_NUMBER = updatedEntity.AreaNumber,
                     DISCIPLINE = updatedEntity.Discipline,
                     DOCUMENT_TYPE = updatedEntity.DocumentType,
@@ -308,7 +308,7 @@ namespace FourSPM_WebService.Controllers
             return new DeliverableEntity
             {
                 Guid = deliverable.GUID,
-                ProjectGuid = deliverable.PROJECT_GUID,
+                ProjectGuid = deliverable.GUID_PROJECT,
                 ClientNumber = clientNumber,
                 ProjectNumber = projectNumber,
                 AreaNumber = deliverable.AREA_NUMBER,

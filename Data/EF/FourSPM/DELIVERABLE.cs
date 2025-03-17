@@ -26,7 +26,7 @@ namespace FourSPM_WebService.Data.EF.FourSPM
         [Key]
         public Guid GUID { get; set; }
 
-        public Guid PROJECT_GUID { get; set; }
+        public Guid GUID_PROJECT { get; set; }
 
         [StringLength(2)]
         [RegularExpression(@"[0-9][0-9]", ErrorMessage = "AREA_NUMBER must be 2 digits")]
@@ -83,7 +83,7 @@ namespace FourSPM_WebService.Data.EF.FourSPM
 
         public Guid? DELETEDBY { get; set; }
 
-        [ForeignKey(nameof(PROJECT_GUID))]
+        [ForeignKey(nameof(GUID_PROJECT))]
         public virtual PROJECT? Project { get; set; }
         
         public virtual ICollection<PROGRESS> ProgressItems { get; set; } = new List<PROGRESS>();

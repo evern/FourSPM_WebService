@@ -169,7 +169,7 @@ namespace FourSPM_WebService.Controllers
                     GUID = updatedEntity.Guid,
                     GUID_DELIVERABLE = updatedEntity.DeliverableGuid,
                     PERIOD = updatedEntity.Period,
-                    GATE_ID = updatedEntity.GateId,
+                    GUID_DELIVERABLE_GATE = updatedEntity.DeliverableGateGuid,
                     UNITS = updatedEntity.Units,
                     UPDATEDBY = updatedEntity.UpdatedBy
                 };
@@ -191,6 +191,7 @@ namespace FourSPM_WebService.Controllers
                 Guid = progress.GUID,
                 DeliverableGuid = progress.GUID_DELIVERABLE,
                 Period = progress.PERIOD,
+                DeliverableGateGuid = progress.GUID_DELIVERABLE_GATE,
                 Units = progress.UNITS,
                 Created = progress.CREATED,
                 CreatedBy = progress.CREATEDBY,

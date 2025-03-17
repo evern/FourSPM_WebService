@@ -17,6 +17,7 @@ public partial class FourSPMContext : DbContext
         DISCIPLINEs = Set<DISCIPLINE>();
         DOCUMENT_TYPEs = Set<DOCUMENT_TYPE>();
         AREAs = Set<AREA>();
+        DELIVERABLE_GATEs = Set<DELIVERABLE_GATE>();
     }
 
     public FourSPMContext(DbContextOptions<FourSPMContext> options)
@@ -30,6 +31,7 @@ public partial class FourSPMContext : DbContext
         DISCIPLINEs = Set<DISCIPLINE>();
         DOCUMENT_TYPEs = Set<DOCUMENT_TYPE>();
         AREAs = Set<AREA>();
+        DELIVERABLE_GATEs = Set<DELIVERABLE_GATE>();
     }
 
     public virtual DbSet<PROJECT> PROJECTs { get; set; }
@@ -40,6 +42,7 @@ public partial class FourSPMContext : DbContext
     public virtual DbSet<DISCIPLINE> DISCIPLINEs { get; set; }
     public virtual DbSet<DOCUMENT_TYPE> DOCUMENT_TYPEs { get; set; }
     public virtual DbSet<AREA> AREAs { get; set; }
+    public virtual DbSet<DELIVERABLE_GATE> DELIVERABLE_GATEs { get; set; }
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
 #warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see https://go.microsoft.com/fwlink/?LinkId=723263.
@@ -250,6 +253,25 @@ public partial class FourSPMContext : DbContext
                 .WithMany(p => p.Areas)
                 .HasForeignKey(d => d.GUID_PROJECT)
                 .OnDelete(DeleteBehavior.NoAction);
+        });
+
+        modelBuilder.Entity<DELIVERABLE_GATE>(entity =>
+        {
+            entity.HasKey(e => e.GUID);
+            entity.ToTable("DELIVERABLE_GATE");
+
+            entity.HasIndex(e => e.DELETED).HasDatabaseName("IX_DELIVERABLE_GATE_DELETED");
+
+            entity.Property(e => e.GUID).ValueGeneratedNever();
+            entity.Property(e => e.NAME).HasMaxLength(100).IsRequired();
+            entity.Property(e => e.MAX_PERCENTAGE).HasColumnType("decimal(5, 2)").IsRequired();
+            entity.Property(e => e.AUTO_PERCENTAGE).HasColumnType("decimal(5, 2)");
+            entity.Property(e => e.CREATED).HasColumnType("datetime").IsRequired();
+            entity.Property(e => e.CREATEDBY).IsRequired();
+            entity.Property(e => e.UPDATED).HasColumnType("datetime");
+            entity.Property(e => e.UPDATEDBY);
+            entity.Property(e => e.DELETED).HasColumnType("datetime");
+            entity.Property(e => e.DELETEDBY);
         });
 
         OnModelCreatingPartial(modelBuilder);
