@@ -1,4 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 
 namespace FourSPM_WebService.Models.Shared.Enums
 {
@@ -18,5 +18,20 @@ namespace FourSPM_WebService.Models.Shared.Enums
 
         [Display(Name = "Cancelled")]
         Cancelled = 4
+    }
+
+    public enum DeliverableGate
+    {
+        [Display(Name = "Started")]
+        Started = 0,
+
+        [Display(Name = "Issued for Checking")]
+        IssuedForChecking = 1,
+
+        [Display(Name = "Issued for Client Review")]
+        IssuedForClientReview = 2,
+
+        [Display(Name = "Issued for Construction/Use")]
+        IssuedForConstructionUse = 3
     }
 }

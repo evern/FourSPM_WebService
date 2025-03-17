@@ -57,6 +57,7 @@ namespace FourSPM_WebService.Data.Repositories
 
             existingProgress.GUID_DELIVERABLE = progress.GUID_DELIVERABLE;
             existingProgress.PERIOD = progress.PERIOD;
+            existingProgress.GATE_ID = progress.GATE_ID;
             existingProgress.UNITS = progress.UNITS;
             existingProgress.UPDATED = DateTime.Now;
             existingProgress.UPDATEDBY = progress.UPDATEDBY;

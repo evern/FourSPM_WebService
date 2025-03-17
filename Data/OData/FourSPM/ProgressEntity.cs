@@ -1,5 +1,6 @@
 using System;
 using System.ComponentModel.DataAnnotations;
+using FourSPM_WebService.Models.Shared.Enums;
 
 namespace FourSPM_WebService.Data.OData.FourSPM
 {
@@ -14,6 +15,8 @@ namespace FourSPM_WebService.Data.OData.FourSPM
 
         [Required]
         public int Period { get; set; }
+
+        public DeliverableGate? GateId { get; set; }
 
         [Required]
         public decimal Units { get; set; }

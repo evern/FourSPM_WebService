@@ -1,6 +1,7 @@
 using System;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using FourSPM_WebService.Models.Shared.Enums;
 
 namespace FourSPM_WebService.Data.EF.FourSPM
 {
@@ -15,6 +16,8 @@ namespace FourSPM_WebService.Data.EF.FourSPM
 
         [Required]
         public int PERIOD { get; set; }
+
+        public DeliverableGate? GATE_ID { get; set; }
 
         [Required]
         [Column(TypeName = "decimal(10,2)")]

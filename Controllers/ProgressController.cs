@@ -169,6 +169,7 @@ namespace FourSPM_WebService.Controllers
                     GUID = updatedEntity.Guid,
                     GUID_DELIVERABLE = updatedEntity.DeliverableGuid,
                     PERIOD = updatedEntity.Period,
+                    GATE_ID = updatedEntity.GateId,
                     UNITS = updatedEntity.Units,
                     UPDATEDBY = updatedEntity.UpdatedBy
                 };
