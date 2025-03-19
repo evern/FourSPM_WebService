@@ -191,24 +191,14 @@ public class ProjectsController : FourSPMODataController
             }
 
             // Map back to PROJECT entity
-            var projectToUpdate = new PROJECT
-            {
-                GUID = updatedEntity.Guid,
-                GUID_CLIENT = updatedEntity.ClientGuid,
-                PROJECT_NUMBER = updatedEntity.ProjectNumber,
-                NAME = updatedEntity.Name,
-                PURCHASE_ORDER_NUMBER = updatedEntity.PurchaseOrderNumber,
-                PROJECT_STATUS = updatedEntity.ProjectStatus,
-                PROGRESS_START = updatedEntity.ProgressStart,
-                CREATED = existingProject.CREATED,
-                CREATEDBY = existingProject.CREATEDBY,
-                UPDATED = existingProject.UPDATED,
-                UPDATEDBY = existingProject.UPDATEDBY,
-                DELETED = existingProject.DELETED,
-                DELETEDBY = existingProject.DELETEDBY
-            };
+            existingProject.GUID_CLIENT = updatedEntity.ClientGuid;
+            existingProject.PROJECT_NUMBER = updatedEntity.ProjectNumber;
+            existingProject.NAME = updatedEntity.Name;
+            existingProject.PURCHASE_ORDER_NUMBER = updatedEntity.PurchaseOrderNumber;
+            existingProject.PROJECT_STATUS = updatedEntity.ProjectStatus;
+            existingProject.PROGRESS_START = updatedEntity.ProgressStart;
 
-            var result = await _projectRepository.UpdateAsync(projectToUpdate);
+            var result = await _projectRepository.UpdateAsync(existingProject);
             return Updated(MapToEntity(result));
         }
         catch (Exception ex)

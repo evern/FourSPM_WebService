@@ -167,24 +167,20 @@ namespace FourSPM_WebService.Controllers
                 delta.CopyChangedValues(updatedEntity);
 
                 // Map back to DELIVERABLE entity
-                var deliverableToUpdate = new DELIVERABLE
-                {
-                    GUID = updatedEntity.Guid,
-                    GUID_PROJECT = updatedEntity.ProjectGuid,
-                    AREA_NUMBER = updatedEntity.AreaNumber,
-                    DISCIPLINE = updatedEntity.Discipline,
-                    DOCUMENT_TYPE = updatedEntity.DocumentType,
-                    DEPARTMENT_ID = updatedEntity.DepartmentId,
-                    DELIVERABLE_TYPE_ID = updatedEntity.DeliverableTypeId,
-                    INTERNAL_DOCUMENT_NUMBER = updatedEntity.InternalDocumentNumber,
-                    CLIENT_DOCUMENT_NUMBER = updatedEntity.ClientDocumentNumber,
-                    DOCUMENT_TITLE = updatedEntity.DocumentTitle,
-                    BUDGET_HOURS = updatedEntity.BudgetHours,
-                    VARIATION_HOURS = updatedEntity.VariationHours,
-                    TOTAL_COST = updatedEntity.TotalCost
-                };
+                existingDeliverable.GUID_PROJECT = updatedEntity.ProjectGuid;
+                existingDeliverable.AREA_NUMBER = updatedEntity.AreaNumber;
+                existingDeliverable.DISCIPLINE = updatedEntity.Discipline;
+                existingDeliverable.DOCUMENT_TYPE = updatedEntity.DocumentType;
+                existingDeliverable.DEPARTMENT_ID = updatedEntity.DepartmentId;
+                existingDeliverable.DELIVERABLE_TYPE_ID = updatedEntity.DeliverableTypeId;
+                existingDeliverable.INTERNAL_DOCUMENT_NUMBER = updatedEntity.InternalDocumentNumber;
+                existingDeliverable.CLIENT_DOCUMENT_NUMBER = updatedEntity.ClientDocumentNumber;
+                existingDeliverable.DOCUMENT_TITLE = updatedEntity.DocumentTitle;
+                existingDeliverable.BUDGET_HOURS = updatedEntity.BudgetHours;
+                existingDeliverable.VARIATION_HOURS = updatedEntity.VariationHours;
+                existingDeliverable.TOTAL_COST = updatedEntity.TotalCost;
 
-                var result = await _repository.UpdateAsync(deliverableToUpdate);
+                var result = await _repository.UpdateAsync(existingDeliverable);
                 return Updated(MapToEntity(result));
             }
             catch (Exception ex)

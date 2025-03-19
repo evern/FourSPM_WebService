@@ -160,15 +160,11 @@ namespace FourSPM_WebService.Controllers
                 }
 
                 // Map back to AREA entity
-                var areaToUpdate = new AREA
-                {
-                    GUID = updatedEntity.Guid,
-                    GUID_PROJECT = updatedEntity.ProjectGuid,
-                    NUMBER = updatedEntity.Number,
-                    DESCRIPTION = updatedEntity.Description
-                };
+                existingArea.GUID_PROJECT = updatedEntity.ProjectGuid;
+                existingArea.NUMBER = updatedEntity.Number;
+                existingArea.DESCRIPTION = updatedEntity.Description;
 
-                var result = await _repository.UpdateAsync(areaToUpdate);
+                var result = await _repository.UpdateAsync(existingArea);
                 return Updated(MapToEntity(result));
             }
             catch (Exception ex)

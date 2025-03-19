@@ -162,15 +162,11 @@ namespace FourSPM_WebService.Controllers
                 delta.CopyChangedValues(updatedEntity);
 
                 // Map back to PROGRESS entity
-                var progressToUpdate = new PROGRESS
-                {
-                    GUID = updatedEntity.Guid,
-                    GUID_DELIVERABLE = updatedEntity.DeliverableGuid,
-                    PERIOD = updatedEntity.Period,
-                    UNITS = updatedEntity.Units
-                };
+                existingProgress.GUID_DELIVERABLE = updatedEntity.DeliverableGuid;
+                existingProgress.PERIOD = updatedEntity.Period;
+                existingProgress.UNITS = updatedEntity.Units;
 
-                var result = await _repository.UpdateAsync(progressToUpdate);
+                var result = await _repository.UpdateAsync(existingProgress);
                 return Updated(MapToEntity(result));
             }
             catch (Exception ex)

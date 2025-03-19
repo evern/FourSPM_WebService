@@ -137,14 +137,10 @@ namespace FourSPM_WebService.Controllers
                 delta.CopyChangedValues(updatedEntity);
 
                 // Map back to DOCUMENT_TYPE entity
-                var documentTypeToUpdate = new DOCUMENT_TYPE
-                {
-                    GUID = updatedEntity.Guid,
-                    CODE = updatedEntity.Code,
-                    NAME = updatedEntity.Name ?? string.Empty
-                };
+                existingDocumentType.CODE = updatedEntity.Code;
+                existingDocumentType.NAME = updatedEntity.Name ?? string.Empty;
 
-                var result = await _repository.UpdateAsync(documentTypeToUpdate);
+                var result = await _repository.UpdateAsync(existingDocumentType);
                 return Updated(MapToEntity(result));
             }
             catch (Exception ex)
