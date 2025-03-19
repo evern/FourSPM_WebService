@@ -58,8 +58,7 @@ namespace FourSPM_WebService.Controllers
                 GUID = entity.Guid,
                 NAME = entity.Name,
                 MAX_PERCENTAGE = entity.MaxPercentage,
-                AUTO_PERCENTAGE = entity.AutoPercentage,
-                CREATEDBY = entity.CreatedBy
+                AUTO_PERCENTAGE = entity.AutoPercentage
             };
 
             var result = await _repository.CreateAsync(deliverableGate);
@@ -86,8 +85,7 @@ namespace FourSPM_WebService.Controllers
                     GUID = entity.Guid,
                     NAME = entity.Name,
                     MAX_PERCENTAGE = entity.MaxPercentage,
-                    AUTO_PERCENTAGE = entity.AutoPercentage ?? 0,
-                    UPDATEDBY = entity.UpdatedBy
+                    AUTO_PERCENTAGE = entity.AutoPercentage ?? 0
                 };
 
                 var result = await _repository.UpdateAsync(gate);
@@ -155,8 +153,7 @@ namespace FourSPM_WebService.Controllers
                     GUID = updatedEntity.Guid,
                     NAME = updatedEntity.Name,
                     MAX_PERCENTAGE = updatedEntity.MaxPercentage,
-                    AUTO_PERCENTAGE = updatedEntity.AutoPercentage ?? 0,
-                    UPDATEDBY = updatedEntity.UpdatedBy
+                    AUTO_PERCENTAGE = updatedEntity.AutoPercentage ?? 0
                 };
 
                 var result = await _repository.UpdateAsync(gateToUpdate);

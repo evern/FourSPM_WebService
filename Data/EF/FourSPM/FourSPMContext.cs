@@ -130,6 +130,7 @@ public partial class FourSPMContext : DbContext
             entity.HasIndex(e => e.DEPARTMENT_ID).HasDatabaseName("IX_DELIVERABLES_DEPARTMENT_ID");
             entity.HasIndex(e => e.DELIVERABLE_TYPE_ID).HasDatabaseName("IX_DELIVERABLES_DELIVERABLE_TYPE_ID");
             entity.HasIndex(e => e.GUID_PROJECT).HasDatabaseName("IX_DELIVERABLES_PROJECT_ID");
+            entity.HasIndex(e => e.GUID_DELIVERABLE_GATE).HasDatabaseName("IX_DELIVERABLES_GATE_ID");
             entity.HasIndex(e => e.DELETED).HasDatabaseName("IX_DELIVERABLES_DELETED");
 
             entity.Property(e => e.GUID).HasDefaultValueSql("NEWID()");
@@ -150,6 +151,7 @@ public partial class FourSPMContext : DbContext
             entity.Property(e => e.UPDATEDBY);
             entity.Property(e => e.DELETED).HasColumnType("datetime");
             entity.Property(e => e.DELETEDBY);
+            entity.Property(e => e.GUID_DELIVERABLE_GATE);
 
             // Configure the enum properties
             entity.Property(e => e.DELIVERABLE_TYPE_ID)
@@ -165,6 +167,11 @@ public partial class FourSPMContext : DbContext
                 .WithMany(p => p.Deliverables)
                 .HasForeignKey(d => d.GUID_PROJECT)
                 .OnDelete(DeleteBehavior.NoAction);
+
+            entity.HasOne(d => d.DeliverableGate)
+                .WithMany(p => p.Deliverables)
+                .HasForeignKey(d => d.GUID_DELIVERABLE_GATE)
+                .OnDelete(DeleteBehavior.NoAction);
         });
 
         modelBuilder.Entity<PROGRESS>(entity =>
@@ -175,6 +182,12 @@ public partial class FourSPMContext : DbContext
             entity.HasIndex(e => e.GUID_DELIVERABLE).HasDatabaseName("IX_PROGRESS_DELIVERABLE_ID");
             entity.HasIndex(e => e.PERIOD).HasDatabaseName("IX_PROGRESS_PERIOD");
             entity.HasIndex(e => e.DELETED).HasDatabaseName("IX_PROGRESS_DELETED");
+            
+            // Add filtered unique index for active progress records
+            entity.HasIndex(e => new { e.GUID_DELIVERABLE, e.PERIOD })
+                .HasDatabaseName("IX_PROGRESS_DELIVERABLE_PERIOD_UNIQUE_ACTIVE")
+                .IsUnique()
+                .HasFilter("[DELETED] IS NULL");
 
             entity.Property(e => e.GUID).HasDefaultValueSql("NEWID()");
             entity.Property(e => e.GUID_DELIVERABLE).IsRequired();

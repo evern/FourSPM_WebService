@@ -8,13 +8,13 @@ using Microsoft.AspNetCore.OData.Query;
 using Microsoft.AspNetCore.OData.Routing.Attributes;
 using Microsoft.AspNetCore.OData.Routing.Controllers;
 using Microsoft.AspNetCore.OData.Deltas;
-using Newtonsoft.Json;
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.AspNetCore.OData.Formatter;
 using Microsoft.Extensions.Logging;
+using Microsoft.AspNetCore.OData.Formatter;
+using Newtonsoft.Json;
 
 namespace FourSPM_WebService.Controllers
 {
@@ -305,6 +305,41 @@ namespace FourSPM_WebService.Controllers
             
             decimal totalHours = deliverable.BUDGET_HOURS + deliverable.VARIATION_HOURS;
             
+            // Calculate progress-related values
+            var validProgressItems = deliverable.ProgressItems
+                .Where(p => p.DELETED == null)
+                .ToList();
+            
+            // Get the current period - take the max period from progress items or default to 1
+            int currentPeriod = validProgressItems.Any() ? validProgressItems.Max(p => p.PERIOD) : 1;
+            
+            // Calculate total percentage earnt based on the units reported for the deliverable
+            decimal totalPercentageEarnt = 0;
+            if (validProgressItems.Any() && totalHours > 0)
+            {
+                // For total percentage, we look at the sum of all units reported
+                decimal totalUnits = validProgressItems.Sum(p => p.UNITS);
+                totalPercentageEarnt = totalUnits / totalHours;
+            }
+            
+            // Calculate total earnt hours
+            decimal totalEarntHours = totalHours * totalPercentageEarnt;
+            
+            // Calculate period percentage based on units in the current period's progress record
+            decimal periodPercentageEarnt = 0;
+            if (totalHours > 0) // Avoid division by zero
+            {
+                var currentPeriodProgress = validProgressItems
+                    .FirstOrDefault(p => p.PERIOD == currentPeriod);
+                
+                if (currentPeriodProgress != null)
+                {
+                    periodPercentageEarnt = currentPeriodProgress.UNITS / totalHours;
+                }
+            }
+            
+            decimal periodEarntHours = totalHours * periodPercentageEarnt;
+            
             return new DeliverableEntity
             {
                 Guid = deliverable.GUID,
@@ -324,6 +359,10 @@ namespace FourSPM_WebService.Controllers
                 TotalHours = totalHours,
                 TotalCost = deliverable.TOTAL_COST,
                 BookingCode = bookingCode,
+                TotalPercentageEarnt = totalPercentageEarnt,
+                TotalEarntHours = totalEarntHours,
+                PeriodPercentageEarnt = periodPercentageEarnt,
+                PeriodEarntHours = periodEarntHours,
                 Created = deliverable.CREATED,
                 CreatedBy = deliverable.CREATEDBY,
                 Updated = deliverable.UPDATED,
@@ -341,6 +380,26 @@ namespace FourSPM_WebService.Controllers
                         Number = deliverable.Project.Client.NUMBER,
                         Description = deliverable.Project.Client.DESCRIPTION
                     } : null
+                } : null,
+                ProgressItems = validProgressItems.Select(p => new ProgressEntity
+                {
+                    Guid = p.GUID,
+                    DeliverableGuid = p.GUID_DELIVERABLE,
+                    Period = p.PERIOD,
+                    Units = p.UNITS,
+                    Created = p.CREATED,
+                    CreatedBy = p.CREATEDBY,
+                    Updated = p.UPDATED,
+                    UpdatedBy = p.UPDATEDBY,
+                    Deleted = p.DELETED,
+                    DeletedBy = p.DELETEDBY
+                }).ToList(),
+                DeliverableGate = deliverable.DeliverableGate != null ? new DeliverableGateEntity
+                {
+                    Guid = deliverable.DeliverableGate.GUID,
+                    Name = deliverable.DeliverableGate.NAME,
+                    MaxPercentage = deliverable.DeliverableGate.MAX_PERCENTAGE,
+                    AutoPercentage = deliverable.DeliverableGate.AUTO_PERCENTAGE
                 } : null
             };
         }

@@ -50,21 +50,24 @@ namespace FourSPM_WebService.Data.Repositories
         
         public async Task<CLIENT> UpdateAsync(CLIENT client)
         {
-            var existingClient = await _context.CLIENTs
-                .FirstOrDefaultAsync(c => c.GUID == client.GUID && c.DELETED == null);
+            // Update audit fields directly on the passed client object
+            client.UPDATED = DateTime.Now;
+            client.UPDATEDBY = _user.UserId!.Value;
             
-            if (existingClient == null)
+            try
             {
-                throw new KeyNotFoundException($"Client with ID {client.GUID} not found");
+                await _context.SaveChangesAsync();
+                return client;
             }
-            
-            // Update properties
-            existingClient.UPDATED = DateTime.Now;
-            existingClient.UPDATEDBY = _user.UserId!.Value;
-            
-            await _context.SaveChangesAsync();
-            
-            return await GetByIdAsync(existingClient.GUID) ?? existingClient;
+            catch (DbUpdateConcurrencyException)
+            {
+                // Handle the case where the entity doesn't exist
+                if (!await _context.CLIENTs.AnyAsync(c => c.GUID == client.GUID && c.DELETED == null))
+                {
+                    throw new KeyNotFoundException($"Client with ID {client.GUID} not found");
+                }
+                throw; // Rethrow if it's a different issue
+            }
         }
         
         public async Task<bool> DeleteAsync(Guid id, Guid deletedBy)

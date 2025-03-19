@@ -19,6 +19,6 @@ namespace FourSPM_WebService.Data.EF.FourSPM
         public Guid? DELETEDBY { get; set; }
         
         // Navigation properties
-        public virtual ICollection<PROGRESS> ProgressItems { get; set; } = new List<PROGRESS>();
+        public virtual ICollection<DELIVERABLE> Deliverables { get; set; } = new List<DELIVERABLE>();
     }
 }

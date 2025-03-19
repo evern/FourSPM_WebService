@@ -87,8 +87,7 @@ namespace FourSPM_WebService.Controllers
             {
                 GUID_DELIVERABLE = entity.DeliverableGuid,
                 PERIOD = entity.Period,
-                UNITS = entity.Units,
-                CREATEDBY = entity.CreatedBy
+                UNITS = entity.Units
             };
 
             var result = await _repository.CreateAsync(progress);
@@ -110,8 +109,7 @@ namespace FourSPM_WebService.Controllers
                     GUID = entity.Guid,
                     GUID_DELIVERABLE = entity.DeliverableGuid,
                     PERIOD = entity.Period,
-                    UNITS = entity.Units,
-                    UPDATEDBY = entity.UpdatedBy
+                    UNITS = entity.Units
                 };
 
                 var result = await _repository.UpdateAsync(progress);
@@ -169,9 +167,7 @@ namespace FourSPM_WebService.Controllers
                     GUID = updatedEntity.Guid,
                     GUID_DELIVERABLE = updatedEntity.DeliverableGuid,
                     PERIOD = updatedEntity.Period,
-                    GUID_DELIVERABLE_GATE = updatedEntity.DeliverableGateGuid,
-                    UNITS = updatedEntity.Units,
-                    UPDATEDBY = updatedEntity.UpdatedBy
+                    UNITS = updatedEntity.Units
                 };
 
                 var result = await _repository.UpdateAsync(progressToUpdate);
@@ -184,6 +180,62 @@ namespace FourSPM_WebService.Controllers
             }
         }
 
+        /// <summary>
+        /// Adds a new progress record if it doesn't exist or updates an existing one
+        /// </summary>
+        /// <param name="entity">The progress entity to add or update</param>
+        /// <returns>The newly created or updated progress record</returns>
+        [HttpPost("odata/v1/Progress/AddOrUpdateExisting")]
+        public async Task<IActionResult> AddOrUpdateExisting([FromBody] ProgressEntity entity)
+        {
+            try
+            {
+                if (!ModelState.IsValid)
+                    return BadRequest(ModelState);
+
+                _logger?.LogInformation($"Received AddOrUpdateExisting request for deliverable {entity.DeliverableGuid}, period {entity.Period}");
+
+                // Check if a progress record already exists for this deliverable and period
+                var existingItems = await _repository.GetByDeliverableIdAsync(entity.DeliverableGuid);
+                var matchingItem = existingItems.FirstOrDefault(p => 
+                    p.PERIOD == entity.Period && 
+                    p.DELETED == null);
+
+                if (matchingItem != null)
+                {
+                    // Update existing progress
+                    _logger?.LogInformation($"Updating existing progress item {matchingItem.GUID}");
+
+                    matchingItem.UNITS = entity.Units;
+
+                    var result = await _repository.UpdateAsync(matchingItem);
+                    return Ok(MapToEntity(result));
+                }
+                else
+                {
+                    // Create new progress record
+                    _logger?.LogInformation($"Creating new progress item for deliverable {entity.DeliverableGuid}");
+                    
+                    var newProgress = new PROGRESS
+                    {
+                        GUID = entity.Guid != Guid.Empty ? entity.Guid : Guid.NewGuid(),
+                        GUID_DELIVERABLE = entity.DeliverableGuid,
+                        PERIOD = entity.Period,
+                        UNITS = entity.Units
+                    };
+
+                    var result = await _repository.CreateAsync(newProgress);
+                    // Don't use OData-specific Created() for a custom endpoint
+                    return Ok(MapToEntity(result));
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogError(ex, "Error processing request");
+                return StatusCode(500, $"Error: {ex.Message}");
+            }
+        }
+
         private static ProgressEntity MapToEntity(PROGRESS progress)
         {
             return new ProgressEntity
@@ -191,7 +243,6 @@ namespace FourSPM_WebService.Controllers
                 Guid = progress.GUID,
                 DeliverableGuid = progress.GUID_DELIVERABLE,
                 Period = progress.PERIOD,
-                DeliverableGateGuid = progress.GUID_DELIVERABLE_GATE,
                 Units = progress.UNITS,
                 Created = progress.CREATED,
                 CreatedBy = progress.CREATEDBY,

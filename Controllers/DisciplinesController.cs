@@ -80,8 +80,7 @@ namespace FourSPM_WebService.Controllers
             {
                 GUID = entity.Guid,
                 CODE = entity.Code,
-                NAME = entity.Name ?? string.Empty,
-                CREATEDBY = entity.CreatedBy
+                NAME = entity.Name ?? string.Empty
             };
 
             var result = await _repository.CreateAsync(discipline);
@@ -102,8 +101,7 @@ namespace FourSPM_WebService.Controllers
                 {
                     GUID = entity.Guid,
                     CODE = entity.Code,
-                    NAME = entity.Name ?? string.Empty,
-                    UPDATEDBY = entity.UpdatedBy ?? Guid.Empty
+                    NAME = entity.Name ?? string.Empty
                 };
 
                 var result = await _repository.UpdateAsync(discipline);
@@ -160,8 +158,7 @@ namespace FourSPM_WebService.Controllers
                 {
                     GUID = updatedEntity.Guid,
                     CODE = updatedEntity.Code,
-                    NAME = updatedEntity.Name ?? string.Empty,
-                    UPDATEDBY = updatedEntity.UpdatedBy ?? Guid.Empty
+                    NAME = updatedEntity.Name ?? string.Empty
                 };
 
                 var result = await _repository.UpdateAsync(disciplineToUpdate);

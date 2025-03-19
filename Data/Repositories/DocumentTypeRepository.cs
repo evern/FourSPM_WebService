@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using FourSPM_WebService.Data.EF.FourSPM;
 using FourSPM_WebService.Data.Interfaces;
+using FourSPM_WebService.Models.Session;
 using Microsoft.EntityFrameworkCore;
 
 namespace FourSPM_WebService.Data.Repositories
@@ -11,10 +12,12 @@ namespace FourSPM_WebService.Data.Repositories
     public class DocumentTypeRepository : IDocumentTypeRepository
     {
         private readonly FourSPMContext _context;
+        private readonly ApplicationUser _user;
 
-        public DocumentTypeRepository(FourSPMContext context)
+        public DocumentTypeRepository(FourSPMContext context, ApplicationUser user)
         {
             _context = context;
+            _user = user;
         }
 
         public async Task<IEnumerable<DOCUMENT_TYPE>> GetAllAsync()
@@ -34,6 +37,8 @@ namespace FourSPM_WebService.Data.Repositories
         public async Task<DOCUMENT_TYPE> CreateAsync(DOCUMENT_TYPE documentType)
         {
             documentType.CREATED = DateTime.Now;
+            documentType.CREATEDBY = _user.UserId ?? Guid.Empty;
+            
             _context.DOCUMENT_TYPEs.Add(documentType);
             await _context.SaveChangesAsync();
             return await GetByIdAsync(documentType.GUID) ?? documentType;
@@ -41,19 +46,24 @@ namespace FourSPM_WebService.Data.Repositories
 
         public async Task<DOCUMENT_TYPE> UpdateAsync(DOCUMENT_TYPE documentType)
         {
-            var existingDocumentType = await _context.DOCUMENT_TYPEs
-                .FirstOrDefaultAsync(d => d.GUID == documentType.GUID && d.DELETED == null);
-
-            if (existingDocumentType == null)
-                throw new KeyNotFoundException($"Document type with ID {documentType.GUID} not found");
-
-            existingDocumentType.CODE = documentType.CODE;
-            existingDocumentType.NAME = documentType.NAME;
-            existingDocumentType.UPDATED = DateTime.Now;
-            existingDocumentType.UPDATEDBY = documentType.UPDATEDBY;
-
-            await _context.SaveChangesAsync();
-            return await GetByIdAsync(existingDocumentType.GUID) ?? existingDocumentType;
+            // Update audit fields directly on the passed object
+            documentType.UPDATED = DateTime.Now;
+            documentType.UPDATEDBY = _user.UserId ?? Guid.Empty;
+            
+            try
+            {
+                await _context.SaveChangesAsync();
+                return documentType;
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                // Handle the case where the entity doesn't exist
+                if (!await _context.DOCUMENT_TYPEs.AnyAsync(d => d.GUID == documentType.GUID && d.DELETED == null))
+                {
+                    throw new KeyNotFoundException($"Document type with ID {documentType.GUID} not found");
+                }
+                throw; // Rethrow if it's a different issue
+            }
         }
 
         public async Task<bool> DeleteAsync(Guid id, Guid deletedBy)

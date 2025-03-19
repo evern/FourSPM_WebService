@@ -177,20 +177,16 @@ public class ClientsController : FourSPMODataController
                 return NotFound($"Client with ID {key} not found");
             }
             
-            // Map to database entity
-            var clientToUpdate = new CLIENT
-            {
-                GUID = update.Guid,
-                NUMBER = update.Number,
-                DESCRIPTION = update.Description,
-                CLIENT_CONTACT_NAME = update.ClientContactName,
-                CLIENT_CONTACT_NUMBER = update.ClientContactNumber,
-                CLIENT_CONTACT_EMAIL = update.ClientContactEmail
-                // Created, Updated, and Deleted info will be handled by the repository
-            };
-
+            // Map properties from update entity to existing entity
+            existingClient.NUMBER = update.Number;
+            existingClient.DESCRIPTION = update.Description;
+            existingClient.CLIENT_CONTACT_NAME = update.ClientContactName;
+            existingClient.CLIENT_CONTACT_NUMBER = update.ClientContactNumber;
+            existingClient.CLIENT_CONTACT_EMAIL = update.ClientContactEmail;
+            // Created, Updated, and Deleted info will be handled by the repository
+            
             // Use the new UpdateAsync method
-            var updatedClient = await _clientRepository.UpdateAsync(clientToUpdate);
+            var updatedClient = await _clientRepository.UpdateAsync(existingClient);
             return Ok(MapToEntity(updatedClient));
         }
         catch (KeyNotFoundException ex)
@@ -245,25 +241,15 @@ public class ClientsController : FourSPMODataController
                 return BadRequest($"A client with number '{updatedEntity.Number}' already exists.");
             }
 
-            // Map back to CLIENT entity
-            var clientToUpdate = new CLIENT
-            {
-                GUID = updatedEntity.Guid,
-                NUMBER = updatedEntity.Number,
-                DESCRIPTION = updatedEntity.Description,
-                CLIENT_CONTACT_NAME = updatedEntity.ClientContactName,
-                CLIENT_CONTACT_NUMBER = updatedEntity.ClientContactNumber,
-                CLIENT_CONTACT_EMAIL = updatedEntity.ClientContactEmail,
-                CREATED = existingClient.CREATED,
-                CREATEDBY = existingClient.CREATEDBY,
-                UPDATED = existingClient.UPDATED,
-                UPDATEDBY = existingClient.UPDATEDBY,
-                DELETED = existingClient.DELETED,
-                DELETEDBY = existingClient.DELETEDBY
-            };
+            // Map back to EF tracked CLIENT entity
+            existingClient.NUMBER = updatedEntity.Number;
+            existingClient.DESCRIPTION = updatedEntity.Description;
+            existingClient.CLIENT_CONTACT_NAME = updatedEntity.ClientContactName;
+            existingClient.CLIENT_CONTACT_NUMBER = updatedEntity.ClientContactNumber;
+            existingClient.CLIENT_CONTACT_EMAIL = updatedEntity.ClientContactEmail;
 
             // Use the new UpdateAsync method instead of UpdateClient
-            var updatedClient = await _clientRepository.UpdateAsync(clientToUpdate);
+            var updatedClient = await _clientRepository.UpdateAsync(existingClient);
             return Ok(MapToEntity(updatedClient));
         }
         catch (Exception ex)

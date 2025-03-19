@@ -56,20 +56,24 @@ namespace FourSPM_WebService.Data.Repositories
 
         public async Task<AREA> UpdateAsync(AREA area)
         {
-            var existingArea = await _context.AREAs
-                .FirstOrDefaultAsync(a => a.GUID == area.GUID && a.DELETED == null);
-
-            if (existingArea == null)
-                throw new KeyNotFoundException($"Area with ID {area.GUID} not found");
-
-            // Update individual properties
-            existingArea.NUMBER = area.NUMBER;
-            existingArea.DESCRIPTION = area.DESCRIPTION;
-            existingArea.UPDATED = DateTime.Now;
-            existingArea.UPDATEDBY = _user.UserId ?? Guid.Empty;
-
-            await _context.SaveChangesAsync();
-            return await GetByIdAsync(existingArea.GUID) ?? existingArea;
+            // Update audit fields directly on the passed object
+            area.UPDATED = DateTime.Now;
+            area.UPDATEDBY = _user.UserId ?? Guid.Empty;
+            
+            try
+            {
+                await _context.SaveChangesAsync();
+                return area;
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                // Handle the case where the entity doesn't exist
+                if (!await _context.AREAs.AnyAsync(a => a.GUID == area.GUID && a.DELETED == null))
+                {
+                    throw new KeyNotFoundException($"Area with ID {area.GUID} not found");
+                }
+                throw; // Rethrow if it's a different issue
+            }
         }
 
         public async Task<bool> DeleteAsync(Guid id, Guid deletedBy)

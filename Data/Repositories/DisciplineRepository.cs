@@ -1,5 +1,6 @@
 using FourSPM_WebService.Data.EF.FourSPM;
 using FourSPM_WebService.Data.Interfaces;
+using FourSPM_WebService.Models.Session;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
@@ -11,10 +12,12 @@ namespace FourSPM_WebService.Data.Repositories
     public class DisciplineRepository : IDisciplineRepository
     {
         private readonly FourSPMContext _context;
+        private readonly ApplicationUser _user;
 
-        public DisciplineRepository(FourSPMContext context)
+        public DisciplineRepository(FourSPMContext context, ApplicationUser user)
         {
             _context = context;
+            _user = user;
         }
 
         public async Task<IEnumerable<DISCIPLINE>> GetAllAsync()
@@ -40,6 +43,7 @@ namespace FourSPM_WebService.Data.Repositories
         public async Task<DISCIPLINE> CreateAsync(DISCIPLINE discipline)
         {
             discipline.CREATED = DateTime.Now;
+            discipline.CREATEDBY = _user.UserId ?? Guid.Empty;
             
             _context.DISCIPLINEs.Add(discipline);
             await _context.SaveChangesAsync();
@@ -49,20 +53,24 @@ namespace FourSPM_WebService.Data.Repositories
 
         public async Task<DISCIPLINE> UpdateAsync(DISCIPLINE discipline)
         {
-            var existingDiscipline = await _context.DISCIPLINEs
-                .FirstOrDefaultAsync(d => d.GUID == discipline.GUID && d.DELETED == null);
+            // Update audit fields directly on the passed object
+            discipline.UPDATED = DateTime.Now;
+            discipline.UPDATEDBY = _user.UserId ?? Guid.Empty;
             
-            if (existingDiscipline == null)
-                throw new KeyNotFoundException($"Discipline with ID {discipline.GUID} not found");
-
-            // Update properties
-            existingDiscipline.CODE = discipline.CODE;
-            existingDiscipline.NAME = discipline.NAME;
-            existingDiscipline.UPDATED = DateTime.Now;
-            existingDiscipline.UPDATEDBY = discipline.UPDATEDBY;
-
-            await _context.SaveChangesAsync();
-            return await GetByIdAsync(existingDiscipline.GUID) ?? existingDiscipline;
+            try
+            {
+                await _context.SaveChangesAsync();
+                return discipline;
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                // Handle the case where the entity doesn't exist
+                if (!await _context.DISCIPLINEs.AnyAsync(d => d.GUID == discipline.GUID && d.DELETED == null))
+                {
+                    throw new KeyNotFoundException($"Discipline with ID {discipline.GUID} not found");
+                }
+                throw; // Rethrow if it's a different issue
+            }
         }
 
         public async Task<bool> DeleteAsync(Guid id, Guid deletedBy)
@@ -83,7 +91,7 @@ namespace FourSPM_WebService.Data.Repositories
         public async Task<bool> ExistsAsync(Guid id)
         {
             return await _context.DISCIPLINEs
-                .AnyAsync(c => c.GUID == id && c.DELETED == null);
+                .AnyAsync(d => d.GUID == id && d.DELETED == null);
         }
     }
 }

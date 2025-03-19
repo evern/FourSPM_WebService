@@ -64,24 +64,24 @@ namespace FourSPM_WebService.Data.Repositories
 
         public async Task<PROJECT> UpdateAsync(PROJECT project)
         {
-            var existingProject = await _context.PROJECTs
-                .FirstOrDefaultAsync(p => p.GUID == project.GUID && p.DELETED == null);
-
-            if (existingProject == null)
-                throw new KeyNotFoundException($"Project with ID {project.GUID} not found");
-
-            // Update individual properties
-            existingProject.GUID_CLIENT = project.GUID_CLIENT;
-            existingProject.PROJECT_NUMBER = project.PROJECT_NUMBER;
-            existingProject.NAME = project.NAME;
-            existingProject.PURCHASE_ORDER_NUMBER = project.PURCHASE_ORDER_NUMBER;
-            existingProject.PROJECT_STATUS = project.PROJECT_STATUS;
-            existingProject.PROGRESS_START = project.PROGRESS_START;
-            existingProject.UPDATED = DateTime.Now;
-            existingProject.UPDATEDBY = _user.UserId ?? Guid.Empty;
-
-            await _context.SaveChangesAsync();
-            return await GetByIdAsync(existingProject.GUID) ?? existingProject;
+            // Update audit fields directly on the passed object
+            project.UPDATED = DateTime.Now;
+            project.UPDATEDBY = _user.UserId ?? Guid.Empty;
+            
+            try
+            {
+                await _context.SaveChangesAsync();
+                return project;
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                // Handle the case where the entity doesn't exist
+                if (!await _context.PROJECTs.AnyAsync(p => p.GUID == project.GUID && p.DELETED == null))
+                {
+                    throw new KeyNotFoundException($"Project with ID {project.GUID} not found");
+                }
+                throw; // Rethrow if it's a different issue
+            }
         }
 
         public async Task<bool> DeleteAsync(Guid id, Guid deletedBy)

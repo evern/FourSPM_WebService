@@ -46,6 +46,8 @@ namespace FourSPM_WebService.Data.EF.FourSPM
 
         public DeliverableTypeEnum DELIVERABLE_TYPE_ID { get; set; }
 
+        public Guid? GUID_DELIVERABLE_GATE { get; set; }
+
         [Required]
         [StringLength(50)]
         public required string INTERNAL_DOCUMENT_NUMBER { get; set; }
@@ -86,6 +88,9 @@ namespace FourSPM_WebService.Data.EF.FourSPM
         [ForeignKey(nameof(GUID_PROJECT))]
         public virtual PROJECT? Project { get; set; }
         
+        [ForeignKey(nameof(GUID_DELIVERABLE_GATE))]
+        public virtual DELIVERABLE_GATE? DeliverableGate { get; set; }
+
         public virtual ICollection<PROGRESS> ProgressItems { get; set; } = new List<PROGRESS>();
     }
 }

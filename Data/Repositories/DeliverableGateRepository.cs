@@ -1,5 +1,6 @@
 using FourSPM_WebService.Data.EF.FourSPM;
 using FourSPM_WebService.Data.Interfaces;
+using FourSPM_WebService.Models.Session;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
@@ -11,10 +12,12 @@ namespace FourSPM_WebService.Data.Repositories
     public class DeliverableGateRepository : IDeliverableGateRepository
     {
         private readonly FourSPMContext _context;
+        private readonly ApplicationUser _user;
 
-        public DeliverableGateRepository(FourSPMContext context)
+        public DeliverableGateRepository(FourSPMContext context, ApplicationUser user)
         {
             _context = context;
+            _user = user;
         }
 
         public async Task<IEnumerable<DELIVERABLE_GATE>> GetAllAsync()
@@ -34,6 +37,8 @@ namespace FourSPM_WebService.Data.Repositories
         public async Task<DELIVERABLE_GATE> CreateAsync(DELIVERABLE_GATE deliverableGate)
         {
             deliverableGate.CREATED = DateTime.Now;
+            deliverableGate.CREATEDBY = _user.UserId ?? Guid.Empty;
+            
             _context.DELIVERABLE_GATEs.Add(deliverableGate);
             await _context.SaveChangesAsync();
             return await GetByIdAsync(deliverableGate.GUID) ?? deliverableGate;
@@ -41,20 +46,24 @@ namespace FourSPM_WebService.Data.Repositories
 
         public async Task<DELIVERABLE_GATE> UpdateAsync(DELIVERABLE_GATE deliverableGate)
         {
-            var existingGate = await _context.DELIVERABLE_GATEs
-                .FirstOrDefaultAsync(dg => dg.GUID == deliverableGate.GUID && dg.DELETED == null);
-
-            if (existingGate == null)
-                throw new KeyNotFoundException($"Deliverable gate with ID {deliverableGate.GUID} not found");
-
-            existingGate.NAME = deliverableGate.NAME;
-            existingGate.MAX_PERCENTAGE = deliverableGate.MAX_PERCENTAGE;
-            existingGate.AUTO_PERCENTAGE = deliverableGate.AUTO_PERCENTAGE;
-            existingGate.UPDATED = DateTime.Now;
-            existingGate.UPDATEDBY = deliverableGate.UPDATEDBY;
-
-            await _context.SaveChangesAsync();
-            return await GetByIdAsync(existingGate.GUID) ?? existingGate;
+            // Update audit fields directly on the passed object
+            deliverableGate.UPDATED = DateTime.Now;
+            deliverableGate.UPDATEDBY = _user.UserId ?? Guid.Empty;
+            
+            try
+            {
+                await _context.SaveChangesAsync();
+                return deliverableGate;
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                // Handle the case where the entity doesn't exist
+                if (!await _context.DELIVERABLE_GATEs.AnyAsync(dg => dg.GUID == deliverableGate.GUID && dg.DELETED == null))
+                {
+                    throw new KeyNotFoundException($"Deliverable gate with ID {deliverableGate.GUID} not found");
+                }
+                throw; // Rethrow if it's a different issue
+            }
         }
 
         public async Task<bool> DeleteAsync(Guid id, Guid deletedBy)

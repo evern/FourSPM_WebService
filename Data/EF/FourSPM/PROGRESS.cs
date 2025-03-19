@@ -17,8 +17,6 @@ namespace FourSPM_WebService.Data.EF.FourSPM
         [Required]
         public int PERIOD { get; set; }
 
-        public Guid? GUID_DELIVERABLE_GATE { get; set; }
-
         [Required]
         [Column(TypeName = "decimal(10,2)")]
         public decimal UNITS { get; set; }
@@ -39,8 +37,5 @@ namespace FourSPM_WebService.Data.EF.FourSPM
 
         [ForeignKey(nameof(GUID_DELIVERABLE))]
         public virtual DELIVERABLE? Deliverable { get; set; }
-        
-        [ForeignKey(nameof(GUID_DELIVERABLE_GATE))]
-        public virtual DELIVERABLE_GATE? DeliverableGate { get; set; }
     }
 }

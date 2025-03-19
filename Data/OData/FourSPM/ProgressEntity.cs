@@ -15,8 +15,6 @@ namespace FourSPM_WebService.Data.OData.FourSPM
         [Required]
         public int Period { get; set; }
 
-        public Guid? DeliverableGateGuid { get; set; }
-
         [Required]
         public decimal Units { get; set; }
 
@@ -35,7 +33,5 @@ namespace FourSPM_WebService.Data.OData.FourSPM
         public Guid? DeletedBy { get; set; }
 
         public virtual DeliverableEntity? Deliverable { get; set; }
-        
-        public virtual DeliverableGateEntity? DeliverableGate { get; set; }
     }
 }

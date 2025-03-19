@@ -12,7 +12,7 @@ A progress tracking frontend is required under the project module, similar to @d
 ### Progress Tracking Mechanism
 
 - Deliverables must be updated every reporting period (weekly).
-- Progress gates (see Section 3.5.1) will be used to determine progress levels.
+- Progress gates will be used to determine progress levels.
 - Earned value calculation: % progress x total hours.
 
 ### Required Columns/Entries (Linked to Deliverables List)
@@ -30,7 +30,7 @@ A progress tracking frontend is required under the project module, similar to @d
 
 ### Additional Required Columns/Entries
 
-- Progress gate: Refer to Table 1.
+- Progress gate
 - Total percentage (%) earned: Auto-populated from the aggregate of units across all periods for the deliverable and manually overridable up to the maximum progress gate value (if a gate exists).
 - Total earned hours: Calculated from the total percentage earned value.
 - Period earned hours: Calculated from the additional percentages the user adds above the total percentage.
@@ -56,12 +56,12 @@ A progress tracking frontend is required under the project module, similar to @d
 
 ## 3.5.1 Deliverable Progress Gates
 
-| Status Name | Auto Percentage | Max Percentage |
-|-------------|----------------|----------------|
-| Started | 10 | 49 |
-| Issued for Checking | 50 | 69 |
-| Issued for Client Review | 70 | 99 |
-| Issued for Construction/Use | 100 | 100 |
+| Status Name                  | Auto Percentage | Max Percentage |
+|------------------------------|-----------------|----------------|
+| Started                      | 10              | 49             |
+| Issued for Checking          | 50              | 69             |
+| Issued for Client Review     | 70              | 99             |
+| Issued for Construction/Use  | 100             | 100            |
 
 ## Frontend Implementation
 
@@ -110,5 +110,7 @@ A progress tracking frontend is required under the project module, similar to @d
    - If a deliverable is assigned a gate (e.g., "Started"), it automatically gets the gate's auto percentage (e.g., 10%)
    - The system restricts progress entries to the gate's maximum percentage (e.g., 49% for "Started")
    - When a deliverable advances to a new gate, its minimum percentage is updated to the new gate's auto percentage
-
-This implementation ensures accurate tracking of deliverables' progress and earned value over time, with appropriate controls to maintain data integrity and consistency with the gating process.
+   - When a user attempts to change a deliverable's gate when progress percentage is already present:
+     * If the new gate's auto percentage is higher than the current progress percentage, the progress percentage is automatically increased to match the new gate's auto percentage
+     * If the new gate's auto percentage is lower than the current progress percentage but within the new gate's maximum percentage, the current progress percentage is maintained
+     * If the current progress percentage exceeds the new gate's maximum percentage, the system should prevent the gate change until the progress percentage is adjusted downward

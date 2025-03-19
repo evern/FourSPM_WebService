@@ -25,6 +25,7 @@ namespace FourSPM_WebService.Data.OData.FourSPM
         public required string DocumentType { get; set; }
         public DepartmentEnum DepartmentId { get; set; }
         public DeliverableTypeEnum DeliverableTypeId { get; set; }
+        public Guid? DeliverableGateGuid { get; set; }
         [Required]
         public required string InternalDocumentNumber { get; set; }
         public string? ClientDocumentNumber { get; set; }
@@ -35,6 +36,10 @@ namespace FourSPM_WebService.Data.OData.FourSPM
         public decimal TotalHours { get; set; } 
         public decimal TotalCost { get; set; }
         public string BookingCode { get; set; } = string.Empty; 
+        public decimal TotalPercentageEarnt { get; set; }
+        public decimal TotalEarntHours { get; set; }
+        public decimal PeriodPercentageEarnt { get; set; }
+        public decimal PeriodEarntHours { get; set; }
         public DateTime Created { get; set; }
         public Guid CreatedBy { get; set; }
         public DateTime? Updated { get; set; }
@@ -44,5 +49,6 @@ namespace FourSPM_WebService.Data.OData.FourSPM
 
         public virtual ProjectEntity? Project { get; set; }
         public virtual ICollection<ProgressEntity> ProgressItems { get; set; } = new List<ProgressEntity>();
+        public virtual DeliverableGateEntity? DeliverableGate { get; set; }
     }
 }
