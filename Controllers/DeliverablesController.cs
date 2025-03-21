@@ -173,6 +173,7 @@ namespace FourSPM_WebService.Controllers
                 existingDeliverable.DOCUMENT_TYPE = updatedEntity.DocumentType;
                 existingDeliverable.DEPARTMENT_ID = updatedEntity.DepartmentId;
                 existingDeliverable.DELIVERABLE_TYPE_ID = updatedEntity.DeliverableTypeId;
+                existingDeliverable.GUID_DELIVERABLE_GATE = updatedEntity.DeliverableGateGuid;
                 existingDeliverable.INTERNAL_DOCUMENT_NUMBER = updatedEntity.InternalDocumentNumber;
                 existingDeliverable.CLIENT_DOCUMENT_NUMBER = updatedEntity.ClientDocumentNumber;
                 existingDeliverable.DOCUMENT_TITLE = updatedEntity.DocumentTitle;
@@ -306,9 +307,6 @@ namespace FourSPM_WebService.Controllers
                 .Where(p => p.DELETED == null)
                 .ToList();
             
-            // Get the current period - take the max period from progress items or default to 1
-            int currentPeriod = validProgressItems.Any() ? validProgressItems.Max(p => p.PERIOD) : 1;
-            
             // Calculate total percentage earnt based on the units reported for the deliverable
             decimal totalPercentageEarnt = 0;
             if (validProgressItems.Any() && totalHours > 0)
@@ -321,21 +319,6 @@ namespace FourSPM_WebService.Controllers
             // Calculate total earnt hours
             decimal totalEarntHours = totalHours * totalPercentageEarnt;
             
-            // Calculate period percentage based on units in the current period's progress record
-            decimal periodPercentageEarnt = 0;
-            if (totalHours > 0) // Avoid division by zero
-            {
-                var currentPeriodProgress = validProgressItems
-                    .FirstOrDefault(p => p.PERIOD == currentPeriod);
-                
-                if (currentPeriodProgress != null)
-                {
-                    periodPercentageEarnt = currentPeriodProgress.UNITS / totalHours;
-                }
-            }
-            
-            decimal periodEarntHours = totalHours * periodPercentageEarnt;
-            
             return new DeliverableEntity
             {
                 Guid = deliverable.GUID,
@@ -347,6 +330,7 @@ namespace FourSPM_WebService.Controllers
                 DocumentType = deliverable.DOCUMENT_TYPE,
                 DepartmentId = deliverable.DEPARTMENT_ID,
                 DeliverableTypeId = deliverable.DELIVERABLE_TYPE_ID,
+                DeliverableGateGuid = deliverable.GUID_DELIVERABLE_GATE,
                 InternalDocumentNumber = internalDocumentNumber,
                 ClientDocumentNumber = deliverable.CLIENT_DOCUMENT_NUMBER,
                 DocumentTitle = deliverable.DOCUMENT_TITLE,
@@ -357,8 +341,6 @@ namespace FourSPM_WebService.Controllers
                 BookingCode = bookingCode,
                 TotalPercentageEarnt = totalPercentageEarnt,
                 TotalEarntHours = totalEarntHours,
-                PeriodPercentageEarnt = periodPercentageEarnt,
-                PeriodEarntHours = periodEarntHours,
                 Created = deliverable.CREATED,
                 CreatedBy = deliverable.CREATEDBY,
                 Updated = deliverable.UPDATED,
