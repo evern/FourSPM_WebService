@@ -17,7 +17,7 @@ namespace FourSPM_WebService.Data.OData.FourSPM
 
         [Required]
         public decimal Units { get; set; }
-
+        
         [Required]
         public DateTime Created { get; set; }
 

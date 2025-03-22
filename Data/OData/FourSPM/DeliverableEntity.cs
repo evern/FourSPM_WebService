@@ -36,12 +36,32 @@ namespace FourSPM_WebService.Data.OData.FourSPM
         public decimal TotalHours { get; set; } 
         public decimal TotalCost { get; set; }
         public string BookingCode { get; set; } = string.Empty; 
+
+        #region Progress Calculation Properties
+        // These properties are calculated by the backend and not stored in the database
+        
+        // Percentage earned up to and including the current period
+        public decimal CumulativeEarntPercentage { get; set; }
+        
+        // Percentage earned specifically in the current period (difference between cumulative and previous)
+        public decimal CurrentPeriodEarntPercentage { get; set; }
+        
+        // Percentage earned in previous periods (before the current period)
+        public decimal PreviousPeriodEarntPercentage { get; set; }
+        
+        // Hours earned specifically in the current period
+        public decimal CurrentPeriodEarntHours { get; set; }
+        
+        // Total percentage earned across all periods (including future periods)
         public decimal TotalPercentageEarnt { get; set; }
+        
+        // Total hours earned across all periods
         public decimal TotalEarntHours { get; set; }
-        public decimal PeriodPercentageEarnt { get; set; }
-        public decimal PeriodEarntHours { get; set; }
-        public decimal PreviousPeriodEarnedPercentage { get; set; }
-        public decimal FuturePeriodEarnedPercentage { get; set; }
+        
+        // Percentage earned in the next future period (after the current period)
+        public decimal FuturePeriodEarntPercentage { get; set; }
+        #endregion
+        
         public DateTime Created { get; set; }
         public Guid CreatedBy { get; set; }
         public DateTime? Updated { get; set; }

@@ -280,8 +280,6 @@ namespace FourSPM_WebService.Controllers
                 
                 var entities = deliverables.Select(d => {
                     var entity = MapToEntity(d, period);
-                    // Calculate previousPeriodEarnedPercentage and futurePeriodEarnedPercentage
-                    CalculateProgressPercentages(entity, period);
                     return entity;
                 }).ToList();
                 
@@ -303,35 +301,60 @@ namespace FourSPM_WebService.Controllers
         
         private static void CalculateProgressPercentages(DeliverableEntity entity, int currentPeriod)
         {
-            // Default values
-            entity.PreviousPeriodEarnedPercentage = 0;
-            entity.FuturePeriodEarnedPercentage = 1.0m;
+            // Default values for all percentages and hours
+            entity.PreviousPeriodEarntPercentage = 0;
+            entity.CurrentPeriodEarntPercentage = 0;
+            entity.FuturePeriodEarntPercentage = 0;
+            entity.CumulativeEarntPercentage = 0;
+            entity.TotalPercentageEarnt = 0;
+            entity.CurrentPeriodEarntHours = 0;
+            entity.TotalEarntHours = 0;
             
+            // If no progress items or no hours, we can't calculate percentages
             if (entity.ProgressItems == null || !entity.ProgressItems.Any() || entity.TotalHours <= 0)
             {
                 return;
             }
 
+            var validProgressItems = entity.ProgressItems.Where(item => item.Deleted == null).ToList();
+            
+            // Calculate cumulative percentage earned up to the current period
+            var currentPeriodItems = validProgressItems
+                .Where(item => item.Period <= currentPeriod)
+                .ToList();
+                
+            if (currentPeriodItems.Any())
+            {
+                decimal currentPeriodUnits = currentPeriodItems.Sum(item => item.Units);
+                entity.CumulativeEarntPercentage = currentPeriodUnits / entity.TotalHours;
+            }
+            
             // Calculate previous period earned percentage
-            var previousPeriodItems = entity.ProgressItems
-                .Where(item => item.Period < currentPeriod && item.Deleted == null)
+            var previousPeriodItems = validProgressItems
+                .Where(item => item.Period < currentPeriod)
                 .ToList();
             
             if (previousPeriodItems.Any())
             {
-                // Get the most recent previous period
-                var maxPreviousPeriod = previousPeriodItems.Max(item => item.Period);
-                var previousPeriodItem = previousPeriodItems.FirstOrDefault(item => item.Period == maxPreviousPeriod);
-                
-                if (previousPeriodItem != null)
-                {
-                    entity.PreviousPeriodEarnedPercentage = previousPeriodItem.Units / entity.TotalHours;
-                }
+                decimal previousPeriodUnits = previousPeriodItems.Sum(item => item.Units);
+                entity.PreviousPeriodEarntPercentage = previousPeriodUnits / entity.TotalHours;
             }
             
+            // Calculate current period percentage (the difference)
+            decimal currentPeriodPercentage = Math.Max(0, entity.CumulativeEarntPercentage - entity.PreviousPeriodEarntPercentage);
+            entity.CurrentPeriodEarntPercentage = currentPeriodPercentage;
+            
+            // Calculate earned hours for the current period only
+            entity.CurrentPeriodEarntHours = entity.TotalHours * currentPeriodPercentage;
+            
+            // Calculate total percentage earned (across all periods)
+            decimal totalUnits = validProgressItems.Sum(item => item.Units);
+            entity.TotalPercentageEarnt = totalUnits / entity.TotalHours;
+            entity.TotalEarntHours = entity.TotalHours * entity.TotalPercentageEarnt;
+            
             // Calculate future period earned percentage
-            var futurePeriodItems = entity.ProgressItems
-                .Where(item => item.Period > currentPeriod && item.Deleted == null)
+            var futurePeriodItems = validProgressItems
+                .Where(item => item.Period > currentPeriod)
                 .ToList();
             
             if (futurePeriodItems.Any())
@@ -342,7 +365,7 @@ namespace FourSPM_WebService.Controllers
                 
                 if (futurePeriodItem != null)
                 {
-                    entity.FuturePeriodEarnedPercentage = futurePeriodItem.Units / entity.TotalHours;
+                    entity.FuturePeriodEarntPercentage = futurePeriodItem.Units / entity.TotalHours;
                 }
             }
         }
@@ -371,24 +394,11 @@ namespace FourSPM_WebService.Controllers
             
             decimal totalHours = deliverable.BUDGET_HOURS + deliverable.VARIATION_HOURS;
             
-            // Calculate progress-related values
             var validProgressItems = deliverable.ProgressItems
                 .Where(p => p.DELETED == null)
                 .ToList();
             
-            // Calculate total percentage earnt based on the units reported for the deliverable
-            decimal totalPercentageEarnt = 0;
-            if (validProgressItems.Any() && totalHours > 0)
-            {
-                // For total percentage, we look at the sum of all units reported
-                decimal totalUnits = validProgressItems.Sum(p => p.UNITS);
-                totalPercentageEarnt = totalUnits / totalHours;
-            }
-            
-            // Calculate total earnt hours
-            decimal totalEarntHours = totalHours * totalPercentageEarnt;
-            
-            return new DeliverableEntity
+            var entity = new DeliverableEntity
             {
                 Guid = deliverable.GUID,
                 ProjectGuid = deliverable.GUID_PROJECT,
@@ -408,8 +418,6 @@ namespace FourSPM_WebService.Controllers
                 TotalHours = totalHours,
                 TotalCost = deliverable.TOTAL_COST,
                 BookingCode = bookingCode,
-                TotalPercentageEarnt = totalPercentageEarnt,
-                TotalEarntHours = totalEarntHours,
                 Created = deliverable.CREATED,
                 CreatedBy = deliverable.CREATEDBY,
                 Updated = deliverable.UPDATED,
@@ -449,6 +457,10 @@ namespace FourSPM_WebService.Controllers
                     AutoPercentage = deliverable.DeliverableGate.AUTO_PERCENTAGE
                 } : null
             };
+            
+            CalculateProgressPercentages(entity, period);
+            
+            return entity;
         }
     }
 }
