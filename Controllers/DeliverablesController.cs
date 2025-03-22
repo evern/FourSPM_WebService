@@ -1,12 +1,10 @@
 using FourSPM_WebService.Data.EF.FourSPM;
 using FourSPM_WebService.Data.Interfaces;
 using FourSPM_WebService.Data.OData.FourSPM;
-using FourSPM_WebService.Models.Shared;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.OData.Query;
 using Microsoft.AspNetCore.OData.Routing.Attributes;
-using Microsoft.AspNetCore.OData.Routing.Controllers;
 using Microsoft.AspNetCore.OData.Deltas;
 using System;
 using System.Collections.Generic;
@@ -14,7 +12,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Microsoft.AspNetCore.OData.Formatter;
-using Newtonsoft.Json;
+using FourSPM_WebService.Models.Shared;
 
 namespace FourSPM_WebService.Controllers
 {
@@ -31,19 +29,6 @@ namespace FourSPM_WebService.Controllers
             _repository = repository;
             _projectRepository = projectRepository;
             _logger = logger;
-        }
-
-        public class ODataResponse<T>
-        {
-            public required IEnumerable<T> Value { get; set; }
-            [JsonProperty("@odata.count")]
-            public required int Count { get; set; }
-
-            public ODataResponse()
-            {
-                Value = Enumerable.Empty<T>();
-                Count = 0;
-            }
         }
 
         [EnableQuery]
@@ -283,7 +268,91 @@ namespace FourSPM_WebService.Controllers
             }
         }
 
+        // Add a new endpoint to get deliverables with progress percentages for a specific project and period
+        [HttpGet("/odata/v1/Deliverables/GetWithProgressPercentages")]
+        public async Task<IActionResult> GetWithProgressPercentages([FromQuery] Guid projectGuid, [FromQuery] int period)
+        {
+            try
+            {
+                _logger?.LogInformation($"Getting deliverables with progress percentages for project {projectGuid}, period {period}");
+                
+                var deliverables = await _repository.GetByProjectIdAndPeriodAsync(projectGuid, period);
+                
+                var entities = deliverables.Select(d => {
+                    var entity = MapToEntity(d, period);
+                    // Calculate previousPeriodEarnedPercentage and futurePeriodEarnedPercentage
+                    CalculateProgressPercentages(entity, period);
+                    return entity;
+                }).ToList();
+                
+                // Use the existing ODataResponse class which properly formats the JSON with "@odata.count" property
+                var response = new ODataResponse<DeliverableEntity>
+                {
+                    Value = entities,
+                    Count = entities.Count
+                };
+                
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogError(ex, "Error getting deliverables with progress percentages");
+                return StatusCode(500, "Internal Server Error - " + ex.Message);
+            }
+        }
+        
+        private static void CalculateProgressPercentages(DeliverableEntity entity, int currentPeriod)
+        {
+            // Default values
+            entity.PreviousPeriodEarnedPercentage = 0;
+            entity.FuturePeriodEarnedPercentage = 1.0m;
+            
+            if (entity.ProgressItems == null || !entity.ProgressItems.Any() || entity.TotalHours <= 0)
+            {
+                return;
+            }
+
+            // Calculate previous period earned percentage
+            var previousPeriodItems = entity.ProgressItems
+                .Where(item => item.Period < currentPeriod && item.Deleted == null)
+                .ToList();
+            
+            if (previousPeriodItems.Any())
+            {
+                // Get the most recent previous period
+                var maxPreviousPeriod = previousPeriodItems.Max(item => item.Period);
+                var previousPeriodItem = previousPeriodItems.FirstOrDefault(item => item.Period == maxPreviousPeriod);
+                
+                if (previousPeriodItem != null)
+                {
+                    entity.PreviousPeriodEarnedPercentage = previousPeriodItem.Units / entity.TotalHours;
+                }
+            }
+            
+            // Calculate future period earned percentage
+            var futurePeriodItems = entity.ProgressItems
+                .Where(item => item.Period > currentPeriod && item.Deleted == null)
+                .ToList();
+            
+            if (futurePeriodItems.Any())
+            {
+                // Get the earliest future period
+                var minFuturePeriod = futurePeriodItems.Min(item => item.Period);
+                var futurePeriodItem = futurePeriodItems.FirstOrDefault(item => item.Period == minFuturePeriod);
+                
+                if (futurePeriodItem != null)
+                {
+                    entity.FuturePeriodEarnedPercentage = futurePeriodItem.Units / entity.TotalHours;
+                }
+            }
+        }
+
         private static DeliverableEntity MapToEntity(DELIVERABLE deliverable)
+        {
+            return MapToEntity(deliverable, 0); // Use 0 as default period when not calculating percentages
+        }
+
+        private static DeliverableEntity MapToEntity(DELIVERABLE deliverable, int period)
         {
             // Extract client number and project number from the Project entity if available
             string clientNumber = deliverable.Project?.Client?.NUMBER ?? string.Empty;

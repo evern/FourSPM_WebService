@@ -25,7 +25,7 @@ namespace FourSPM_WebService.Data.Repositories
             return await _context.DELIVERABLEs
                 .Include(d => d.Project)
                     .ThenInclude(p => p != null ? p.Client : null!)
-                .Include(p => p.ProgressItems)
+                .Include(d => d.ProgressItems)
                 .Include(d => d.DeliverableGate)
                 .Where(d => d.DELETED == null)
                 .OrderByDescending(d => d.CREATED)
@@ -33,6 +33,17 @@ namespace FourSPM_WebService.Data.Repositories
         }
 
         public async Task<IEnumerable<DELIVERABLE>> GetByProjectIdAsync(Guid projectId)
+        {
+            return await _context.DELIVERABLEs
+                .Include(d => d.Project)
+                    .ThenInclude(p => p != null ? p.Client : null!)
+                .Include(d => d.ProgressItems)
+                .Include(d => d.DeliverableGate)
+                .Where(d => d.GUID_PROJECT == projectId && d.DELETED == null)
+                .ToListAsync();
+        }
+
+        public async Task<IEnumerable<DELIVERABLE>> GetByProjectIdAndPeriodAsync(Guid projectId, int period)
         {
             return await _context.DELIVERABLEs
                 .Include(d => d.Project)

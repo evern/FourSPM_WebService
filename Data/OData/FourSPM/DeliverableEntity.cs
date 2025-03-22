@@ -40,6 +40,8 @@ namespace FourSPM_WebService.Data.OData.FourSPM
         public decimal TotalEarntHours { get; set; }
         public decimal PeriodPercentageEarnt { get; set; }
         public decimal PeriodEarntHours { get; set; }
+        public decimal PreviousPeriodEarnedPercentage { get; set; }
+        public decimal FuturePeriodEarnedPercentage { get; set; }
         public DateTime Created { get; set; }
         public Guid CreatedBy { get; set; }
         public DateTime? Updated { get; set; }
