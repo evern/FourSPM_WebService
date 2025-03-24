@@ -35,6 +35,15 @@ namespace FourSPM_WebService.Data.Repositories
                 .ToListAsync();
         }
 
+        public async Task<IEnumerable<PROJECT>> GetAllWithClientsAsync()
+        {
+            return await _context.PROJECTs
+                .Where(p => p.DELETED == null)
+                .Include(p => p.Client)
+                .OrderByDescending(p => p.CREATED)
+                .ToListAsync();
+        }
+
         public async Task<PROJECT?> GetByIdAsync(Guid id)
         {
             return await _context.PROJECTs

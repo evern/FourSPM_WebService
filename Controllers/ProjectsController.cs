@@ -19,6 +19,7 @@ using System.Net;
 using Microsoft.AspNetCore.OData.Formatter;
 using Microsoft.AspNetCore.OData.Routing.Attributes;
 using FourSPM_WebService.Data.EF.FourSPM;
+using FourSPM_WebService.Models.Shared;
 
 namespace FourSPM_WebService.Controllers;
 
@@ -179,18 +180,31 @@ public class ProjectsController : FourSPMODataController
                 return NotFound(new { error = "Not Found", message = $"Project with ID {key} was not found" });
             }
 
+            // Get the changed property names
+            var changedProperties = delta.GetChangedPropertyNames();
+            _logger?.LogInformation($"Changed properties: {string.Join(", ", changedProperties)}");
+            
+            // Log if client_* fields are being sent (but we won't use them)
+            bool hasClientContactFields = changedProperties.Any(p => 
+                p.StartsWith("client_"));
+            if (hasClientContactFields)
+            {
+                _logger?.LogWarning($"Client contact fields were included in Project patch request but will be ignored. " +
+                    $"Please use the Clients endpoint to update client information.");
+            }
+
             // Create a copy of the entity to track changes
             var updatedEntity = MapToEntity(existingProject);
             delta.CopyChangedValues(updatedEntity);
             
             // Check if project number is being changed and is unique (if it's being updated)
-            if (delta.GetChangedPropertyNames().Contains("ProjectNumber") && 
+            if (changedProperties.Contains("ProjectNumber") && 
                 !await IsProjectNumberUnique(updatedEntity.ProjectNumber, key))
             {
                 return BadRequest($"A project with number '{updatedEntity.ProjectNumber}' already exists.");
             }
 
-            // Map back to PROJECT entity
+            // Map project fields back to PROJECT entity
             existingProject.GUID_CLIENT = updatedEntity.ClientGuid;
             existingProject.PROJECT_NUMBER = updatedEntity.ProjectNumber;
             existingProject.NAME = updatedEntity.Name;
@@ -198,7 +212,10 @@ public class ProjectsController : FourSPMODataController
             existingProject.PROJECT_STATUS = updatedEntity.ProjectStatus;
             existingProject.PROGRESS_START = updatedEntity.ProgressStart;
 
+            // Update the project
             var result = await _projectRepository.UpdateAsync(existingProject);
+
+            // Return the updated project with client details included
             return Updated(MapToEntity(result));
         }
         catch (Exception ex)
@@ -209,13 +226,77 @@ public class ProjectsController : FourSPMODataController
     }
 
     /// <summary>
+    /// Gets projects with their client data explicitly included
+    /// </summary>
+    /// <returns>Projects with client data</returns>
+    [HttpGet("/odata/v1/Projects/GetWithClientData")]
+    public async Task<IActionResult> GetWithClientData()
+    {
+        try
+        {
+            _logger?.LogInformation("Getting projects with client data");
+            
+            // Get all projects with eager loading of client data
+            var projects = await _projectRepository.GetAllWithClientsAsync();
+            
+            // Map to entities with client data included
+            var entities = projects.Select(p => MapToEntity(p)).ToList();
+            
+            // Use the ODataResponse class for proper OData format
+            var response = new ODataResponse<ProjectEntity>
+            {
+                Value = entities,
+                Count = entities.Count()
+            };
+            
+            return Ok(response);
+        }
+        catch (Exception ex)
+        {
+            _logger?.LogError(ex, "Error getting projects with client data");
+            return StatusCode(500, "Internal Server Error - " + ex.Message);
+        }
+    }
+
+    /// <summary>
+    /// Gets a specific project with its client data explicitly included
+    /// </summary>
+    /// <param name="projectId">The GUID of the project</param>
+    /// <returns>Project with client data</returns>
+    [HttpGet("/odata/v1/Projects/GetWithClientData/{projectId}")]
+    public async Task<IActionResult> GetWithClientData(Guid projectId)
+    {
+        try
+        {
+            _logger?.LogInformation($"Getting project {projectId} with client data");
+            
+            // Get project with eager loading of client data
+            var project = await _projectRepository.GetProjectWithClientAsync(projectId);
+            
+            if (project == null)
+                return NotFound();
+                
+            // Map to entity with client data included
+            var entity = MapToEntity(project);
+            
+            return Ok(entity);
+        }
+        catch (Exception ex)
+        {
+            _logger?.LogError(ex, $"Error getting project {projectId} with client data");
+            return StatusCode(500, "Internal Server Error - " + ex.Message);
+        }
+    }
+
+    /// <summary>
     /// Maps a PROJECT database entity to a ProjectEntity OData entity
     /// </summary>
     /// <param name="project">The PROJECT database entity</param>
     /// <returns>A ProjectEntity OData entity</returns>
     private ProjectEntity MapToEntity(PROJECT project)
     {
-        return new ProjectEntity
+        // Create the base project entity
+        var projectEntity = new ProjectEntity
         {
             Guid = project.GUID,
             ClientGuid = project.GUID_CLIENT,
@@ -229,13 +310,24 @@ public class ProjectsController : FourSPMODataController
             Updated = project.UPDATED,
             UpdatedBy = project.UPDATEDBY,
             Deleted = project.DELETED,
-            DeletedBy = project.DELETEDBY,
-            
-            // Use the navigation property instead of explicit query
-            ClientContactName = project.Client?.CLIENT_CONTACT_NAME,
-            ClientContactNumber = project.Client?.CLIENT_CONTACT_NUMBER,
-            ClientContactEmail = project.Client?.CLIENT_CONTACT_EMAIL
+            DeletedBy = project.DELETEDBY
         };
+
+        // If there's a client associated with the project, include its details
+        if (project.Client != null)
+        {
+            projectEntity.Client = new ClientEntity
+            {
+                Guid = project.Client.GUID,
+                Number = project.Client.NUMBER,
+                Description = project.Client.DESCRIPTION,
+                ClientContactName = project.Client.CLIENT_CONTACT_NAME,
+                ClientContactNumber = project.Client.CLIENT_CONTACT_NUMBER,
+                ClientContactEmail = project.Client.CLIENT_CONTACT_EMAIL
+            };
+        }
+
+        return projectEntity;
     }
     
     /// <summary>

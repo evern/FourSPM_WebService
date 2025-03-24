@@ -17,13 +17,26 @@ namespace FourSPM_WebService.Data.Extensions
             builder.EnumType<DeliverableTypeEnum>();
             builder.EnumType<DepartmentEnum>();
 
-            builder.EntitySet<ProjectEntity>("Projects").EntityType.HasKey(p => p.Guid);
+            // Configure Project entity with navigation properties
+            var projectEntityType = builder.EntitySet<ProjectEntity>("Projects").EntityType;
+            projectEntityType.HasKey(p => p.Guid);
+            
+            // Explicitly configure the Client navigation property
+            projectEntityType.HasOptional(p => p.Client);
+            
+            // Configure Deliverables collection navigation property
+            projectEntityType.HasMany(p => p.Deliverables);
+            
             builder.EntitySet<UserEntity>("Users");
             
             // Add entity sets
             builder.EntitySet<DeliverableEntity>("Deliverables").EntityType.HasKey(d => d.Guid);
             builder.EntitySet<ProgressEntity>("Progress").EntityType.HasKey(p => p.Guid);
-            builder.EntitySet<ClientEntity>("Clients").EntityType.HasKey(c => c.Guid);
+            
+            // Configure Client entity
+            var clientEntityType = builder.EntitySet<ClientEntity>("Clients").EntityType;
+            clientEntityType.HasKey(c => c.Guid);
+            
             builder.EntitySet<DisciplineEntity>("Disciplines").EntityType.HasKey(d => d.Guid);
             builder.EntitySet<DocumentTypeEntity>("DocumentTypes").EntityType.HasKey(d => d.Guid);
             builder.EntitySet<AreaEntity>("Areas").EntityType.HasKey(a => a.Guid);
