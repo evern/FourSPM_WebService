@@ -13,7 +13,9 @@ namespace FourSPM_WebService.Data.Extensions
 
             builder.EnableLowerCamelCase();
 
-            // Register enums
+            // Register enums with OData
+            // This allows OData to serialize/deserialize enum values as strings (e.g., "Task", "Deliverable")
+            // rather than numeric values, making the API more readable and robust to enum changes
             builder.EnumType<DeliverableTypeEnum>();
             builder.EnumType<DepartmentEnum>();
 
