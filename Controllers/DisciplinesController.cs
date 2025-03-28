@@ -29,19 +29,6 @@ namespace FourSPM_WebService.Controllers
             _logger = logger;
         }
 
-        public class ODataResponse<T>
-        {
-            public required IEnumerable<T> Value { get; set; }
-            [JsonProperty("@odata.count")]
-            public required int Count { get; set; }
-
-            public ODataResponse()
-            {
-                Value = Enumerable.Empty<T>();
-                Count = 0;
-            }
-        }
-
         [EnableQuery]
         public async Task<IActionResult> Get()
         {

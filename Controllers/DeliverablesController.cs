@@ -3,15 +3,20 @@ using FourSPM_WebService.Data.Interfaces;
 using FourSPM_WebService.Data.OData.FourSPM;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.OData;
 using Microsoft.AspNetCore.OData.Query;
+using Microsoft.AspNetCore.OData.Routing;
 using Microsoft.AspNetCore.OData.Routing.Attributes;
+using Microsoft.AspNetCore.OData.Formatter;
 using Microsoft.AspNetCore.OData.Deltas;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Linq.Expressions;
+using System.Linq.Dynamic.Core;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
-using Microsoft.AspNetCore.OData.Formatter;
+using System.ComponentModel.DataAnnotations;
 using FourSPM_WebService.Models.Shared;
 
 namespace FourSPM_WebService.Controllers
@@ -275,25 +280,55 @@ namespace FourSPM_WebService.Controllers
         }
 
         // Add a new endpoint to get deliverables with progress percentages for a specific project and period
-        [HttpGet("/odata/v1/Deliverables/GetWithProgressPercentages")]
-        public async Task<IActionResult> GetWithProgressPercentages([FromQuery] Guid projectGuid, [FromQuery] int period)
+        // This is now defined as a proper OData function to follow OData conventions,
+        // ensuring proper serialization of enum values as strings
+        [HttpGet]
+        [Route("/odata/v1/Deliverables/GetWithProgressPercentages")]
+        public IActionResult GetWithProgressPercentages([FromODataUri] Guid projectGuid, int period)
         {
             try
             {
                 _logger?.LogInformation($"Getting deliverables with progress percentages for project {projectGuid}, period {period}");
                 
-                var deliverables = await _repository.GetByProjectIdAndPeriodAsync(projectGuid, period);
+                var deliverables = _repository.GetByProjectIdAndPeriodAsync(projectGuid, period).Result;
                 
-                var entities = deliverables.Select(d => {
+                // Map entities and apply CalculateProgressPercentages to each one
+                var entities = deliverables.Select(d => 
+                {
                     var entity = MapToEntity(d, period);
                     return entity;
                 }).ToList();
                 
-                // Use the existing ODataResponse class which properly formats the JSON with "@odata.count" property
-                var response = new ODataResponse<DeliverableEntity>
+                // Convert entities to dictionaries to ensure enums are serialized as strings
+                var serializedEntities = entities.Select(e => {
+                    var dict = new System.Text.Json.Nodes.JsonObject();
+                    
+                    // Add all properties from the entity
+                    foreach (var prop in typeof(DeliverableEntity).GetProperties())
+                    {
+                        var value = prop.GetValue(e);
+                        
+                        // Convert enum values to strings
+                        if (prop.PropertyType.IsEnum && value != null)
+                        {
+                            dict.Add(char.ToLowerInvariant(prop.Name[0]) + prop.Name.Substring(1), value.ToString());
+                        }
+                        else 
+                        {
+                            // For non-enum properties, add them as is
+                            dict.Add(char.ToLowerInvariant(prop.Name[0]) + prop.Name.Substring(1), 
+                                value == null ? null : System.Text.Json.JsonSerializer.SerializeToNode(value));
+                        }
+                    }
+                    
+                    return dict;
+                }).ToList<object>();
+                
+                // Create a Dictionary for the response to properly include OData format with count
+                var response = new Dictionary<string, object>
                 {
-                    Value = entities,
-                    Count = entities.Count
+                    { "value", serializedEntities },
+                    { "@odata.count", entities.Count }
                 };
                 
                 return Ok(response);

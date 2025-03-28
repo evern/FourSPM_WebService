@@ -32,7 +32,19 @@ namespace FourSPM_WebService.Data.Extensions
             builder.EntitySet<UserEntity>("Users");
             
             // Add entity sets
-            builder.EntitySet<DeliverableEntity>("Deliverables").EntityType.HasKey(d => d.Guid);
+            var deliverableEntityType = builder.EntitySet<DeliverableEntity>("Deliverables").EntityType;
+            deliverableEntityType.HasKey(d => d.Guid);
+            
+            // Define the GetWithProgressPercentages function as a bound OData function on the Deliverables collection
+            // This ensures proper OData serialization including enum string values
+            var getProgressFunction = deliverableEntityType.Collection
+                .Function("GetWithProgressPercentages")
+                .ReturnsCollectionFromEntitySet<DeliverableEntity>("Deliverables");
+            
+            // Add parameters to the function
+            getProgressFunction.Parameter<Guid>("projectGuid");
+            getProgressFunction.Parameter<int>("period");
+            
             builder.EntitySet<ProgressEntity>("Progress").EntityType.HasKey(p => p.Guid);
             
             // Configure Client entity
