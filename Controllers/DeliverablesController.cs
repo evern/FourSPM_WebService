@@ -178,7 +178,7 @@ namespace FourSPM_WebService.Controllers
 
         // Add a new action to suggest an internal document number
         [HttpGet("/odata/v1/Deliverables/SuggestInternalDocumentNumber")]
-        public async Task<IActionResult> SuggestInternalDocumentNumber([FromQuery] Guid projectGuid, [FromQuery] string areaNumber, [FromQuery] string discipline, [FromQuery] string documentType, [FromQuery] string deliverableTypeId)
+        public async Task<IActionResult> SuggestInternalDocumentNumber([FromQuery] Guid projectGuid, [FromQuery] string areaNumber, [FromQuery] string discipline, [FromQuery] string documentType, [FromQuery] string deliverableTypeId, [FromQuery] Guid? excludeDeliverableGuid = null)
         {
             try
             {
@@ -231,6 +231,12 @@ namespace FourSPM_WebService.Controllers
                 
                 // Find the highest sequence number for documents with this format
                 var existingDeliverables = await _repository.GetDeliverablesByNumberPatternAsync(projectGuid, baseFormat);
+                
+                // Filter out the excluded deliverable if one was specified
+                if (excludeDeliverableGuid.HasValue && excludeDeliverableGuid.Value != Guid.Empty)
+                {
+                    existingDeliverables = existingDeliverables.Where(d => d.GUID != excludeDeliverableGuid.Value).ToList();
+                }
                 
                 int nextSequence = 1;
                 
