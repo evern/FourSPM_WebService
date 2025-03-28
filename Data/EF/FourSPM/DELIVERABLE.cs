@@ -67,6 +67,9 @@ namespace FourSPM_WebService.Data.EF.FourSPM
         [Column(TypeName = "decimal(10,2)")]
         public decimal VARIATION_HOURS { get; set; }
 
+        [StringLength(50)]
+        public string? BOOKING_CODE { get; set; }
+
         [Required]
         [Column(TypeName = "decimal(15,2)")]
         public decimal TOTAL_COST { get; set; }

@@ -68,6 +68,7 @@ namespace FourSPM_WebService.Controllers
                 DOCUMENT_TYPE = entity.DocumentType,
                 DEPARTMENT_ID = entity.DepartmentId,
                 DELIVERABLE_TYPE_ID = entity.DeliverableTypeId,
+                GUID_DELIVERABLE_GATE = entity.DeliverableGateGuid,
                 INTERNAL_DOCUMENT_NUMBER = entity.InternalDocumentNumber,
                 CLIENT_DOCUMENT_NUMBER = entity.ClientDocumentNumber,
                 DOCUMENT_TITLE = entity.DocumentTitle,
@@ -75,6 +76,9 @@ namespace FourSPM_WebService.Controllers
                 VARIATION_HOURS = entity.VariationHours,
                 TOTAL_COST = entity.TotalCost
             };
+
+            // Calculate booking code if not provided, otherwise use the one from entity
+            deliverable.BOOKING_CODE = await CalculateBookingCodeAsync(entity.ProjectGuid, entity.AreaNumber, entity.Discipline, entity.BookingCode);
 
             var result = await _repository.CreateAsync(deliverable);
             return Created(MapToEntity(result));
@@ -99,6 +103,7 @@ namespace FourSPM_WebService.Controllers
                     DOCUMENT_TYPE = entity.DocumentType,
                     DEPARTMENT_ID = entity.DepartmentId,
                     DELIVERABLE_TYPE_ID = entity.DeliverableTypeId,
+                    GUID_DELIVERABLE_GATE = entity.DeliverableGateGuid,
                     INTERNAL_DOCUMENT_NUMBER = entity.InternalDocumentNumber,
                     CLIENT_DOCUMENT_NUMBER = entity.ClientDocumentNumber,
                     DOCUMENT_TITLE = entity.DocumentTitle,
@@ -106,6 +111,9 @@ namespace FourSPM_WebService.Controllers
                     VARIATION_HOURS = entity.VariationHours,
                     TOTAL_COST = entity.TotalCost
                 };
+
+                // Calculate booking code if not provided, otherwise use the one from entity
+                deliverable.BOOKING_CODE = await CalculateBookingCodeAsync(entity.ProjectGuid, entity.AreaNumber, entity.Discipline, entity.BookingCode);
 
                 var result = await _repository.UpdateAsync(deliverable);
                 return Updated(MapToEntity(result));
@@ -171,6 +179,27 @@ namespace FourSPM_WebService.Controllers
                 existingDeliverable.VARIATION_HOURS = updatedEntity.VariationHours;
                 existingDeliverable.TOTAL_COST = updatedEntity.TotalCost;
 
+                // Check if any fields that affect the booking code have changed
+                bool shouldUpdateBookingCode = delta.GetChangedPropertyNames().Any(p => 
+                    p == "AreaNumber" || p == "Discipline" || p == "ProjectGuid");
+                
+                if (shouldUpdateBookingCode)
+                {
+                    // Pass the existing Project navigation property to avoid an extra query
+                    existingDeliverable.BOOKING_CODE = await CalculateBookingCodeAsync(
+                        updatedEntity.ProjectGuid,
+                        updatedEntity.AreaNumber,
+                        updatedEntity.Discipline,
+                        null,  // No existing booking code to preserve
+                        existingDeliverable.Project  // Use navigation property
+                    );
+                }
+                else if (delta.GetChangedPropertyNames().Contains("BookingCode"))
+                {
+                    // If booking code was explicitly included in the update, use that value
+                    existingDeliverable.BOOKING_CODE = updatedEntity.BookingCode;
+                }
+
                 var result = await _repository.UpdateAsync(existingDeliverable);
                 return Updated(MapToEntity(result));
             }
@@ -179,6 +208,33 @@ namespace FourSPM_WebService.Controllers
                 _logger?.LogError(ex, "Error updating deliverable");
                 return StatusCode(500, "Internal Server Error - " + ex.Message);
             }
+        }
+
+        // Helper method to handle booking code calculation
+        private async Task<string> CalculateBookingCodeAsync(Guid projectGuid, string? areaNumber, string? discipline, string? existingBookingCode = null, PROJECT? project = null)
+        {
+            // If existingBookingCode is provided and not empty, use it
+            if (!string.IsNullOrEmpty(existingBookingCode))
+            {
+                return existingBookingCode;
+            }
+
+            // Use provided project or fetch it if not provided
+            if (project == null)
+            {
+                project = await _projectRepository.GetByIdAsync(projectGuid);
+            }
+            
+            string clientNumber = project?.Client?.NUMBER ?? string.Empty;
+            string projectNumber = project?.PROJECT_NUMBER ?? string.Empty;
+            
+            // Calculate booking code
+            return !string.IsNullOrEmpty(clientNumber) && 
+                   !string.IsNullOrEmpty(projectNumber) && 
+                   !string.IsNullOrEmpty(areaNumber) && 
+                   !string.IsNullOrEmpty(discipline)
+                ? $"{clientNumber}-{projectNumber}-{areaNumber}-{discipline}"
+                : string.Empty;
         }
 
         // Add a new action to suggest an internal document number
@@ -398,14 +454,6 @@ namespace FourSPM_WebService.Controllers
             string clientNumber = deliverable.Project?.Client?.NUMBER ?? string.Empty;
             string projectNumber = deliverable.Project?.PROJECT_NUMBER ?? string.Empty;
             
-            // Calculate derived fields
-            string bookingCode = !string.IsNullOrEmpty(clientNumber) && 
-                                !string.IsNullOrEmpty(projectNumber) && 
-                                !string.IsNullOrEmpty(deliverable.AREA_NUMBER) && 
-                                !string.IsNullOrEmpty(deliverable.DISCIPLINE)
-                ? $"{clientNumber}-{projectNumber}-{deliverable.AREA_NUMBER}-{deliverable.DISCIPLINE}"
-                : string.Empty; // Use empty string as fallback since BOOKING_CODE no longer exists
-                
             // Always use the database-stored value for internal document number
             string internalDocumentNumber = deliverable.INTERNAL_DOCUMENT_NUMBER;
             
@@ -434,7 +482,7 @@ namespace FourSPM_WebService.Controllers
                 VariationHours = deliverable.VARIATION_HOURS,
                 TotalHours = totalHours,
                 TotalCost = deliverable.TOTAL_COST,
-                BookingCode = bookingCode,
+                BookingCode = deliverable.BOOKING_CODE,
                 Created = deliverable.CREATED,
                 CreatedBy = deliverable.CREATEDBY,
                 Updated = deliverable.UPDATED,
