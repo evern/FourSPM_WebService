@@ -279,59 +279,35 @@ namespace FourSPM_WebService.Controllers
             }
         }
 
-        // Add a new endpoint to get deliverables with progress percentages for a specific project and period
-        // This is now defined as a proper OData function to follow OData conventions,
-        // ensuring proper serialization of enum values as strings
+        // Endpoint to get deliverables with progress percentages for a specific project and period
+        // This follows OData conventions, ensuring proper serialization of enum values as strings
         [HttpGet]
-        [Route("/odata/v1/Deliverables/GetWithProgressPercentages")]
-        public IActionResult GetWithProgressPercentages([FromODataUri] Guid projectGuid, int period)
+        [EnableQuery]
+        public async Task<IActionResult> GetWithProgressPercentages([FromODataUri] Guid projectGuid, int period)
         {
             try
             {
                 _logger?.LogInformation($"Getting deliverables with progress percentages for project {projectGuid}, period {period}");
+
+                // Get deliverables for the specific project and period
+                var deliverables = await _repository.GetByProjectIdAndPeriodAsync(projectGuid, period);
                 
-                var deliverables = _repository.GetByProjectIdAndPeriodAsync(projectGuid, period).Result;
-                
+                if (deliverables == null)
+                {
+                    _logger?.LogWarning($"No deliverables found for project {projectGuid}, period {period}");
+                    return Ok(Enumerable.Empty<DeliverableEntity>().AsQueryable());
+                }
+
                 // Map entities and apply CalculateProgressPercentages to each one
                 var entities = deliverables.Select(d => 
                 {
-                    var entity = MapToEntity(d, period);
+                    var entity = MapToEntity(d);
+                    CalculateProgressPercentages(entity, period);
                     return entity;
-                }).ToList();
+                }).AsQueryable();
                 
-                // Convert entities to dictionaries to ensure enums are serialized as strings
-                var serializedEntities = entities.Select(e => {
-                    var dict = new System.Text.Json.Nodes.JsonObject();
-                    
-                    // Add all properties from the entity
-                    foreach (var prop in typeof(DeliverableEntity).GetProperties())
-                    {
-                        var value = prop.GetValue(e);
-                        
-                        // Convert enum values to strings
-                        if (prop.PropertyType.IsEnum && value != null)
-                        {
-                            dict.Add(char.ToLowerInvariant(prop.Name[0]) + prop.Name.Substring(1), value.ToString());
-                        }
-                        else 
-                        {
-                            // For non-enum properties, add them as is
-                            dict.Add(char.ToLowerInvariant(prop.Name[0]) + prop.Name.Substring(1), 
-                                value == null ? null : System.Text.Json.JsonSerializer.SerializeToNode(value));
-                        }
-                    }
-                    
-                    return dict;
-                }).ToList<object>();
-                
-                // Create a Dictionary for the response to properly include OData format with count
-                var response = new Dictionary<string, object>
-                {
-                    { "value", serializedEntities },
-                    { "@odata.count", entities.Count }
-                };
-                
-                return Ok(response);
+                // Return as IQueryable for OData to apply query options
+                return Ok(entities);
             }
             catch (Exception ex)
             {
@@ -339,7 +315,7 @@ namespace FourSPM_WebService.Controllers
                 return StatusCode(500, "Internal Server Error - " + ex.Message);
             }
         }
-        
+
         private static void CalculateProgressPercentages(DeliverableEntity entity, int currentPeriod)
         {
             // Default values for all percentages and hours

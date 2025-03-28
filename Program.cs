@@ -105,7 +105,7 @@ builder.Services
         options.RouteOptions.EnableKeyAsSegment = false;
         options.RouteOptions.EnableKeyInParenthesis = true;
         options.RouteOptions.EnableQualifiedOperationCall = true;
-        options.RouteOptions.EnableUnqualifiedOperationCall = false;
+        options.RouteOptions.EnableUnqualifiedOperationCall = true;
         options.RouteOptions.EnablePropertyNameCaseInsensitive = true;
         options.RouteOptions.EnableActionNameCaseInsensitive = true;
         options.TimeZone = TimeZoneInfo.Utc;
@@ -114,6 +114,8 @@ builder.Services
     {
         options.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
         options.JsonSerializerOptions.PropertyNameCaseInsensitive = true;
+        // Add enum string converter to ensure all enums are serialized as strings
+        options.JsonSerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter());
     });
 
 // Enable request body buffering
