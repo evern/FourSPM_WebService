@@ -338,7 +338,6 @@ namespace FourSPM_WebService.Controllers
         // Endpoint to get deliverables with progress percentages for a specific project and period
         // This follows OData conventions, ensuring proper serialization of enum values as strings
         [HttpGet]
-        [EnableQuery]
         public async Task<IActionResult> GetWithProgressPercentages([FromODataUri] Guid projectGuid, int period)
         {
             try
@@ -347,23 +346,33 @@ namespace FourSPM_WebService.Controllers
 
                 // Get deliverables for the specific project and period
                 var deliverables = await _repository.GetByProjectIdAndPeriodAsync(projectGuid, period);
-                
+
                 if (deliverables == null)
                 {
                     _logger?.LogWarning($"No deliverables found for project {projectGuid}, period {period}");
-                    return Ok(Enumerable.Empty<DeliverableEntity>().AsQueryable());
+                    return Ok(new ODataResponse<DeliverableEntity>
+                    {
+                        Value = Enumerable.Empty<DeliverableEntity>(),
+                        Count = 0
+                    });
                 }
 
                 // Map entities and apply CalculateProgressPercentages to each one
-                var entities = deliverables.Select(d => 
+                var entities = deliverables.Select(d =>
                 {
                     var entity = MapToEntity(d);
                     CalculateProgressPercentages(entity, period);
                     return entity;
-                }).AsQueryable();
+                }).ToList();
                 
-                // Return as IQueryable for OData to apply query options
-                return Ok(entities);
+                // Create response with proper count
+                var response = new ODataResponse<DeliverableEntity>
+                {
+                    Value = entities,
+                    Count = entities.Count
+                };
+                
+                return Ok(response);
             }
             catch (Exception ex)
             {
@@ -371,7 +380,7 @@ namespace FourSPM_WebService.Controllers
                 return StatusCode(500, "Internal Server Error - " + ex.Message);
             }
         }
-
+        
         private static void CalculateProgressPercentages(DeliverableEntity entity, int currentPeriod)
         {
             // Default values for all percentages and hours

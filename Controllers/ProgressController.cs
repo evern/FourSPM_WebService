@@ -15,6 +15,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.OData.Formatter;
 using System.Collections.Generic;
 using Microsoft.Extensions.Logging;
+using FourSPM_WebService.Models.Shared;
 
 namespace FourSPM_WebService.Controllers
 {
@@ -29,19 +30,6 @@ namespace FourSPM_WebService.Controllers
         {
             _repository = repository;
             _logger = logger;
-        }
-
-        public class ODataResponse<T>
-        {
-            public required IEnumerable<T> Value { get; set; }
-            [JsonProperty("@odata.count")]
-            public required int Count { get; set; }
-
-            public ODataResponse()
-            {
-                Value = Enumerable.Empty<T>();
-                Count = 0;
-            }
         }
 
         [EnableQuery]
