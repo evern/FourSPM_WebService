@@ -18,6 +18,7 @@ public partial class FourSPMContext : DbContext
         DOCUMENT_TYPEs = Set<DOCUMENT_TYPE>();
         AREAs = Set<AREA>();
         DELIVERABLE_GATEs = Set<DELIVERABLE_GATE>();
+        VARIATIONs = Set<VARIATION>();
     }
 
     public FourSPMContext(DbContextOptions<FourSPMContext> options)
@@ -32,6 +33,7 @@ public partial class FourSPMContext : DbContext
         DOCUMENT_TYPEs = Set<DOCUMENT_TYPE>();
         AREAs = Set<AREA>();
         DELIVERABLE_GATEs = Set<DELIVERABLE_GATE>();
+        VARIATIONs = Set<VARIATION>();
     }
 
     public virtual DbSet<PROJECT> PROJECTs { get; set; }
@@ -43,6 +45,7 @@ public partial class FourSPMContext : DbContext
     public virtual DbSet<DOCUMENT_TYPE> DOCUMENT_TYPEs { get; set; }
     public virtual DbSet<AREA> AREAs { get; set; }
     public virtual DbSet<DELIVERABLE_GATE> DELIVERABLE_GATEs { get; set; }
+    public virtual DbSet<VARIATION> VARIATIONs { get; set; }
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
 #warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see https://go.microsoft.com/fwlink/?LinkId=723263.
@@ -285,6 +288,36 @@ public partial class FourSPMContext : DbContext
             entity.Property(e => e.UPDATEDBY);
             entity.Property(e => e.DELETED).HasColumnType("datetime");
             entity.Property(e => e.DELETEDBY);
+        });
+
+        modelBuilder.Entity<VARIATION>(entity =>
+        {
+            entity.HasKey(e => e.GUID);
+            entity.ToTable("VARIATION");
+
+            entity.HasIndex(e => e.GUID_PROJECT).HasDatabaseName("IX_VARIATION_PROJECT_ID");
+            entity.HasIndex(e => e.DELETED).HasDatabaseName("IX_VARIATION_DELETED");
+
+            entity.Property(e => e.GUID).ValueGeneratedNever();
+            entity.Property(e => e.GUID_PROJECT).IsRequired();
+            entity.Property(e => e.NAME).HasMaxLength(500).IsRequired();
+            entity.Property(e => e.COMMENTS).HasMaxLength(1000);
+            entity.Property(e => e.SUBMITTED).HasColumnType("datetime");
+            entity.Property(e => e.SUBMITTEDBY);
+            entity.Property(e => e.CLIENT_APPROVED).HasColumnType("datetime");
+            entity.Property(e => e.CLIENT_APPROVEDBY);
+            entity.Property(e => e.CREATED).HasColumnType("datetime").IsRequired();
+            entity.Property(e => e.CREATEDBY).IsRequired();
+            entity.Property(e => e.UPDATED).HasColumnType("datetime");
+            entity.Property(e => e.UPDATEDBY);
+            entity.Property(e => e.DELETED).HasColumnType("datetime");
+            entity.Property(e => e.DELETEDBY);
+
+            // Configure the foreign key relationship
+            entity.HasOne(d => d.Project)
+                .WithMany(p => p.Variations)
+                .HasForeignKey(d => d.GUID_PROJECT)
+                .OnDelete(DeleteBehavior.NoAction);
         });
 
         OnModelCreatingPartial(modelBuilder);

@@ -25,6 +25,7 @@ namespace FourSPM_WebService.Extensions
             services.AddScoped<IDocumentTypeRepository, DocumentTypeRepository>();
             services.AddScoped<IAreaRepository, AreaRepository>();
             services.AddScoped<IDeliverableGateRepository, DeliverableGateRepository>();
+            services.AddScoped<IVariationRepository, VariationRepository>();
 
             return services;
         }

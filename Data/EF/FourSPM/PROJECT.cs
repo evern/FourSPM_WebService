@@ -39,4 +39,6 @@ public partial class PROJECT
     public virtual ICollection<DELIVERABLE> Deliverables { get; set; } = new List<DELIVERABLE>();
 
     public virtual ICollection<AREA> Areas { get; set; } = new List<AREA>();
+
+    public virtual ICollection<VARIATION> Variations { get; set; } = new List<VARIATION>();
 }
