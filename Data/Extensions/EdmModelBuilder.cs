@@ -18,6 +18,7 @@ namespace FourSPM_WebService.Data.Extensions
             // rather than numeric values, making the API more readable and robust to enum changes
             builder.EnumType<DeliverableTypeEnum>();
             builder.EnumType<DepartmentEnum>();
+            builder.EnumType<VariationStatus>();
 
             // Configure Project entity with navigation properties
             var projectEntityType = builder.EntitySet<ProjectEntity>("Projects").EntityType;

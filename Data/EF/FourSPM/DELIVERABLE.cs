@@ -95,5 +95,17 @@ namespace FourSPM_WebService.Data.EF.FourSPM
         public virtual DELIVERABLE_GATE? DeliverableGate { get; set; }
 
         public virtual ICollection<PROGRESS> ProgressItems { get; set; } = new List<PROGRESS>();
+
+        // New variation fields
+        [Required]
+        public int VARIATION_STATUS { get; set; } = 0;
+
+        public Guid? GUID_VARIATION { get; set; }
+
+        public Guid? GUID_ORIGINAL_DELIVERABLE { get; set; }
+
+        [Required]
+        [Column(TypeName = "decimal(10,2)")]
+        public decimal APPROVED_VARIATION_HOURS { get; set; } = 0;
     }
 }

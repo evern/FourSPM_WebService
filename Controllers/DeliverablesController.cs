@@ -19,6 +19,9 @@ using Microsoft.Extensions.Logging;
 using System.ComponentModel.DataAnnotations;
 using FourSPM_WebService.Models.Shared;
 
+// For access to the VariationStatus enum
+using static FourSPM_WebService.Data.EF.FourSPM.VariationStatus;
+
 namespace FourSPM_WebService.Controllers
 {
     [Authorize]
@@ -29,7 +32,10 @@ namespace FourSPM_WebService.Controllers
         private readonly IProjectRepository _projectRepository;
         private readonly ILogger<DeliverablesController> _logger;
 
-        public DeliverablesController(IDeliverableRepository repository, IProjectRepository projectRepository, ILogger<DeliverablesController> logger)
+        public DeliverablesController(
+            IDeliverableRepository repository, 
+            IProjectRepository projectRepository, 
+            ILogger<DeliverablesController> logger)
         {
             _repository = repository;
             _projectRepository = projectRepository;
@@ -74,7 +80,13 @@ namespace FourSPM_WebService.Controllers
                 DOCUMENT_TITLE = entity.DocumentTitle,
                 BUDGET_HOURS = entity.BudgetHours,
                 VARIATION_HOURS = entity.VariationHours,
-                TOTAL_COST = entity.TotalCost
+                TOTAL_COST = entity.TotalCost,
+                
+                // Set the new variation fields
+                VARIATION_STATUS = (int)entity.VariationStatus, // Cast enum to int for DB
+                GUID_VARIATION = entity.VariationGuid,
+                GUID_ORIGINAL_DELIVERABLE = entity.OriginalDeliverableGuid,
+                APPROVED_VARIATION_HOURS = entity.ApprovedVariationHours
             };
 
             // Calculate booking code if not provided, otherwise use the one from entity
@@ -109,7 +121,13 @@ namespace FourSPM_WebService.Controllers
                     DOCUMENT_TITLE = entity.DocumentTitle,
                     BUDGET_HOURS = entity.BudgetHours,
                     VARIATION_HOURS = entity.VariationHours,
-                    TOTAL_COST = entity.TotalCost
+                    TOTAL_COST = entity.TotalCost,
+                    
+                    // Set the new variation fields
+                    VARIATION_STATUS = (int)entity.VariationStatus, // Cast enum to int for DB
+                    GUID_VARIATION = entity.VariationGuid,
+                    GUID_ORIGINAL_DELIVERABLE = entity.OriginalDeliverableGuid,
+                    APPROVED_VARIATION_HOURS = entity.ApprovedVariationHours
                 };
 
                 // Calculate booking code if not provided, otherwise use the one from entity
@@ -457,6 +475,30 @@ namespace FourSPM_WebService.Controllers
             return MapToEntity(deliverable, 0); // Use 0 as default period when not calculating percentages
         }
 
+        /// <summary>
+        /// Sets the UIStatus property of a deliverable entity based on its variation properties
+        /// </summary>
+        private static void SetUIStatus(DeliverableEntity entity)
+        {
+            // Calculate and set UIStatus based on variation properties
+            if (entity.VariationStatus == VariationStatus.UnapprovedCancellation || 
+                entity.VariationStatus == VariationStatus.ApprovedCancellation) {
+                entity.UIStatus = "Cancel";
+            } else if (entity.VariationGuid.HasValue && 
+                     ((entity.OriginalDeliverableGuid.HasValue && entity.Guid == entity.OriginalDeliverableGuid) || 
+                     !entity.OriginalDeliverableGuid.HasValue)) {
+                // New deliverable created in the variation - either:
+                // 1. With self-referencing originalDeliverableGuid (guid == originalDeliverableGuid)
+                // 2. Legacy case with no originalDeliverableGuid
+                entity.UIStatus = "Add";
+            } else if (entity.VariationGuid.HasValue && entity.OriginalDeliverableGuid.HasValue) {
+                // Modified deliverable (has both variationGuid and originalDeliverableGuid pointing to different records)
+                entity.UIStatus = "Edit";
+            } else {
+                entity.UIStatus = "Original";
+            }
+        }
+        
         private static DeliverableEntity MapToEntity(DELIVERABLE deliverable, int period)
         {
             // Extract client number and project number from the Project entity if available
@@ -498,6 +540,12 @@ namespace FourSPM_WebService.Controllers
                 UpdatedBy = deliverable.UPDATEDBY,
                 Deleted = deliverable.DELETED,
                 DeletedBy = deliverable.DELETEDBY,
+                
+                // Map the new variation fields
+                VariationStatus = (VariationStatus)deliverable.VARIATION_STATUS, // Cast int to enum
+                VariationGuid = deliverable.GUID_VARIATION,
+                OriginalDeliverableGuid = deliverable.GUID_ORIGINAL_DELIVERABLE,
+                ApprovedVariationHours = deliverable.APPROVED_VARIATION_HOURS,
                 Project = deliverable.Project != null ? new ProjectEntity
                 {
                     Guid = deliverable.Project.GUID,
@@ -535,6 +583,219 @@ namespace FourSPM_WebService.Controllers
             CalculateProgressPercentages(entity, period);
             
             return entity;
+        }
+        /// <summary>
+        /// Gets all deliverables for a specific variation
+        /// </summary>
+        [HttpGet("odata/v1/Deliverables/ByVariation/{variationId}")]
+        public async Task<IActionResult> GetByVariation(Guid variationId)
+        {
+            try
+            {
+                _logger?.LogInformation($"Getting deliverables for variation {variationId}");
+                
+                var deliverables = await _repository.GetByVariationIdAsync(variationId);
+                if (deliverables == null || !deliverables.Any())
+                {
+                    return Ok(new List<DeliverableEntity>());
+                }
+                
+                var entities = deliverables.Select(d => {
+                    var entity = MapToEntity(d);
+                    SetUIStatus(entity);
+                    return entity;
+                });
+                return Ok(entities);
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogError(ex, "Error getting deliverables for variation");
+                return StatusCode(500, $"Error: {ex.Message}");
+            }
+        }
+        
+        /// <summary>
+        /// Adds or updates a variation copy of an existing deliverable
+        /// </summary>
+        [HttpPost("odata/v1/Deliverables/AddOrUpdateVariation")]
+        public async Task<IActionResult> AddOrUpdateVariation([FromBody] DeliverableEntity entity)
+        {
+            try
+            {
+                if (!ModelState.IsValid)
+                    return BadRequest(ModelState);
+
+                if (!entity.OriginalDeliverableGuid.HasValue || !entity.VariationGuid.HasValue)
+                {
+                    return BadRequest("OriginalDeliverableGuid and VariationGuid are required");
+                }
+
+                _logger?.LogInformation($"Received AddOrUpdateVariation request for variation {entity.VariationGuid}, original deliverable {entity.OriginalDeliverableGuid}");
+                
+                // Get the original deliverable to create a copy from or update an existing copy
+                var originalDeliverable = await _repository.GetByIdAsync(entity.OriginalDeliverableGuid.Value);
+                if (originalDeliverable == null)
+                {
+                    return NotFound($"Original deliverable with ID {entity.OriginalDeliverableGuid} not found");
+                }
+                
+                // Check if a variation copy already exists for this deliverable and variation
+                var existingCopy = await _repository.GetVariationCopyAsync(
+                    entity.OriginalDeliverableGuid.Value, 
+                    entity.VariationGuid.Value);
+                
+                if (existingCopy != null)
+                {
+                    // Update existing variation copy
+                    _logger?.LogInformation($"Updating existing variation copy {existingCopy.GUID}");
+                    
+                    // Only update variation-specific fields
+                    existingCopy.VARIATION_HOURS = entity.VariationHours;
+                    
+                    // Optional overrides if provided
+                    if (!string.IsNullOrWhiteSpace(entity.DocumentTitle))
+                    {
+                        existingCopy.DOCUMENT_TITLE = entity.DocumentTitle;
+                    }
+                    
+                    if (!string.IsNullOrWhiteSpace(entity.DocumentType))
+                    {
+                        existingCopy.DOCUMENT_TYPE = entity.DocumentType;
+                    }
+                    
+                    if (!string.IsNullOrWhiteSpace(entity.ClientDocumentNumber))
+                    {
+                        existingCopy.CLIENT_DOCUMENT_NUMBER = entity.ClientDocumentNumber;
+                    }
+                    
+                    // Always recalculate the booking code to ensure consistency
+                    // This is important for deliverables created directly in variations
+                    // where users might update fields that affect the booking code
+                    existingCopy.BOOKING_CODE = await CalculateBookingCodeAsync(
+                        existingCopy.GUID_PROJECT, 
+                        existingCopy.AREA_NUMBER, 
+                        existingCopy.DISCIPLINE, 
+                        existingCopy.BOOKING_CODE);
+                    
+                    // Check if this is a cancellation based on the VariationStatus property
+                    if (entity.VariationStatus == VariationStatus.UnapprovedCancellation || 
+                        entity.VariationStatus == VariationStatus.ApprovedCancellation)
+                    {
+                        existingCopy.VARIATION_STATUS = (int)VariationStatus.UnapprovedCancellation;
+                    }
+                    
+                    var result = await _repository.UpdateAsync(existingCopy);
+                    var resultEntity = MapToEntity(result);
+                    SetUIStatus(resultEntity);
+                    return Ok(resultEntity);
+                }
+                else
+                {
+                    // Create new variation copy
+                    _logger?.LogInformation($"Creating new variation copy for deliverable {entity.OriginalDeliverableGuid}");
+                    
+                    // Determine the variation status
+                    int status = (entity.VariationStatus == VariationStatus.UnapprovedCancellation || 
+                                 entity.VariationStatus == VariationStatus.ApprovedCancellation) ? 
+                        (int)VariationStatus.UnapprovedCancellation : 
+                        (int)VariationStatus.UnapprovedVariation;
+                    
+                    var newCopy = await _repository.CreateVariationCopyAsync(
+                        originalDeliverable, 
+                        entity.VariationGuid.Value, 
+                        status);
+                    
+                    // Apply optional overrides if provided
+                    if (!string.IsNullOrWhiteSpace(entity.DocumentTitle))
+                    {
+                        newCopy.DOCUMENT_TITLE = entity.DocumentTitle;
+                    }
+                    
+                    if (!string.IsNullOrWhiteSpace(entity.DocumentType))
+                    {
+                        newCopy.DOCUMENT_TYPE = entity.DocumentType;
+                    }
+                    
+                    if (!string.IsNullOrWhiteSpace(entity.ClientDocumentNumber))
+                    {
+                        newCopy.CLIENT_DOCUMENT_NUMBER = entity.ClientDocumentNumber;
+                    }
+                    
+                    // Set the variation hours
+                    newCopy.VARIATION_HOURS = entity.VariationHours;
+                    await _repository.UpdateAsync(newCopy);
+                    
+                    var resultEntity = MapToEntity(newCopy);
+                    SetUIStatus(resultEntity);
+                    return Ok(resultEntity);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogError(ex, "Error processing request");
+                return StatusCode(500, $"Error: {ex.Message}");
+            }
+        }
+        
+        /// <summary>
+        /// Creates a new deliverable for a variation
+        /// </summary>
+        [HttpPost("odata/v1/Deliverables/CreateForVariation")]
+        public async Task<IActionResult> CreateForVariation([FromBody] DeliverableEntity entity)
+        {
+            try
+            {
+                if (!ModelState.IsValid)
+                    return BadRequest(ModelState);
+                
+                _logger?.LogInformation($"Received CreateForVariation request for variation {entity.VariationGuid}");
+                
+                // Validate that this is actually for a variation
+                if (entity.VariationGuid == null || entity.VariationGuid == Guid.Empty)
+                {
+                    return BadRequest("VariationGuid is required for creating a variation deliverable");
+                }
+                
+                // First create a GUID for this new deliverable
+                var deliverableGuid = Guid.NewGuid();
+        
+                // Create domain model from entity
+                var deliverable = new DELIVERABLE
+                {
+                    GUID = deliverableGuid,
+                    GUID_PROJECT = entity.ProjectGuid,
+                    AREA_NUMBER = entity.AreaNumber,
+                    DISCIPLINE = entity.Discipline,
+                    DOCUMENT_TYPE = entity.DocumentType,
+                    DEPARTMENT_ID = entity.DepartmentId,
+                    DELIVERABLE_TYPE_ID = entity.DeliverableTypeId,
+                    GUID_DELIVERABLE_GATE = entity.DeliverableGateGuid,
+                    INTERNAL_DOCUMENT_NUMBER = entity.InternalDocumentNumber,
+                    CLIENT_DOCUMENT_NUMBER = entity.ClientDocumentNumber,
+                    DOCUMENT_TITLE = entity.DocumentTitle,
+                    BUDGET_HOURS = entity.BudgetHours,
+                    VARIATION_HOURS = entity.VariationHours,
+                    APPROVED_VARIATION_HOURS = 0, // New variations start with 0 approved hours
+                    TOTAL_COST = entity.TotalCost,
+                    BOOKING_CODE = await CalculateBookingCodeAsync(entity.ProjectGuid, entity.AreaNumber, entity.Discipline, entity.BookingCode),
+                    
+                    // Set variation fields
+                    VARIATION_STATUS = (int)VariationStatus.UnapprovedVariation,
+                    GUID_VARIATION = entity.VariationGuid,
+                    // For new deliverables in a variation, set originalDeliverableGuid to its own GUID
+                    GUID_ORIGINAL_DELIVERABLE = deliverableGuid // Set to its own GUID for proper tracking
+                };
+                
+                var result = await _repository.CreateAsync(deliverable);
+                var resultEntity = MapToEntity(result);
+                SetUIStatus(resultEntity); // Set the UI status for the entity
+                return Created($"odata/v1/Deliverables/{result.GUID}", resultEntity);
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogError(ex, "Error creating variation deliverable");
+                return StatusCode(500, $"Error: {ex.Message}");
+            }
         }
     }
 }

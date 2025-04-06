@@ -1,6 +1,7 @@
 using System;
-using System.ComponentModel.DataAnnotations;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 using FourSPM_WebService.Data.EF.FourSPM;
 
 namespace FourSPM_WebService.Data.OData.FourSPM
@@ -72,5 +73,14 @@ namespace FourSPM_WebService.Data.OData.FourSPM
         public virtual ProjectEntity? Project { get; set; }
         public virtual ICollection<ProgressEntity> ProgressItems { get; set; } = new List<ProgressEntity>();
         public virtual DeliverableGateEntity? DeliverableGate { get; set; }
+
+        // New variation fields
+        public VariationStatus VariationStatus { get; set; } = VariationStatus.Standard;
+        public Guid? VariationGuid { get; set; }
+        public Guid? OriginalDeliverableGuid { get; set; }
+        public decimal ApprovedVariationHours { get; set; } = 0;
+        
+        // UI-specific status property (calculated, not stored)
+        public string UIStatus { get; set; } = "Original";
     }
 }
