@@ -68,30 +68,66 @@ namespace FourSPM_WebService.Data.Repositories
             
             try
             {
-                await _context.SaveChangesAsync();
-                return variation;
-            }
-            catch (DbUpdateConcurrencyException)
-            {
-                // Handle the case where the entity doesn't exist
-                if (!await _context.VARIATIONs.AnyAsync(v => v.GUID == variation.GUID && v.DELETED == null))
+                // Check if the variation exists and isn't already deleted
+                var existingVariation = await _context.VARIATIONs
+                    .FirstOrDefaultAsync(v => v.GUID == variation.GUID && v.DELETED == null);
+                    
+                if (existingVariation == null)
                 {
                     throw new KeyNotFoundException($"Variation with ID {variation.GUID} not found");
                 }
-                throw; // Rethrow if it's a different issue
+                
+                // Use ExecuteUpdateAsync to avoid OUTPUT clause issues with triggers
+                await _context.VARIATIONs
+                    .Where(v => v.GUID == variation.GUID && v.DELETED == null)
+                    .ExecuteUpdateAsync(setters => setters
+                        .SetProperty(v => v.GUID_PROJECT, variation.GUID_PROJECT)
+                        .SetProperty(v => v.NAME, variation.NAME)
+                        .SetProperty(v => v.COMMENTS, variation.COMMENTS)
+                        .SetProperty(v => v.UPDATED, variation.UPDATED)
+                        .SetProperty(v => v.UPDATEDBY, variation.UPDATEDBY)
+                        .SetProperty(v => v.SUBMITTED, variation.SUBMITTED)
+                        .SetProperty(v => v.SUBMITTEDBY, variation.SUBMITTEDBY)
+                        .SetProperty(v => v.CLIENT_APPROVED, variation.CLIENT_APPROVED)
+                        .SetProperty(v => v.CLIENT_APPROVEDBY, variation.CLIENT_APPROVEDBY)
+                    );
+                
+                // Merge values back to the original entity for the return value
+                existingVariation.GUID_PROJECT = variation.GUID_PROJECT;
+                existingVariation.NAME = variation.NAME;
+                existingVariation.COMMENTS = variation.COMMENTS;
+                existingVariation.UPDATED = variation.UPDATED;
+                existingVariation.UPDATEDBY = variation.UPDATEDBY;
+                existingVariation.SUBMITTED = variation.SUBMITTED;
+                existingVariation.SUBMITTEDBY = variation.SUBMITTEDBY;
+                existingVariation.CLIENT_APPROVED = variation.CLIENT_APPROVED;
+                existingVariation.CLIENT_APPROVEDBY = variation.CLIENT_APPROVEDBY;
+                
+                return existingVariation;
+            }
+            catch (Exception ex) when (!(ex is KeyNotFoundException))
+            {
+                // Log the exception if needed
+                throw;
             }
         }
 
         public async Task<bool> DeleteAsync(Guid id, Guid deletedBy)
         {
-            var variation = await _context.VARIATIONs.FindAsync(id);
-            if (variation == null || variation.DELETED != null)
+            // Check if the variation exists and isn't already deleted
+            if (!await _context.VARIATIONs.AnyAsync(v => v.GUID == id && v.DELETED == null))
                 return false;
 
-            variation.DELETED = DateTime.Now;
-            variation.DELETEDBY = deletedBy;
-            await _context.SaveChangesAsync();
-            return true;
+            // Use ExecuteUpdateAsync instead of tracked entities to avoid OUTPUT clause issues with triggers
+            // This directly generates a SQL UPDATE command without the OUTPUT clause
+            var affectedRows = await _context.VARIATIONs
+                .Where(v => v.GUID == id && v.DELETED == null)
+                .ExecuteUpdateAsync(setters => setters
+                    .SetProperty(v => v.DELETED, DateTime.Now)
+                    .SetProperty(v => v.DELETEDBY, deletedBy)
+                );
+
+            return affectedRows > 0;
         }
 
         public async Task<bool> ExistsAsync(Guid id)
