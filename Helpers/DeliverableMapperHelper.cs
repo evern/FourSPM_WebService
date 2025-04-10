@@ -48,9 +48,11 @@ namespace FourSPM_WebService.Helpers
                 // Map the variation fields
                 VariationStatus = (VariationStatus)d.VARIATION_STATUS,
                 VariationGuid = d.GUID_VARIATION,
+                // Flatten variation name for reliable OData serialization without requiring $expand
+                // This ensures grid displays work correctly even with IQueryable projections
+                VariationName = d.Variation != null ? d.Variation.NAME : null,
                 OriginalDeliverableGuid = d.GUID_ORIGINAL_DELIVERABLE,
                 ApprovedVariationHours = d.APPROVED_VARIATION_HOURS,
-                VariationName = d.Variation != null ? d.Variation.NAME : null,
                 
                 // Set the UI status based on variation properties
                 UIStatus = d.VARIATION_STATUS == (int)VariationStatus.UnapprovedCancellation || 
@@ -66,9 +68,16 @@ namespace FourSPM_WebService.Helpers
                         : (d.GUID_VARIATION.HasValue && (!d.GUID_ORIGINAL_DELIVERABLE.HasValue || 
                            d.GUID_ORIGINAL_DELIVERABLE.Value == d.GUID))
                             ? "Add"
-                            : "Original"
+                            : "Original",
                 
-                // Note: Complex navigation properties like Project, ProgressItems, and DeliverableGate
+                // Include Variation for direct access to its properties in the frontend
+                Variation = d.Variation != null ? new VariationEntity
+                {
+                    Guid = d.Variation.GUID,
+                    Name = d.Variation.NAME
+                } : null,
+                
+                // Note: Other complex navigation properties like Project, ProgressItems, and DeliverableGate
                 // cannot be included in the projection for OData filtering
                 // They will be populated after materialization when needed
             };

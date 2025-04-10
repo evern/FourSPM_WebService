@@ -83,5 +83,8 @@ namespace FourSPM_WebService.Data.OData.FourSPM
         
         // UI-specific status property (calculated, not stored)
         public string UIStatus { get; set; } = "Original";
+        
+        // Name of the variation this deliverable belongs to (if any)
+        public string? VariationName { get; set; }
     }
 }
