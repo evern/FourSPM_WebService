@@ -2,8 +2,12 @@ using FourSPM_WebService.Data.EF.FourSPM;
 using FourSPM_WebService.Data.Interfaces;
 using FourSPM_WebService.Data.OData.FourSPM;
 using FourSPM_WebService.Helpers;
+using FourSPM_WebService.Models.Session;
+using FourSPM_WebService.Utilities;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
+using System;
 using Microsoft.AspNetCore.OData;
 using Microsoft.AspNetCore.OData.Query;
 using Microsoft.AspNetCore.OData.Routing;
@@ -254,12 +258,11 @@ namespace FourSPM_WebService.Controllers
         // Add a new action to suggest an internal document number
         [HttpGet("/odata/v1/Deliverables/SuggestInternalDocumentNumber")]
         public async Task<IActionResult> SuggestInternalDocumentNumber([FromQuery] Guid projectGuid, [FromQuery] string areaNumber, [FromQuery] string discipline, [FromQuery] string documentType, [FromQuery] string deliverableTypeId, [FromQuery] Guid? excludeDeliverableGuid = null)
-        {
+    {
+            _logger?.LogInformation($"Generating suggested internal document number for project {projectGuid}");
             try
             {
-                _logger?.LogInformation($"Generating suggested internal document number for project {projectGuid}");
-                
-                // Get the project details to get client and project numbers
+                // Get the project details
                 var project = await _projectRepository.GetProjectWithClientAsync(projectGuid);
                 
                 if (project == null)
@@ -267,80 +270,30 @@ namespace FourSPM_WebService.Controllers
                     return NotFound($"Project with ID {projectGuid} not found");
                 }
 
-                // Get client and project numbers
-                string clientNumber = project.Client?.NUMBER ?? string.Empty;
-                string projectNumber = project.PROJECT_NUMBER ?? string.Empty;
+                // Get existing deliverables with the same pattern to use for sequence generation
+                string baseFormat = DocumentNumberGenerator.CreateBaseFormat(
+                    project.Client?.NUMBER ?? string.Empty,
+                    project.PROJECT_NUMBER ?? string.Empty,
+                    deliverableTypeId,
+                    areaNumber,
+                    discipline,
+                    documentType);
                 
-                if (string.IsNullOrEmpty(clientNumber) || string.IsNullOrEmpty(projectNumber))
-                {
-                    return BadRequest("Client number or project number is missing from the project");
-                }
-                
-                // Determine the format based on deliverable type
-                // For "Deliverable" type: Client-Project-Area-Discipline-DocumentType-SequentialNumber
-                // For other types: Client-Project-Discipline-DocumentType-SequentialNumber
-                string baseFormat;
-                if (deliverableTypeId == "Deliverable")
-                {
-                    if (string.IsNullOrEmpty(areaNumber))
-                    {
-                        return BadRequest("Area number is required for Deliverable type");
-                    }
-                    baseFormat = $"{clientNumber}-{projectNumber}-{areaNumber}";
-                }
-                else
-                {
-                    baseFormat = $"{clientNumber}-{projectNumber}";
-                }
-                
-                // Add discipline and document type if provided
-                if (!string.IsNullOrEmpty(discipline))
-                {
-                    baseFormat += $"-{discipline}";
-                }
-                
-                if (!string.IsNullOrEmpty(documentType))
-                {
-                    baseFormat += $"-{documentType}";
-                }
-                
-                // Find the highest sequence number for documents with this format
-                var existingDeliverables = await _repository.GetDeliverablesByNumberPatternAsync(projectGuid, baseFormat);
-                
-                // Filter out the excluded deliverable if one was specified
-                if (excludeDeliverableGuid.HasValue && excludeDeliverableGuid.Value != Guid.Empty)
-                {
-                    existingDeliverables = existingDeliverables.Where(d => d.GUID != excludeDeliverableGuid.Value).ToList();
-                }
-                
-                int nextSequence = 1;
-                
-                if (existingDeliverables.Any())
-                {
-                    foreach (var deliverable in existingDeliverables)
-                    {
-                        if (!string.IsNullOrEmpty(deliverable.INTERNAL_DOCUMENT_NUMBER))
-                        {
-                            var parts = deliverable.INTERNAL_DOCUMENT_NUMBER.Split('-');
-                            if (parts.Length > 0)
-                            {
-                                var lastPart = parts[parts.Length - 1];
-                                if (int.TryParse(lastPart, out int seq) && seq >= nextSequence)
-                                {
-                                    nextSequence = seq + 1;
-                                }
-                            }
-                        }
-                    }
-                }
-                
-                // Format sequence as 3 digits (001, 002, etc.)
-                string sequenceNumber = nextSequence.ToString().PadLeft(3, '0');
-                
-                // Build the final suggested number
-                string suggestedNumber = $"{baseFormat}-{sequenceNumber}";
+                // Get existing deliverables to determine the next sequence number
+                var existingDeliverables = await _repository.GetDeliverablesByNumberPatternAsync(
+                    projectGuid, baseFormat);
+                    
+                // Use the utility to build the final document number
+                string suggestedNumber = $"{baseFormat}-{DocumentNumberGenerator.DetermineNextSequence(
+                    existingDeliverables, excludeDeliverableGuid)}";
+
                 
                 return Ok(new { suggestedNumber });
+            }
+            catch (ArgumentException ex)
+            {
+                _logger?.LogWarning(ex, "Invalid argument when generating suggested internal document number");
+                return BadRequest(ex.Message);
             }
             catch (Exception ex)
             {

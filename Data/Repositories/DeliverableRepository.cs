@@ -33,8 +33,9 @@ namespace FourSPM_WebService.Data.Repositories
                 .Include(d => d.DeliverableGate)
                 .Where(d => d.DELETED == null)
                 // Only include Standard deliverables and ApprovedVariation deliverables
-                .Where(d => d.VARIATION_STATUS == (int)VariationStatus.Standard || 
-                             d.VARIATION_STATUS == (int)VariationStatus.ApprovedVariation)
+                .Where(d => d.VARIATION_STATUS == (int)VariationStatus.Standard ||
+                        // Only include approved variation deliverables that are added through variations
+                        (d.VARIATION_STATUS == (int)VariationStatus.ApprovedVariation && d.GUID == d.GUID_ORIGINAL_DELIVERABLE))
                 .OrderByDescending(d => d.CREATED);
         }
 
@@ -59,7 +60,8 @@ namespace FourSPM_WebService.Data.Repositories
                 .Where(d => d.GUID_PROJECT == projectId && d.DELETED == null)
                 // Only include Standard deliverables and ApprovedVariation deliverables
                 .Where(d => d.VARIATION_STATUS == (int)VariationStatus.Standard || 
-                             d.VARIATION_STATUS == (int)VariationStatus.ApprovedVariation)
+                      // Only include approved variation deliverables that are added through variations
+                      (d.VARIATION_STATUS == (int)VariationStatus.ApprovedVariation && d.GUID == d.GUID_ORIGINAL_DELIVERABLE))
                 .ToListAsync();
         }
 

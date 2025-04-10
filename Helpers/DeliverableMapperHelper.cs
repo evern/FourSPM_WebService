@@ -34,7 +34,7 @@ namespace FourSPM_WebService.Helpers
                 DocumentTitle = d.DOCUMENT_TITLE,
                 BudgetHours = d.BUDGET_HOURS,
                 VariationHours = d.VARIATION_HOURS,
-                TotalHours = d.BUDGET_HOURS + d.VARIATION_HOURS,
+                TotalHours = d.BUDGET_HOURS + d.APPROVED_VARIATION_HOURS,
                 TotalCost = d.TOTAL_COST,
                 BookingCode = d.BOOKING_CODE,
                 Created = d.CREATED,
@@ -85,7 +85,7 @@ namespace FourSPM_WebService.Helpers
             // Always use the database-stored value for internal document number
             string internalDocumentNumber = deliverable.INTERNAL_DOCUMENT_NUMBER;
             
-            decimal totalHours = deliverable.BUDGET_HOURS + deliverable.VARIATION_HOURS;
+            decimal totalHours = deliverable.BUDGET_HOURS + deliverable.APPROVED_VARIATION_HOURS;
             
             var validProgressItems = deliverable.ProgressItems
                 .Where(p => p.DELETED == null)

@@ -158,6 +158,76 @@ namespace FourSPM_WebService.Controllers
             }
         }
 
+        /// <summary>
+        /// Approves a variation, updating all variation deliverables to approved status
+        /// </summary>
+        /// <param name="id">The GUID of the variation to approve</param>
+        /// <returns>The updated variation entity with approval information</returns>
+        [HttpPost("odata/v1/Variations/ApproveVariation/{id}")]
+        public async Task<IActionResult> ApproveVariation([FromRoute] Guid id)
+        {
+            try
+            {
+                _logger?.LogInformation($"Received approval request for variation {id}");
+
+                if (id == Guid.Empty)
+                {
+                    return BadRequest("Invalid variation ID");
+                }
+
+                // Check if the variation exists
+                if (!await _repository.ExistsAsync(id))
+                {
+                    return NotFound($"Variation with ID {id} not found");
+                }
+
+                // Approve the variation
+                var variation = await _repository.ApproveVariationAsync(id);
+                
+                return Ok(MapToEntity(variation));
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogError(ex, $"Error approving variation {id}");
+                return StatusCode(500, "An error occurred while approving the variation");
+            }
+        }
+
+        /// <summary>
+        /// Rejects a previously approved variation, reverting all variation deliverables to unapproved status
+        /// </summary>
+        /// <param name="id">The GUID of the variation to reject</param>
+        /// <returns>The updated variation entity with approval information cleared</returns>
+        [HttpPost("odata/v1/Variations/RejectVariation/{id}")]
+        public async Task<IActionResult> RejectVariation([FromRoute] Guid id)
+        {
+            try
+            {
+                _logger?.LogInformation($"Received rejection request for variation {id}");
+
+                if (id == Guid.Empty)
+                {
+                    return BadRequest("Invalid variation ID");
+                }
+
+                // Check if the variation exists
+                if (!await _repository.ExistsAsync(id))
+                {
+                    return NotFound($"Variation with ID {id} not found");
+                }
+
+                // Reject the variation
+                var variation = await _repository.RejectVariationAsync(id);
+                
+                return Ok(MapToEntity(variation));
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogError(ex, $"Error rejecting variation {id}");
+                return StatusCode(500, "An error occurred while rejecting the variation");
+            }
+        }
+
         private static VariationEntity MapToEntity(VARIATION variation)
         {
             return new VariationEntity
