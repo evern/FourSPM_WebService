@@ -14,5 +14,13 @@ namespace FourSPM_WebService.Data.Interfaces
         Task<PROGRESS> UpdateAsync(PROGRESS progress);
         Task<bool> DeleteAsync(Guid id, Guid deletedBy);
         Task<bool> ExistsAsync(Guid id);
+        
+        
+        /// <summary>
+        /// Checks if a deliverable has been progressed (sum of units > 0)
+        /// </summary>
+        /// <param name="deliverableGuid">The GUID of the deliverable to check</param>
+        /// <returns>True if the deliverable has been progressed (sum of units > 0), false otherwise</returns>
+        Task<bool> HasProgressUnitsAsync(Guid deliverableGuid);
     }
 }

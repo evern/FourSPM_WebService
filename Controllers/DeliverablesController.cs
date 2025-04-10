@@ -32,15 +32,19 @@ namespace FourSPM_WebService.Controllers
     {
         private readonly IDeliverableRepository _repository;
         private readonly IProjectRepository _projectRepository;
+        private readonly IProgressRepository _progressRepository;
         private readonly ILogger<DeliverablesController> _logger;
 
         public DeliverablesController(
             IDeliverableRepository repository, 
-            IProjectRepository projectRepository, 
+            IProjectRepository projectRepository,
+            IProgressRepository progressRepository,
+            IVariationRepository variationRepository,
             ILogger<DeliverablesController> logger)
         {
             _repository = repository;
             _projectRepository = projectRepository;
+            _progressRepository = progressRepository;
             _logger = logger;
         }
 
@@ -157,8 +161,29 @@ namespace FourSPM_WebService.Controllers
 
         public async Task<IActionResult> Delete([FromRoute] Guid key, [FromBody] Guid deletedBy)
         {
-            var result = await _repository.DeleteAsync(key, deletedBy);
-            return result ? NoContent() : NotFound();
+            try
+            {
+                // Check if deliverable exists
+                if (!await _repository.ExistsAsync(key))
+                    return NotFound();
+                
+                // Check for variation deliverables
+                if (await _repository.HasVariationDeliverablesAsync(key))
+                    return BadRequest("Cannot delete this deliverable because it has associated variation deliverables.");
+                
+                // Check if the deliverable has been progressed (units > 0)
+                if (await _progressRepository.HasProgressUnitsAsync(key))
+                    return BadRequest("Cannot delete this deliverable because it has been progressed.");
+                
+                // If all validations pass, delete the deliverable
+                var result = await _repository.DeleteAsync(key, deletedBy);
+                return result ? NoContent() : NotFound();
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogError(ex, "Error deleting deliverable {DeliverableId}", key);
+                return StatusCode(500, $"An error occurred: {ex.Message}");
+            }
         }
 
         /// <summary>

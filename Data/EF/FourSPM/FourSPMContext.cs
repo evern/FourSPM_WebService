@@ -175,6 +175,11 @@ public partial class FourSPMContext : DbContext
                 .WithMany(p => p.Deliverables)
                 .HasForeignKey(d => d.GUID_DELIVERABLE_GATE)
                 .OnDelete(DeleteBehavior.NoAction);
+                
+            entity.HasOne(d => d.Variation)
+                .WithMany(v => v.Deliverables)
+                .HasForeignKey(d => d.GUID_VARIATION)
+                .OnDelete(DeleteBehavior.NoAction);
         });
 
         modelBuilder.Entity<PROGRESS>(entity =>

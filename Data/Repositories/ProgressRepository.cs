@@ -94,5 +94,17 @@ namespace FourSPM_WebService.Data.Repositories
             return await _context.PROGRESSes
                 .AnyAsync(p => p.GUID == id && p.DELETED == null);
         }
+        
+        
+        public async Task<bool> HasProgressUnitsAsync(Guid deliverableGuid)
+        {
+            // Calculate the sum of all UNITS for the deliverable's non-deleted progress records
+            var totalUnits = await _context.PROGRESSes
+                .Where(p => p.GUID_DELIVERABLE == deliverableGuid && p.DELETED == null)
+                .SumAsync(p => p.UNITS);
+                
+            // Return true if the sum is greater than 0 (deliverable has been progressed)
+            return totalUnits > 0;
+        }
     }
 }

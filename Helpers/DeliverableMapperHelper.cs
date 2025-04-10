@@ -14,8 +14,9 @@ namespace FourSPM_WebService.Helpers
         /// <summary>
         /// Creates an expression that maps DELIVERABLE entities to DeliverableEntity DTOs for use in IQueryable projections
         /// </summary>
+        /// <param name="currentVariationGuid">The current variation GUID being worked on (optional)</param>
         /// <returns>An expression that can be used in Select() with IQueryable</returns>
-        public static Expression<Func<DELIVERABLE, DeliverableEntity>> GetEntityMappingExpression()
+        public static Expression<Func<DELIVERABLE, DeliverableEntity>> GetEntityMappingExpression(Guid? currentVariationGuid = null)
         {
             return d => new DeliverableEntity
             {
@@ -49,11 +50,16 @@ namespace FourSPM_WebService.Helpers
                 VariationGuid = d.GUID_VARIATION,
                 OriginalDeliverableGuid = d.GUID_ORIGINAL_DELIVERABLE,
                 ApprovedVariationHours = d.APPROVED_VARIATION_HOURS,
+                VariationName = d.Variation != null ? d.Variation.NAME : null,
                 
                 // Set the UI status based on variation properties
                 UIStatus = d.VARIATION_STATUS == (int)VariationStatus.UnapprovedCancellation || 
                           d.VARIATION_STATUS == (int)VariationStatus.ApprovedCancellation
                     ? "Cancel"
+                    : (d.GUID_VARIATION.HasValue && 
+                       // Check if it belongs to a different variation than the current one
+                       (currentVariationGuid.HasValue && d.GUID_VARIATION.Value != currentVariationGuid.Value))
+                        ? "Original" // Treat deliverables from other variations as Original
                     : (d.GUID_VARIATION.HasValue && d.GUID_ORIGINAL_DELIVERABLE.HasValue && 
                        d.GUID_ORIGINAL_DELIVERABLE.Value != d.GUID)
                         ? "Edit"
@@ -73,8 +79,9 @@ namespace FourSPM_WebService.Helpers
         /// </summary>
         /// <param name="deliverable">The domain entity to map</param>
         /// <param name="period">Optional period for progress calculation</param>
+        /// <param name="currentVariationGuid">The current variation GUID being worked on (optional)</param>
         /// <returns>The mapped DTO or null if the input is null</returns>
-        public static DeliverableEntity? MapToEntity(DELIVERABLE? deliverable, int? period = null)
+        public static DeliverableEntity? MapToEntity(DELIVERABLE? deliverable, int? period = null, Guid? currentVariationGuid = null)
         {
             if (deliverable == null) return null;
             
@@ -154,11 +161,20 @@ namespace FourSPM_WebService.Helpers
                     Name = deliverable.DeliverableGate.NAME,
                     MaxPercentage = deliverable.DeliverableGate.MAX_PERCENTAGE,
                     AutoPercentage = deliverable.DeliverableGate.AUTO_PERCENTAGE
+                } : null,
+                Variation = deliverable.Variation != null ? new VariationEntity
+                {
+                    Guid = deliverable.Variation.GUID,
+                    Name = deliverable.Variation.NAME,
+                    ProjectGuid = deliverable.Variation.GUID_PROJECT,
+                    Comments = deliverable.Variation.COMMENTS,
+                    Submitted = deliverable.Variation.SUBMITTED,
+                    ClientApproved = deliverable.Variation.CLIENT_APPROVED
                 } : null
             };
             
-            // Apply UI status
-            SetUIStatus(entity);
+            // Apply UI status based on the current variation
+            SetUIStatus(entity, currentVariationGuid);
             
             // Calculate progress percentages if period is provided
             if (period.HasValue)
@@ -172,7 +188,9 @@ namespace FourSPM_WebService.Helpers
         /// <summary>
         /// Sets the UIStatus property of a deliverable entity based on its variation properties
         /// </summary>
-        private static void SetUIStatus(DeliverableEntity entity)
+        /// <param name="entity">The deliverable entity to update</param>
+        /// <param name="currentVariationGuid">The current variation GUID being worked on (optional)</param>
+        private static void SetUIStatus(DeliverableEntity entity, Guid? currentVariationGuid = null)
         {
             if (entity == null) return;
             
@@ -181,6 +199,13 @@ namespace FourSPM_WebService.Helpers
                 entity.VariationStatus == VariationStatus.ApprovedCancellation)
             {
                 entity.UIStatus = "Cancel";
+            }
+            // Check if it belongs to a different variation than the current one
+            else if (entity.VariationGuid.HasValue && currentVariationGuid.HasValue && 
+                     entity.VariationGuid.Value != currentVariationGuid.Value)
+            {
+                // Deliverable from another variation - treat as Original
+                entity.UIStatus = "Original";
             } 
             else if (entity.VariationGuid.HasValue && entity.OriginalDeliverableGuid.HasValue && 
                     entity.OriginalDeliverableGuid.Value != entity.Guid) 

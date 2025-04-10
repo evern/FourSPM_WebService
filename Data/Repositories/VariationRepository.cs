@@ -257,18 +257,16 @@ namespace FourSPM_WebService.Data.Repositories
                                     progressHours = progressItems.Sum(p => p.UNITS);
                                 }
                                 
-                                decimal budgetHours = originalDeliverable.BUDGET_HOURS;
+                                // Calculate total hours (budget + approved variation hours)
+                                decimal totalHours = originalDeliverable.BUDGET_HOURS + originalDeliverable.APPROVED_VARIATION_HOURS;
                                 
-                                // Store the current approved variation hours (before this approval)
-                                decimal currentApprovedHours = originalDeliverable.APPROVED_VARIATION_HOURS;
-                                
-                                // Calculate what the approved hours should be based on actual progress vs budget
+                                // Calculate what the approved hours should be based on actual progress vs total hours
                                 // Allow for negative values to represent underutilization
-                                decimal calculatedHours = progressHours - budgetHours;
+                                decimal calculatedHours = progressHours - totalHours;
                                 
-                                // Calculate the delta between current approved hours (which may include hours from other variations)
-                                // and the newly calculated hours - this represents this variation's specific contribution
-                                decimal delta = currentApprovedHours - calculatedHours;
+                                // Calculate the delta between total hours and calculated hours
+                                // This represents how much this variation contributes to the overall allocation
+                                decimal delta = totalHours - progressHours;
                                 
                                 // Store the delta in the variation's APPROVED_VARIATION_HOURS field for tracking purposes
                                 // This is clearer when viewing variation data than using VARIATION_HOURS

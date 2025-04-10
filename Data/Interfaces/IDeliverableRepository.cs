@@ -18,6 +18,13 @@ namespace FourSPM_WebService.Data.Interfaces
         Task<IEnumerable<DELIVERABLE>> GetDeliverablesByNumberPatternAsync(Guid projectId, string pattern);
         Task<IEnumerable<DELIVERABLE>> GetByProjectIdAndPeriodAsync(Guid projectId, int period);
         
+        /// <summary>
+        /// Checks if a deliverable has any variation deliverables associated with active variations
+        /// </summary>
+        /// <param name="deliverableGuid">The GUID of the original deliverable to check</param>
+        /// <returns>True if variation deliverables exist for active variations, false otherwise</returns>
+        Task<bool> HasVariationDeliverablesAsync(Guid deliverableGuid);
+        
         // Variation-specific methods
         /// <summary>
         /// Gets merged variation deliverables for a given variation and eligible original deliverables that could be added

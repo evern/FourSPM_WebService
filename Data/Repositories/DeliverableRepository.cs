@@ -127,6 +127,18 @@ namespace FourSPM_WebService.Data.Repositories
             return await _context.DELIVERABLEs
                 .AnyAsync(d => d.GUID == id && d.DELETED == null);
         }
+        
+        public async Task<bool> HasVariationDeliverablesAsync(Guid deliverableGuid)
+        {
+            // Check if any variation deliverables reference this deliverable as original
+            // and are associated with a non-deleted variation
+            return await _context.DELIVERABLEs
+                .AnyAsync(d => d.GUID_ORIGINAL_DELIVERABLE == deliverableGuid && 
+                          d.DELETED == null &&
+                          d.GUID_VARIATION != null &&
+                          // Only check variations that aren't themselves deleted
+                          _context.VARIATIONs.Any(v => v.GUID == d.GUID_VARIATION && v.DELETED == null));
+        }
 
         public async Task<IEnumerable<DELIVERABLE>> GetDeliverablesByNumberPatternAsync(Guid projectId, string pattern)
         {
@@ -154,6 +166,7 @@ namespace FourSPM_WebService.Data.Repositories
                     .ThenInclude(p => p != null ? p.Client : null!)
                 .Include(d => d.DeliverableGate)
                 .Include(d => d.ProgressItems)
+                .Include(d => d.Variation)  // Include variation data for display in UI
                 .Where(d => d.DELETED == null);
 
             // If no variation GUID provided, just return the base query
@@ -188,8 +201,32 @@ namespace FourSPM_WebService.Data.Repositories
                     // Ensure it's a standard deliverable
                     d.VARIATION_STATUS == (int)VariationStatus.Standard);
 
-            // 5. UNION the two queryables - this preserves IQueryable nature for OData operations
-            var combinedQuery = variationDeliverables.Union(eligibleStandardsQuery);
+            // We're disabling cancellation of variation deliverables from other variations,
+            // so we don't need to check for cancellations
+                
+            // 4.5 Get approved variation deliverables from other variations that have an original GUID
+            // and where the variation itself is not deleted and they belong to the same project
+            // Also exclude any that have an equivalent unapproved cancellation in current variation
+            var approvedVariationDeliverables = baseQuery
+                .Where(d => 
+                    // From other variations, not this one
+                    d.GUID_VARIATION != variationGuid.Value && 
+                    d.GUID_VARIATION != null && 
+                    // Has ApprovedVariation status
+                    d.VARIATION_STATUS == (int)VariationStatus.ApprovedVariation && 
+                    // Has an original deliverable GUID
+                    d.GUID_ORIGINAL_DELIVERABLE != null)
+                // Include the variation and ensure it's not deleted and belongs to the same project
+                .Include(d => d.Variation)
+                .Where(d => 
+                    d.Variation != null && 
+                    d.Variation.DELETED == null && 
+                    projectGuidQuery.Contains(d.GUID_PROJECT));
+
+            // 5. UNION all three queryables - this preserves IQueryable nature for OData operations
+            var combinedQuery = variationDeliverables
+                .Union(eligibleStandardsQuery)
+                .Union(approvedVariationDeliverables);
             
             _logger?.LogInformation("Successfully created combined query with variation and eligible standard deliverables");
             return combinedQuery;
@@ -265,6 +302,7 @@ namespace FourSPM_WebService.Data.Repositories
             // Find both the original deliverable and any variation copy for the current variation
             // We need to check both because the user might be attempting to cancel either one
             var deliverables = await _context.DELIVERABLEs
+                .Include(d => d.Variation) // Include the variation for name reference
                 .Where(d => (d.GUID == originalDeliverableGuid || 
                             (d.GUID_ORIGINAL_DELIVERABLE == originalDeliverableGuid && d.GUID_VARIATION == variationGuid)) && 
                             d.DELETED == null)
@@ -279,6 +317,21 @@ namespace FourSPM_WebService.Data.Repositories
             if (deliverable == null)
             {
                 throw new KeyNotFoundException($"Deliverable with GUID {originalDeliverableGuid} not found or already deleted");
+            }
+            
+            // Check if this is an approved variation from another variation - if so, prevent cancellation
+            if (deliverable.GUID_VARIATION != null && 
+                deliverable.GUID_VARIATION != variationGuid && 
+                deliverable.VARIATION_STATUS == (int)VariationStatus.ApprovedVariation)
+            {
+                // Include the variation name in the error message if available
+                var variationName = "another variation";
+                if (deliverable.Variation != null)
+                {
+                    variationName = deliverable.Variation.NAME;
+                }
+                
+                throw new InvalidOperationException($"Cannot cancel a deliverable that belongs to an approved variation ({variationName}). Please make changes to the original deliverable instead.");
             }
             
             // Start a transaction for atomic operations

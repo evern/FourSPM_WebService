@@ -104,6 +104,9 @@ namespace FourSPM_WebService.Data.EF.FourSPM
 
         public Guid? GUID_ORIGINAL_DELIVERABLE { get; set; }
 
+        [ForeignKey(nameof(GUID_VARIATION))]
+        public virtual VARIATION? Variation { get; set; }
+
         [Required]
         [Column(TypeName = "decimal(10,2)")]
         public decimal APPROVED_VARIATION_HOURS { get; set; } = 0;

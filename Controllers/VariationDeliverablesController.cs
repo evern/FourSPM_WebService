@@ -59,7 +59,7 @@ namespace FourSPM_WebService.Controllers
             IQueryable<DELIVERABLE> deliverables = _repository.GetMergedVariationDeliverables(variationId);
             
             // Map to entities while maintaining IQueryable for OData processing
-            var entitiesQuery = deliverables.Select(DeliverableMapperHelper.GetEntityMappingExpression());
+            var entitiesQuery = deliverables.Select(DeliverableMapperHelper.GetEntityMappingExpression(variationId));
             
             // Return IQueryable directly for optimal OData performance with virtual scrolling
             return entitiesQuery;
@@ -149,7 +149,7 @@ namespace FourSPM_WebService.Controllers
         private async Task<IActionResult> HandleStandardDeliverableUpdate(DELIVERABLE existingDeliverable, Delta<DeliverableEntity> delta)
         {
             // Update deliverable properties from delta
-            var updatedEntity = DeliverableMapperHelper.MapToEntity(existingDeliverable);
+            var updatedEntity = DeliverableMapperHelper.MapToEntity(existingDeliverable, currentVariationGuid: existingDeliverable.GUID_VARIATION);
             if (updatedEntity != null)
             {
                 delta.CopyChangedValues(updatedEntity);
@@ -160,7 +160,7 @@ namespace FourSPM_WebService.Controllers
                 await _repository.UpdateAsync(existingDeliverable);
                 
                 // Return updated entity
-                var resultEntity = DeliverableMapperHelper.MapToEntity(existingDeliverable);
+                var resultEntity = DeliverableMapperHelper.MapToEntity(existingDeliverable, currentVariationGuid: existingDeliverable.GUID_VARIATION);
                 return Updated(resultEntity);
             }
             else
@@ -186,7 +186,7 @@ namespace FourSPM_WebService.Controllers
             var updateResult = await UpdateVariationCopy(existingCopy, entity, delta.GetChangedPropertyNames(), isNewCopy);
             
             // Map result to entity and return appropriate response
-            var resultEntity = DeliverableMapperHelper.MapToEntity(updateResult);
+            var resultEntity = DeliverableMapperHelper.MapToEntity(updateResult, currentVariationGuid: updateResult.GUID_VARIATION);
             
             return isNewCopy 
                 ? Created($"odata/v1/VariationDeliverables/{updateResult.GUID}", resultEntity)
@@ -321,7 +321,7 @@ namespace FourSPM_WebService.Controllers
                 var result = await _repository.CancelDeliverableAsync(originalDeliverableGuid, variationGuid);
                 
                 // Map to entity for response
-                var resultEntity = DeliverableMapperHelper.MapToEntity(result);
+                var resultEntity = DeliverableMapperHelper.MapToEntity(result, currentVariationGuid: result.GUID_VARIATION);
                 return Ok(resultEntity);
             }
             catch (KeyNotFoundException ex)
@@ -387,7 +387,7 @@ namespace FourSPM_WebService.Controllers
                 };
                 
                 var result = await _repository.CreateAsync(deliverable);
-                var resultEntity = DeliverableMapperHelper.MapToEntity(result);
+                var resultEntity = DeliverableMapperHelper.MapToEntity(result, currentVariationGuid: result.GUID_VARIATION);
                 return Created($"odata/v1/VariationDeliverables/{result.GUID}", resultEntity);
             }
             catch (Exception ex)

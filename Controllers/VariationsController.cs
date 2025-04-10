@@ -107,8 +107,34 @@ namespace FourSPM_WebService.Controllers
 
         public async Task<IActionResult> Delete([FromRoute] Guid key)
         {
-            var result = await _repository.DeleteAsync(key, _applicationUser.UserId ?? Guid.Empty);
-            return result ? NoContent() : NotFound();
+            try
+            {
+                _logger?.LogInformation($"Received delete request for variation {key}");
+
+                // First get the variation to check if it's approved
+                var variation = await _repository.GetByIdAsync(key);
+                
+                if (variation == null)
+                {
+                    return NotFound($"Variation with ID {key} not found");
+                }
+
+                // Check if the variation is approved - prevent deletion of approved variations
+                if (variation.CLIENT_APPROVED.HasValue)
+                {
+                    _logger?.LogWarning($"Attempted to delete approved variation {key}");
+                    return BadRequest("Approved variations cannot be deleted. Reject the variation first.");
+                }
+
+                // Proceed with deletion since the variation isn't approved
+                var result = await _repository.DeleteAsync(key, _applicationUser.UserId ?? Guid.Empty);
+                return result ? NoContent() : NotFound();
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogError(ex, $"Error deleting variation {key}");
+                return StatusCode(500, "An error occurred while deleting the variation");
+            }
         }
 
         public async Task<IActionResult> Patch([FromODataUri] Guid key, [FromBody] Delta<VariationEntity> delta)

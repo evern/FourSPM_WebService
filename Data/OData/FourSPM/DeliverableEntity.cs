@@ -73,6 +73,7 @@ namespace FourSPM_WebService.Data.OData.FourSPM
         public virtual ProjectEntity? Project { get; set; }
         public virtual ICollection<ProgressEntity> ProgressItems { get; set; } = new List<ProgressEntity>();
         public virtual DeliverableGateEntity? DeliverableGate { get; set; }
+        public virtual VariationEntity? Variation { get; set; }
 
         // New variation fields
         public VariationStatus VariationStatus { get; set; } = VariationStatus.Standard;

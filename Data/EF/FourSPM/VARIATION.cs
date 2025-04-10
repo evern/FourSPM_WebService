@@ -35,4 +35,6 @@ public partial class VARIATION
     public Guid? DELETEDBY { get; set; }
 
     public virtual PROJECT Project { get; set; } = null!;
+    
+    public virtual ICollection<DELIVERABLE> Deliverables { get; set; } = new List<DELIVERABLE>();
 }
