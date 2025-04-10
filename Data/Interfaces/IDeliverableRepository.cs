@@ -8,7 +8,7 @@ namespace FourSPM_WebService.Data.Interfaces
     public interface IDeliverableRepository
     {
         // Existing methods
-        Task<IEnumerable<DELIVERABLE>> GetAllAsync();
+        Task<IQueryable<DELIVERABLE>> GetAllAsync();
         Task<IEnumerable<DELIVERABLE>> GetByProjectIdAsync(Guid projectId);
         Task<DELIVERABLE?> GetByIdAsync(Guid id);
         Task<DELIVERABLE> CreateAsync(DELIVERABLE deliverable);
@@ -20,16 +20,12 @@ namespace FourSPM_WebService.Data.Interfaces
         
         // Variation-specific methods
         /// <summary>
-        /// Retrieves all deliverables for a specific variation, prioritizing variation versions over standard versions
+        /// Gets merged variation deliverables for a given variation and eligible original deliverables that could be added
+        /// Uses pure IQueryable approach for optimal OData integration and virtual scrolling support
         /// </summary>
-        /// <param name="variationId">The GUID of the variation</param>
-        /// <returns>
-        /// Collection of deliverables that includes:
-        /// 1. All deliverables directly associated with the variation
-        /// 2. Standard deliverables (with no variation) that don't have a variation version
-        /// This ensures that if a standard deliverable has a variation version, only the variation version is returned
-        /// </returns>
-        Task<IEnumerable<DELIVERABLE>> GetByVariationIdAsync(Guid variationId);
+        /// <param name="variationGuid">Optional variation GUID to filter by. If not provided, returns all variation deliverables.</param>
+        /// <returns>IQueryable of deliverables including both variation-specific ones and eligible standards</returns>
+        IQueryable<DELIVERABLE> GetMergedVariationDeliverables(Guid? variationGuid = null);
         
         /// <summary>
         /// Gets the variation copy of a deliverable if it exists
@@ -37,7 +33,7 @@ namespace FourSPM_WebService.Data.Interfaces
         /// <param name="originalDeliverableId">The GUID of the original deliverable</param>
         /// <param name="variationId">The GUID of the variation</param>
         /// <returns>The variation copy of the deliverable, or null if none exists</returns>
-        Task<DELIVERABLE?> GetVariationCopyAsync(Guid originalDeliverableId, Guid variationId);
+        Task<DELIVERABLE?> FindExistingVariationDeliverableAsync(Guid originalDeliverableId, Guid variationId);
         
         /// <summary>
         /// Creates a variation copy of an existing deliverable
@@ -49,19 +45,11 @@ namespace FourSPM_WebService.Data.Interfaces
         Task<DELIVERABLE> CreateVariationCopyAsync(DELIVERABLE original, Guid variationId, int variationStatus);
         
         /// <summary>
-        /// Creates a new deliverable for a variation (not a copy of an existing one)
+        /// Cancels a deliverable by either marking it as deleted or creating a cancellation variation
         /// </summary>
-        /// <param name="deliverable">The new deliverable to create</param>
-        /// <param name="variationId">The GUID of the variation</param>
-        /// <returns>The newly created deliverable</returns>
-        Task<DELIVERABLE> CreateNewVariationDeliverableAsync(DELIVERABLE deliverable, Guid variationId);
-        
-        /// <summary>
-        /// Creates a variation deliverable that cancels an existing deliverable
-        /// </summary>
-        /// <param name="originalDeliverableId">The GUID of the deliverable to cancel</param>
-        /// <param name="variationId">The GUID of the variation</param>
-        /// <returns>The newly created cancellation deliverable</returns>
-        Task<DELIVERABLE> CreateVariationCancellationAsync(Guid originalDeliverableId, Guid variationId);
+        /// <param name="originalDeliverableGuid">The original deliverable GUID to cancel</param>
+        /// <param name="variationGuid">The variation GUID this cancellation belongs to</param>
+        /// <returns>The updated or newly created cancellation deliverable</returns>
+        Task<DELIVERABLE> CancelDeliverableAsync(Guid originalDeliverableGuid, Guid? variationGuid);
     }
 }

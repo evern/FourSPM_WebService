@@ -57,6 +57,20 @@ namespace FourSPM_WebService.Data.Extensions
             builder.EntitySet<AreaEntity>("Areas").EntityType.HasKey(a => a.Guid);
             builder.EntitySet<DeliverableGateEntity>("DeliverableGates").EntityType.HasKey(dg => dg.Guid);
             builder.EntitySet<VariationEntity>("Variations").EntityType.HasKey(v => v.Guid);
+            
+            // Register VariationDeliverables - using DeliverableEntity type but different endpoint
+            // This ensures that variation deliverables can be separately queried while maintaining the same model
+            var variationDeliverableEntityType = builder.EntitySet<DeliverableEntity>("VariationDeliverables").EntityType;
+            variationDeliverableEntityType.HasKey(d => d.Guid);
+            
+            // Define the GetMergedVariationDeliverables function as a bound OData function on the VariationDeliverables collection
+            // This follows the same pattern as GetWithProgressPercentages
+            var getMergedDeliverables = variationDeliverableEntityType.Collection
+                .Function("GetMergedVariationDeliverables")
+                .ReturnsCollectionFromEntitySet<DeliverableEntity>("VariationDeliverables");
+            
+            // Add parameter to the function
+            getMergedDeliverables.Parameter<Guid>("variationId");
 
             return builder.GetEdmModel();
         }
