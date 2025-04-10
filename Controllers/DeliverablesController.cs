@@ -41,10 +41,10 @@ namespace FourSPM_WebService.Controllers
         }
 
         [EnableQuery]
-        public async Task<IQueryable<DeliverableEntity>> Get()
+        public IQueryable<DeliverableEntity> Get()
         {
-            // Get the collection from repository as IQueryable
-            var deliverables = await _repository.GetAllAsync();
+            // Get the collection from repository directly as IQueryable
+            IQueryable<DELIVERABLE> deliverables = _repository.GetAllAsync();
             
             // Apply the mapping expression directly to the IQueryable
             // This allows OData to translate filters to SQL before execution

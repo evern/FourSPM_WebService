@@ -8,7 +8,7 @@ namespace FourSPM_WebService.Data.Interfaces
     public interface IDeliverableRepository
     {
         // Existing methods
-        Task<IQueryable<DELIVERABLE>> GetAllAsync();
+        IQueryable<DELIVERABLE> GetAllAsync();
         Task<IEnumerable<DELIVERABLE>> GetByProjectIdAsync(Guid projectId);
         Task<DELIVERABLE?> GetByIdAsync(Guid id);
         Task<DELIVERABLE> CreateAsync(DELIVERABLE deliverable);

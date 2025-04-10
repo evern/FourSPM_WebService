@@ -23,10 +23,10 @@ namespace FourSPM_WebService.Data.Repositories
             _logger = logger;
         }
 
-        public Task<IQueryable<DELIVERABLE>> GetAllAsync()
+        public IQueryable<DELIVERABLE> GetAllAsync()
         {
-            // Cast to IQueryable<DELIVERABLE> to match the interface
-            IQueryable<DELIVERABLE> query = _context.DELIVERABLEs
+            // Return IQueryable<DELIVERABLE> directly for optimal OData performance
+            return _context.DELIVERABLEs
                 .Include(d => d.Project)
                     .ThenInclude(p => p != null ? p.Client : null!)
                 .Include(d => d.ProgressItems)
@@ -36,8 +36,6 @@ namespace FourSPM_WebService.Data.Repositories
                 .Where(d => d.VARIATION_STATUS == (int)VariationStatus.Standard || 
                              d.VARIATION_STATUS == (int)VariationStatus.ApprovedVariation)
                 .OrderByDescending(d => d.CREATED);
-                
-            return Task.FromResult(query);
         }
 
         public async Task<IEnumerable<DELIVERABLE>> GetByProjectIdAsync(Guid projectId)
