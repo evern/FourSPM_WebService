@@ -273,7 +273,8 @@ namespace FourSPM_WebService.Data.Repositories
                                 deliverable.APPROVED_VARIATION_HOURS = delta;
                                 
                                 // Update the approved variation hours to match actual progress vs budget
-                                originalDeliverable.APPROVED_VARIATION_HOURS = calculatedHours;
+                                // Use += to preserve variation hours from other variations
+                                originalDeliverable.APPROVED_VARIATION_HOURS += calculatedHours;
                                 originalDeliverable.UPDATED = DateTime.Now;
                                 originalDeliverable.UPDATEDBY = _user.UserId ?? Guid.Empty;
                             }

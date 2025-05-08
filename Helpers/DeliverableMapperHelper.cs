@@ -36,6 +36,15 @@ namespace FourSPM_WebService.Helpers
                 BudgetHours = d.BUDGET_HOURS,
                 VariationHours = d.VARIATION_HOURS,
                 TotalHours = d.BUDGET_HOURS + d.APPROVED_VARIATION_HOURS,
+                // Calculate VariationDisplayHours based on specified rules:
+                // 1. Budget + approved variation hours for original deliverables
+                // 2. Budget + variation hours for deliverables in current variation
+                // 3. Variation hours only for deliverables from other variations
+                VariationDisplayHours = d.GUID_VARIATION == null
+                    ? d.BUDGET_HOURS + d.APPROVED_VARIATION_HOURS // Rule 1: Original deliverable
+                    : (d.GUID_VARIATION == currentVariationGuid
+                        ? d.BUDGET_HOURS + d.VARIATION_HOURS      // Rule 2: Current variation
+                        : d.VARIATION_HOURS),                    // Rule 3: Other variation
                 TotalCost = d.TOTAL_COST,
                 BookingCode = d.BOOKING_CODE,
                 Created = d.CREATED,

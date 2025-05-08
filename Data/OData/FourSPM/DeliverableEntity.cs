@@ -81,10 +81,13 @@ namespace FourSPM_WebService.Data.OData.FourSPM
         public Guid? OriginalDeliverableGuid { get; set; }
         public decimal ApprovedVariationHours { get; set; } = 0;
         
-        // UI-specific status property (calculated, not stored)
+        // UI-ONLY: Not mapped to EF - UI-specific status property (calculated, not stored)
         public string UIStatus { get; set; } = "Original";
         
-        // Name of the variation this deliverable belongs to (if any)
+        // UI-ONLY: Not mapped to EF - Name of the variation this deliverable belongs to (for display)
         public string? VariationName { get; set; }
+        
+        // UI-ONLY: Not mapped to EF - Custom total hours calculation for variations display only
+        public decimal VariationDisplayHours { get; set; }
     }
 }

@@ -213,9 +213,7 @@ namespace FourSPM_WebService.Data.Repositories
                     d.GUID_VARIATION != variationGuid.Value && 
                     d.GUID_VARIATION != null && 
                     // Has ApprovedVariation status
-                    d.VARIATION_STATUS == (int)VariationStatus.ApprovedVariation && 
-                    // Has an original deliverable GUID
-                    d.GUID_ORIGINAL_DELIVERABLE != null)
+                    d.VARIATION_STATUS == (int)VariationStatus.ApprovedVariation)
                 // Include the variation and ensure it's not deleted and belongs to the same project
                 .Include(d => d.Variation)
                 .Where(d => 
