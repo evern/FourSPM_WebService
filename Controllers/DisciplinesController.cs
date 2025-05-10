@@ -140,15 +140,11 @@ namespace FourSPM_WebService.Controllers
                 var updatedEntity = MapToEntity(existingDiscipline);
                 delta.CopyChangedValues(updatedEntity);
 
-                // Map back to DISCIPLINE entity
-                var disciplineToUpdate = new DISCIPLINE
-                {
-                    GUID = updatedEntity.Guid,
-                    CODE = updatedEntity.Code,
-                    NAME = updatedEntity.Name ?? string.Empty
-                };
+                // Map back to EF tracked DISCIPLINE entity
+                existingDiscipline.CODE = updatedEntity.Code;
+                existingDiscipline.NAME = updatedEntity.Name;
 
-                var result = await _repository.UpdateAsync(disciplineToUpdate);
+                var result = await _repository.UpdateAsync(existingDiscipline);
                 return Updated(MapToEntity(result));
             }
             catch (Exception ex)
