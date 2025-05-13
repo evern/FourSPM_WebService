@@ -119,20 +119,23 @@ namespace FourSPM_WebService.Controllers
             if (entity.VariationGuid == null || entity.VariationGuid == Guid.Empty)
                 return BadRequest("Only deliverables associated with variations can be updated through this endpoint");
             
-            // Do not allow updates to approved variations
-            bool isApproved = originalDeliverable.VARIATION_STATUS == (int)VariationStatus.ApprovedVariation || 
-                            originalDeliverable.VARIATION_STATUS == (int)VariationStatus.ApprovedCancellation;
-            if (isApproved)
-                return BadRequest("Cannot edit deliverables for approved variations");
+            // Check if we're only updating variation hours, which is allowed even for approved variations
+            var changedProps = delta.GetChangedPropertyNames().ToList();
+            bool isVariationHoursChange = changedProps.Count == 1 && 
+                               changedProps.Contains("VariationHours");
+    
+            // ApprovedVariation status deliverables can be edited (UI will handle restrictions)
+            bool isCancelled = originalDeliverable.VARIATION_STATUS == (int)VariationStatus.ApprovedCancellation;
+            if (isCancelled)
+                return BadRequest("Cannot modify deliverables that have been cancelled in an approved variation.");
             
             // Determine whether this is updating the original deliverable
             bool isOriginal = key == entity.OriginalDeliverableGuid.Value;
             
-            // Only use direct update path if:
-            // 1. We're updating the original deliverable (not a variation copy)
-            // 2. The original deliverable belongs to the same variation
-            // This prevents updating deliverables from one variation via another variation
-            if (isOriginal && originalDeliverable.GUID_VARIATION == entity.VariationGuid)
+            // Allow direct update path if:
+            // 1. We're updating the original deliverable that belongs to the same variation OR
+            // 2. We're only changing variation hours (to allow stacking hours across variations)
+            if ((isOriginal && originalDeliverable.GUID_VARIATION == entity.VariationGuid) || isVariationHoursChange)
             {
                 // Original deliverable belongs to this variation - use direct update path
                 return await HandleStandardDeliverableUpdate(originalDeliverable, delta);

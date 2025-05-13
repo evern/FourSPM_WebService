@@ -212,10 +212,15 @@ namespace FourSPM_WebService.Controllers
                 
                 return Ok(MapToEntity(variation));
             }
+            catch (InvalidOperationException ex)
+            {
+                _logger?.LogError(ex, $"Business rule violation approving variation {id}: {ex.Message}");
+                return BadRequest(ex.Message);
+            }
             catch (Exception ex)
             {
                 _logger?.LogError(ex, $"Error approving variation {id}");
-                return StatusCode(500, "An error occurred while approving the variation");
+                return StatusCode(500, ex.Message);
             }
         }
 
@@ -247,10 +252,15 @@ namespace FourSPM_WebService.Controllers
                 
                 return Ok(MapToEntity(variation));
             }
+            catch (InvalidOperationException ex)
+            {
+                _logger?.LogError(ex, $"Business rule violation rejecting variation {id}: {ex.Message}");
+                return BadRequest(ex.Message);
+            }
             catch (Exception ex)
             {
                 _logger?.LogError(ex, $"Error rejecting variation {id}");
-                return StatusCode(500, "An error occurred while rejecting the variation");
+                return StatusCode(500, ex.Message);
             }
         }
 
