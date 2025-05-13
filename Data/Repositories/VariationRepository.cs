@@ -221,9 +221,48 @@ namespace FourSPM_WebService.Data.Repositories
                                 
                             if (originalDeliverable != null)
                             {
+                                decimal rate;
+                                
+                                // Check if this is a self-referencing deliverable (added directly through variation)
+                                bool isSelfReferencing = deliverable.GUID == deliverable.GUID_ORIGINAL_DELIVERABLE.Value && 
+                                                        deliverable.GUID_VARIATION == variationGuid;
+                                                        
+                                if (isSelfReferencing)
+                                {
+                                    // For deliverables added directly through variation
+                                    // For new deliverables, if they have variation hours but no cost rate yet,
+                                    // we could use a default rate or calculate from project settings
+                                    if (deliverable.VARIATION_HOURS > 0)
+                                    {
+                                        // Try to use the deliverable's own TOTAL_COST if available
+                                        if (deliverable.TOTAL_COST > 0)
+                                        {
+                                            rate = deliverable.TOTAL_COST / deliverable.VARIATION_HOURS;
+                                        }
+                                        else
+                                        {
+                                            // Use 0 as the default rate when no total cost is available
+                                            rate = 0;
+                                        }
+                                    }
+                                    else
+                                    {
+                                        rate = 0;
+                                    }
+                                }
+                                else
+                                {
+                                    // For normal variation copies, calculate rate from original deliverable
+                                    decimal totalHours = originalDeliverable.BUDGET_HOURS + originalDeliverable.APPROVED_VARIATION_HOURS;
+                                    rate = totalHours > 0 ? originalDeliverable.TOTAL_COST / totalHours : 0;
+                                }
+                                
                                 // Update the original deliverable's approved variation hours
                                 originalDeliverable.APPROVED_VARIATION_HOURS = 
                                     originalDeliverable.APPROVED_VARIATION_HOURS + deliverable.VARIATION_HOURS;
+                                
+                                // Update total cost based on the rate and new total hours
+                                originalDeliverable.TOTAL_COST = (originalDeliverable.BUDGET_HOURS + originalDeliverable.APPROVED_VARIATION_HOURS) * rate;
                                     
                                 originalDeliverable.UPDATED = DateTime.Now;
                                 originalDeliverable.UPDATEDBY = _user.UserId ?? Guid.Empty;
@@ -260,21 +299,28 @@ namespace FourSPM_WebService.Data.Repositories
                                 // Calculate total hours (budget + approved variation hours)
                                 decimal totalHours = originalDeliverable.BUDGET_HOURS + originalDeliverable.APPROVED_VARIATION_HOURS;
                                 
+                                // Calculate the current rate (cost per hour) before making any changes
+                                decimal rate = totalHours > 0 ? originalDeliverable.TOTAL_COST / totalHours : 0;
+                                
                                 // Calculate what the approved hours should be based on actual progress vs total hours
                                 // Allow for negative values to represent underutilization
                                 decimal calculatedHours = progressHours - totalHours;
                                 
                                 // Calculate the delta between total hours and calculated hours
                                 // This represents how much this variation contributes to the overall allocation
-                                decimal delta = totalHours - progressHours;
+                                decimal deltaHours = totalHours - progressHours;
                                 
                                 // Store the delta in the variation's APPROVED_VARIATION_HOURS field for tracking purposes
                                 // This is clearer when viewing variation data than using VARIATION_HOURS
-                                deliverable.APPROVED_VARIATION_HOURS = delta;
+                                deliverable.APPROVED_VARIATION_HOURS = deltaHours;
                                 
                                 // Update the approved variation hours to match actual progress vs budget
                                 // Use += to preserve variation hours from other variations
                                 originalDeliverable.APPROVED_VARIATION_HOURS += calculatedHours;
+                                
+                                // Update total cost based on the rate and new total hours
+                                originalDeliverable.TOTAL_COST = (originalDeliverable.BUDGET_HOURS + originalDeliverable.APPROVED_VARIATION_HOURS) * rate;
+                                
                                 originalDeliverable.UPDATED = DateTime.Now;
                                 originalDeliverable.UPDATEDBY = _user.UserId ?? Guid.Empty;
                             }
@@ -380,9 +426,37 @@ namespace FourSPM_WebService.Data.Repositories
                                 decimal currentApprovedHours = originalDeliverable.APPROVED_VARIATION_HOURS;
                                 decimal variationHours = deliverable.VARIATION_HOURS;
                                 
+                                // Check if this is a self-referencing deliverable (added directly through variation)
+                                bool isSelfReferencing = deliverable.GUID == deliverable.GUID_ORIGINAL_DELIVERABLE.Value && 
+                                                        deliverable.GUID_VARIATION == variationGuid;
+                                
                                 // Prevent negative approved variation hours
-                                originalDeliverable.APPROVED_VARIATION_HOURS = Math.Max(0, currentApprovedHours - variationHours);
+                                decimal updatedHours = Math.Max(0, currentApprovedHours - variationHours);
+                                originalDeliverable.APPROVED_VARIATION_HOURS = updatedHours;
+                                
+                                // Calculate rate and cost based on deliverable type
+                                if (isSelfReferencing)
+                                {
+                                    // For deliverables added directly through variation
+                                    decimal rate = 0;
+                                    if (deliverable.VARIATION_HOURS > 0 && deliverable.TOTAL_COST > 0)
+                                    {
+                                        rate = deliverable.TOTAL_COST / deliverable.VARIATION_HOURS;
+                                    }
                                     
+                                    // For self-referencing, use the variation hours directly
+                                    originalDeliverable.TOTAL_COST = deliverable.VARIATION_HOURS * rate;
+                                }
+                                else
+                                {
+                                    // For normal variation copies, calculate rate from original deliverable
+                                    decimal existingTotalHours = originalDeliverable.BUDGET_HOURS + currentApprovedHours;
+                                    decimal rate = existingTotalHours > 0 ? originalDeliverable.TOTAL_COST / existingTotalHours : 0;
+                                    
+                                    // Update total cost based on budget + approved variation hours
+                                    decimal totalHours = originalDeliverable.BUDGET_HOURS + updatedHours;
+                                    originalDeliverable.TOTAL_COST = totalHours * rate;
+                                }
                                 originalDeliverable.UPDATED = DateTime.Now;
                                 originalDeliverable.UPDATEDBY = _user.UserId ?? Guid.Empty;
                             }
@@ -402,9 +476,16 @@ namespace FourSPM_WebService.Data.Repositories
                                 
                             if (originalDeliverable != null)
                             {
+                                // Calculate the current rate (cost per hour) before making any changes
+                                decimal totalHours = originalDeliverable.BUDGET_HOURS + originalDeliverable.APPROVED_VARIATION_HOURS;
+                                decimal rate = totalHours > 0 ? originalDeliverable.TOTAL_COST / totalHours : 0;
+                                
                                 // Restore the tracked delta from the variation to the original deliverable
                                 // This undoes the effect that the approved cancellation had on the original
                                 originalDeliverable.APPROVED_VARIATION_HOURS += deliverable.APPROVED_VARIATION_HOURS;
+                                
+                                // Update total cost based on the rate and new total hours
+                                originalDeliverable.TOTAL_COST = (originalDeliverable.BUDGET_HOURS + originalDeliverable.APPROVED_VARIATION_HOURS) * rate;
                                 
                                 // Clear the delta from the variation to prevent potential reuse
                                 deliverable.APPROVED_VARIATION_HOURS = 0;
