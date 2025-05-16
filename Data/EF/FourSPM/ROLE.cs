@@ -7,7 +7,7 @@ namespace FourSPM_WebService.Data.EF.FourSPM
     public class ROLE
     {
         [Key]
-        public int GUID { get; set; }
+        public Guid GUID { get; set; }
         
         [Required]
         [StringLength(50)]
@@ -27,15 +27,15 @@ namespace FourSPM_WebService.Data.EF.FourSPM
         public DateTime CREATED { get; set; }
         
         [Required]
-        public required string CREATEDBY { get; set; }
+        public Guid CREATEDBY { get; set; }
         
         public DateTime? UPDATED { get; set; }
         
-        public string? UPDATEDBY { get; set; }
-        
+        public Guid? UPDATEDBY { get; set; }
+
         public DateTime? DELETED { get; set; }
-        
-        public string? DELETEDBY { get; set; }
+
+        public Guid? DELETEDBY { get; set; }
         
         // Navigation property for role permissions
         public virtual ICollection<ROLE_PERMISSION> ROLE_PERMISSIONS { get; set; } = new List<ROLE_PERMISSION>();

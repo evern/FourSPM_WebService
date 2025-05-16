@@ -28,7 +28,7 @@ namespace FourSPM_WebService.Data.Repositories
                 .ToListAsync();
         }
 
-        public async Task<ROLE?> GetByIdAsync(int id)
+        public async Task<ROLE?> GetByIdAsync(Guid id)
         {
             return await _context.ROLEs
                 .FirstOrDefaultAsync(r => r.GUID == id && r.DELETED == null);
@@ -37,7 +37,7 @@ namespace FourSPM_WebService.Data.Repositories
         public async Task<ROLE> CreateAsync(ROLE role)
         {
             role.CREATED = DateTime.Now;
-            role.CREATEDBY = _user.UserName ?? string.Empty;
+            role.CREATEDBY = _user.UserId ?? Guid.Empty;
             
             _context.ROLEs.Add(role);
             await _context.SaveChangesAsync();
@@ -60,7 +60,7 @@ namespace FourSPM_WebService.Data.Repositories
             
             // Update audit fields
             existingRole.UPDATED = DateTime.Now;
-            existingRole.UPDATEDBY = _user.UserName ?? string.Empty;
+            existingRole.UPDATEDBY = _user.UserId ?? Guid.Empty;
             
             try
             {
@@ -78,7 +78,7 @@ namespace FourSPM_WebService.Data.Repositories
             }
         }
 
-        public async Task<bool> DeleteAsync(int id, string deletedBy)
+        public async Task<bool> DeleteAsync(Guid id, Guid deletedBy)
         {
             var role = await _context.ROLEs
                 .FirstOrDefaultAsync(r => r.GUID == id && r.DELETED == null);
@@ -97,7 +97,7 @@ namespace FourSPM_WebService.Data.Repositories
             return true;
         }
 
-        public async Task<bool> ExistsAsync(int id)
+        public async Task<bool> ExistsAsync(Guid id)
         {
             return await _context.ROLEs
                 .AnyAsync(r => r.GUID == id && r.DELETED == null);

@@ -28,13 +28,13 @@ namespace FourSPM_WebService.Data.Repositories
                 .ToListAsync();
         }
 
-        public async Task<ROLE_PERMISSION?> GetByIdAsync(int id)
+        public async Task<ROLE_PERMISSION?> GetByIdAsync(Guid id)
         {
             return await _context.ROLE_PERMISSIONs
                 .FirstOrDefaultAsync(rp => rp.GUID == id && rp.DELETED == null);
         }
 
-        public async Task<IEnumerable<ROLE_PERMISSION>> GetByRoleIdAsync(int roleId)
+        public async Task<IEnumerable<ROLE_PERMISSION>> GetByRoleIdAsync(Guid roleId)
         {
             return await _context.ROLE_PERMISSIONs
                 .Where(rp => rp.GUID_ROLE == roleId && rp.DELETED == null)
@@ -45,7 +45,7 @@ namespace FourSPM_WebService.Data.Repositories
         public async Task<ROLE_PERMISSION> CreateAsync(ROLE_PERMISSION rolePermission)
         {
             rolePermission.CREATED = DateTime.Now;
-            rolePermission.CREATEDBY = _user.UserName ?? string.Empty;
+            rolePermission.CREATEDBY = _user.UserId ?? Guid.Empty;
             
             _context.ROLE_PERMISSIONs.Add(rolePermission);
             await _context.SaveChangesAsync();
@@ -66,7 +66,7 @@ namespace FourSPM_WebService.Data.Repositories
             
             // Update audit fields
             existingRolePermission.UPDATED = DateTime.Now;
-            existingRolePermission.UPDATEDBY = _user.UserName ?? string.Empty;
+            existingRolePermission.UPDATEDBY = _user.UserId ?? Guid.Empty;
             
             try
             {
@@ -84,7 +84,7 @@ namespace FourSPM_WebService.Data.Repositories
             }
         }
 
-        public async Task<bool> DeleteAsync(int id, string deletedBy)
+        public async Task<bool> DeleteAsync(Guid id, Guid deletedBy)
         {
             var rolePermission = await _context.ROLE_PERMISSIONs
                 .FirstOrDefaultAsync(rp => rp.GUID == id && rp.DELETED == null);
@@ -99,7 +99,7 @@ namespace FourSPM_WebService.Data.Repositories
             return true;
         }
 
-        public async Task<bool> ExistsAsync(int id)
+        public async Task<bool> ExistsAsync(Guid id)
         {
             return await _context.ROLE_PERMISSIONs
                 .AnyAsync(rp => rp.GUID == id && rp.DELETED == null);

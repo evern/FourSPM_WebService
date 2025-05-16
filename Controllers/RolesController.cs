@@ -52,7 +52,7 @@ namespace FourSPM_WebService.Controllers
         }
 
         [EnableQuery]
-        public async Task<IActionResult> Get([FromRoute] int key)
+        public async Task<IActionResult> Get([FromRoute] Guid key)
         {
             try
             {
@@ -82,7 +82,9 @@ namespace FourSPM_WebService.Controllers
                     NAME = entity.Name,
                     DISPLAY_NAME = entity.DisplayName,
                     DESCRIPTION = entity.Description,
-                    IS_SYSTEM_ROLE = entity.IsSystemRole
+                    IS_SYSTEM_ROLE = entity.IsSystemRole,
+                    CREATED = DateTime.UtcNow,
+                    CREATEDBY = _applicationUser.UserId ?? Guid.Empty
                 };
 
                 var result = await _repository.CreateAsync(role);
@@ -95,7 +97,7 @@ namespace FourSPM_WebService.Controllers
             }
         }
 
-        public async Task<IActionResult> Put([FromRoute] int key, [FromBody] RoleEntity entity)
+        public async Task<IActionResult> Put([FromRoute] Guid key, [FromBody] RoleEntity entity)
         {
             try
             {
@@ -111,7 +113,9 @@ namespace FourSPM_WebService.Controllers
                     NAME = entity.Name,
                     DISPLAY_NAME = entity.DisplayName,
                     DESCRIPTION = entity.Description,
-                    IS_SYSTEM_ROLE = entity.IsSystemRole
+                    IS_SYSTEM_ROLE = entity.IsSystemRole,
+                    CREATED = DateTime.UtcNow,
+                    CREATEDBY = _applicationUser.UserId ?? Guid.Empty
                 };
 
                 var result = await _repository.UpdateAsync(role);
@@ -132,11 +136,11 @@ namespace FourSPM_WebService.Controllers
             }
         }
 
-        public async Task<IActionResult> Delete([FromRoute] int key)
+        public async Task<IActionResult> Delete([FromRoute] Guid key)
         {
             try
             {
-                var deletedBy = _applicationUser.UserName ?? string.Empty;
+                var deletedBy = _applicationUser.UserId ?? Guid.Empty;
                 var result = await _repository.DeleteAsync(key, deletedBy);
                 return result ? NoContent() : NotFound($"Role with ID {key} not found");
             }
@@ -159,7 +163,7 @@ namespace FourSPM_WebService.Controllers
         /// <param name="key">The ID of the role to update</param>
         /// <param name="delta">The role properties to update</param>
         /// <returns>The updated role</returns>
-        public async Task<IActionResult> Patch([FromODataUri] int key, [FromBody] Delta<RoleEntity> delta)
+        public async Task<IActionResult> Patch([FromODataUri] Guid key, [FromBody] Delta<RoleEntity> delta)
         {
             try
             {

@@ -52,7 +52,7 @@ namespace FourSPM_WebService.Controllers
         }
 
         [EnableQuery]
-        public async Task<IActionResult> Get([FromRoute] int key)
+        public async Task<IActionResult> Get([FromRoute] Guid key)
         {
             try
             {
@@ -71,7 +71,7 @@ namespace FourSPM_WebService.Controllers
         
         [EnableQuery]
         [HttpGet("GetByRoleId(roleId={roleId})")]
-        public async Task<IActionResult> GetByRoleId([FromODataUri] int roleId)
+        public async Task<IActionResult> GetByRoleId([FromODataUri] Guid roleId)
         {
             try
             {
@@ -98,7 +98,8 @@ namespace FourSPM_WebService.Controllers
                     GUID = entity.Guid,
                     GUID_ROLE = entity.RoleGuid,
                     PERMISSION = entity.Permission,
-                    CREATEDBY = _applicationUser.UserName ?? string.Empty
+                    CREATED = DateTime.UtcNow,
+                    CREATEDBY = _applicationUser.UserId ?? Guid.Empty
                 };
 
                 var result = await _repository.CreateAsync(rolePermission);
@@ -111,13 +112,14 @@ namespace FourSPM_WebService.Controllers
             }
         }
 
-        public async Task<IActionResult> Put([FromRoute] int key, [FromBody] RolePermissionEntity entity)
+        public async Task<IActionResult> Put([FromRoute] Guid key, [FromBody] RolePermissionEntity entity)
         {
             try
             {
                 if (!ModelState.IsValid)
                     return BadRequest(ModelState);
 
+                // Keys are now both Guids, so the comparison is valid
                 if (key != entity.Guid)
                     return BadRequest("The ID in the URL must match the ID in the request body");
 
@@ -126,7 +128,8 @@ namespace FourSPM_WebService.Controllers
                     GUID = entity.Guid,
                     GUID_ROLE = entity.RoleGuid,
                     PERMISSION = entity.Permission,
-                    CREATEDBY = _applicationUser.UserName ?? string.Empty
+                    CREATED = DateTime.UtcNow,
+                    CREATEDBY = _applicationUser.UserId ?? Guid.Empty
                 };
 
                 var result = await _repository.UpdateAsync(rolePermission);
@@ -147,11 +150,11 @@ namespace FourSPM_WebService.Controllers
             }
         }
 
-        public async Task<IActionResult> Delete([FromRoute] int key)
+        public async Task<IActionResult> Delete([FromRoute] Guid key)
         {
             try
             {
-                var deletedBy = _applicationUser.UserName ?? string.Empty;
+                var deletedBy = _applicationUser.UserId ?? Guid.Empty;
                 var result = await _repository.DeleteAsync(key, deletedBy);
                 return result ? NoContent() : NotFound($"Role permission with ID {key} not found");
             }
@@ -168,7 +171,7 @@ namespace FourSPM_WebService.Controllers
         /// <param name="key">The ID of the role permission to update</param>
         /// <param name="delta">The role permission properties to update</param>
         /// <returns>The updated role permission</returns>
-        public async Task<IActionResult> Patch([FromODataUri] int key, [FromBody] Delta<RolePermissionEntity> delta)
+        public async Task<IActionResult> Patch([FromODataUri] Guid key, [FromBody] Delta<RolePermissionEntity> delta)
         {
             try
             {

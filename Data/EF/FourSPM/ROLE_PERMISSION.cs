@@ -7,11 +7,11 @@ namespace FourSPM_WebService.Data.EF.FourSPM
     public class ROLE_PERMISSION
     {
         [Key]
-        public int GUID { get; set; }
+        public Guid GUID { get; set; }
         
         [Required]
         [ForeignKey("ROLE")]
-        public int GUID_ROLE { get; set; }
+        public Guid GUID_ROLE { get; set; }
         
         [Required]
         [StringLength(100)]
@@ -21,15 +21,15 @@ namespace FourSPM_WebService.Data.EF.FourSPM
         public DateTime CREATED { get; set; }
         
         [Required]
-        public required string CREATEDBY { get; set; }
+        public Guid CREATEDBY { get; set; }
         
         public DateTime? UPDATED { get; set; }
         
-        public string? UPDATEDBY { get; set; }
-        
+        public Guid? UPDATEDBY { get; set; }
+
         public DateTime? DELETED { get; set; }
-        
-        public string? DELETEDBY { get; set; }
+
+        public Guid? DELETEDBY { get; set; }
         
         // Navigation property
         public virtual ROLE? ROLE { get; set; }
