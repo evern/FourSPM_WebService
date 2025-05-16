@@ -1,26 +1,83 @@
 # Task ID: 2
-# Title: Configure Azure AD Settings in appsettings.json
-# Status: done
+# Title: Implement OData Entity Model for Role
+# Status: pending
 # Dependencies: 1
-# Priority: high
-# Description: Set up Azure AD configuration settings in appsettings.json with environment-specific configurations.
+# Priority: medium
+# Description: Create the RoleEntity class for OData representation and register it in the EDM model with proper property naming conventions.
 # Details:
-Create an 'AzureAd' section in appsettings.json with the following structure:
-
-```json
+1. Create a new class named 'RoleEntity.cs' in the appropriate OData entities directory
+2. Implement the class with PascalCase property naming:
+```csharp
+public class RoleEntity
 {
-  "AzureAd": {
-    "Instance": "https://login.microsoftonline.com/",
-    "Domain": "yourdomain.onmicrosoft.com",
-    "TenantId": "your-tenant-id",
-    "ClientId": "your-client-id",
-    "CallbackPath": "/signin-oidc",
-    "SignedOutCallbackPath": "/signout-callback-oidc"
-  }
+    public int Guid { get; set; }
+    public string Name { get; set; }
+    public string DisplayName { get; set; }
+    public string Description { get; set; }
+    public bool IsSystemRole { get; set; }
+    public DateTime Created { get; set; }
+    public string CreatedBy { get; set; }
+    public DateTime? Updated { get; set; }
+    public string UpdatedBy { get; set; }
+    public DateTime? Deleted { get; set; }
+    public string DeletedBy { get; set; }
+}
+```
+3. Create mapping methods between Role and RoleEntity:
+```csharp
+public static RoleEntity ToEntity(this Role model)
+{
+    return new RoleEntity
+    {
+        Guid = model.GUID,
+        Name = model.NAME,
+        DisplayName = model.DISPLAY_NAME,
+        Description = model.DESCRIPTION,
+        IsSystemRole = model.IS_SYSTEM_ROLE,
+        Created = model.CREATED,
+        CreatedBy = model.CREATEDBY,
+        Updated = model.UPDATED,
+        UpdatedBy = model.UPDATEDBY,
+        Deleted = model.DELETED,
+        DeletedBy = model.DELETEDBY
+    };
+}
+
+public static Role ToModel(this RoleEntity entity)
+{
+    return new Role
+    {
+        GUID = entity.Guid,
+        NAME = entity.Name,
+        DISPLAY_NAME = entity.DisplayName,
+        DESCRIPTION = entity.Description,
+        IS_SYSTEM_ROLE = entity.IsSystemRole,
+        CREATED = entity.Created,
+        CREATEDBY = entity.CreatedBy,
+        UPDATED = entity.Updated,
+        UPDATEDBY = entity.UpdatedBy,
+        DELETED = entity.Deleted,
+        DELETEDBY = entity.DeletedBy
+    };
+}
+```
+4. Register the entity in the EDM model builder:
+```csharp
+public static IEdmModel GetEdmModel()
+{
+    var builder = new ODataConventionModelBuilder();
+    // Add existing entity sets
+    
+    // Add Role entity set
+    builder.EntitySet<RoleEntity>("Roles");
+    
+    return builder.GetEdmModel();
 }
 ```
 
-Create environment-specific settings in appsettings.Development.json and appsettings.Production.json with appropriate values. Use user secrets or Azure Key Vault for storing sensitive information in development and production environments respectively.
-
 # Test Strategy:
-Validate configuration file structure. Ensure sensitive information is not committed to source control. Verify environment-specific configurations load correctly by running the application in different environments.
+1. Verify the RoleEntity class has all properties with correct PascalCase naming
+2. Test the mapping methods (ToEntity and ToModel) with sample data
+3. Confirm the entity is properly registered in the EDM model
+4. Verify OData metadata endpoint returns the Role entity definition
+5. Test basic OData queries against the entity to ensure proper serialization

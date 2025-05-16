@@ -1,35 +1,104 @@
 # Task ID: 3
-# Title: Configure JWT Bearer Authentication
-# Status: done
-# Dependencies: 1, 2
-# Priority: high
-# Description: Configure JWT Bearer authentication in the application to validate tokens issued by Azure AD.
+# Title: Create Role Repository Layer
+# Status: pending
+# Dependencies: 1
+# Priority: medium
+# Description: Develop the repository layer for Role management including interface definition, implementation class with CRUD operations, and DI registration.
 # Details:
-Update Program.cs to configure JWT Bearer authentication:
-
+1. Create IRoleRepository interface:
 ```csharp
-builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-    .AddMicrosoftIdentityWebApi(builder.Configuration.GetSection("AzureAd"));
-
-// Add authorization services
-builder.Services.AddAuthorization();
-
-// In the app configuration section
-app.UseAuthentication();
-app.UseAuthorization();
+public interface IRoleRepository
+{
+    Task<IEnumerable<Role>> GetAllAsync();
+    Task<Role> GetByIdAsync(int guid);
+    Task<Role> CreateAsync(Role role);
+    Task<Role> UpdateAsync(Role role);
+    Task<bool> DeleteAsync(int guid);
+    Task<bool> ExistsAsync(int guid);
+}
 ```
 
-Configure token validation parameters to validate issuer, audience, lifetime, and signature:
-
+2. Implement RoleRepository class:
 ```csharp
-builder.Services.Configure<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme, options =>
+public class RoleRepository : IRoleRepository
 {
-    options.TokenValidationParameters.ValidateIssuer = true;
-    options.TokenValidationParameters.ValidateAudience = true;
-    options.TokenValidationParameters.ValidateLifetime = true;
-    options.TokenValidationParameters.ValidateIssuerSigningKey = true;
-});
+    private readonly FourSPMContext _context;
+    
+    public RoleRepository(FourSPMContext context)
+    {
+        _context = context;
+    }
+    
+    public async Task<IEnumerable<Role>> GetAllAsync()
+    {
+        return await _context.Roles
+            .Where(r => r.DELETED == null)
+            .ToListAsync();
+    }
+    
+    public async Task<Role> GetByIdAsync(int guid)
+    {
+        return await _context.Roles
+            .FirstOrDefaultAsync(r => r.GUID == guid && r.DELETED == null);
+    }
+    
+    public async Task<Role> CreateAsync(Role role)
+    {
+        role.CREATED = DateTime.UtcNow;
+        _context.Roles.Add(role);
+        await _context.SaveChangesAsync();
+        return role;
+    }
+    
+    public async Task<Role> UpdateAsync(Role role)
+    {
+        var existingRole = await _context.Roles.FindAsync(role.GUID);
+        if (existingRole == null) return null;
+        
+        existingRole.NAME = role.NAME;
+        existingRole.DISPLAY_NAME = role.DISPLAY_NAME;
+        existingRole.DESCRIPTION = role.DESCRIPTION;
+        existingRole.IS_SYSTEM_ROLE = role.IS_SYSTEM_ROLE;
+        existingRole.UPDATED = DateTime.UtcNow;
+        existingRole.UPDATEDBY = role.UPDATEDBY;
+        
+        await _context.SaveChangesAsync();
+        return existingRole;
+    }
+    
+    public async Task<bool> DeleteAsync(int guid)
+    {
+        var role = await _context.Roles.FindAsync(guid);
+        if (role == null) return false;
+        
+        role.DELETED = DateTime.UtcNow;
+        await _context.SaveChangesAsync();
+        return true;
+    }
+    
+    public async Task<bool> ExistsAsync(int guid)
+    {
+        return await _context.Roles
+            .AnyAsync(r => r.GUID == guid && r.DELETED == null);
+    }
+}
+```
+
+3. Register the repository in the DI container (Startup.cs):
+```csharp
+public void ConfigureServices(IServiceCollection services)
+{
+    // Existing service registrations
+    
+    services.AddScoped<IRoleRepository, RoleRepository>();
+}
 ```
 
 # Test Strategy:
-Create unit tests to verify authentication configuration. Test with valid and invalid tokens to ensure proper validation. Verify that unauthenticated requests to protected endpoints return 401 Unauthorized responses.
+1. Create unit tests for each repository method using a test database or mock context
+2. Verify GetAllAsync returns only non-deleted roles
+3. Test CreateAsync sets the correct CREATED timestamp
+4. Confirm UpdateAsync properly updates only the allowed fields
+5. Verify DeleteAsync performs a soft delete by setting the DELETED timestamp
+6. Test ExistsAsync returns the correct boolean value
+7. Verify proper DI registration by resolving the repository in a test controller

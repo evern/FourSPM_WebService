@@ -1,49 +1,152 @@
 # Task ID: 4
-# Title: Implement Token Validation Helpers
-# Status: done
-# Dependencies: 3
+# Title: Implement Roles OData Controller
+# Status: pending
+# Dependencies: 2, 3
 # Priority: medium
-# Description: Create helper methods to validate and extract claims from Azure AD tokens.
+# Description: Create the RolesController with OData support, implementing all CRUD operations with proper error handling, validation, and authentication requirements.
 # Details:
-Create a TokenValidationService class to handle token validation and claims extraction:
-
+1. Create RolesController class:
 ```csharp
-public class TokenValidationService
+[Authorize]
+[ApiController]
+[Route("api/[controller]")]
+[EnableQuery]
+public class RolesController : ODataController
 {
-    private readonly IHttpContextAccessor _httpContextAccessor;
-
-    public TokenValidationService(IHttpContextAccessor httpContextAccessor)
+    private readonly IRoleRepository _repository;
+    private readonly ILogger<RolesController> _logger;
+    
+    public RolesController(IRoleRepository repository, ILogger<RolesController> logger)
     {
-        _httpContextAccessor = httpContextAccessor;
+        _repository = repository;
+        _logger = logger;
     }
-
-    public ClaimsPrincipal GetCurrentUser()
+    
+    [HttpGet]
+    public async Task<IActionResult> Get()
     {
-        return _httpContextAccessor.HttpContext?.User;
+        try
+        {
+            var roles = await _repository.GetAllAsync();
+            return Ok(roles.Select(r => r.ToEntity()));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving roles");
+            return StatusCode(500, "Internal server error");
+        }
     }
-
-    public string GetUserObjectId()
+    
+    [HttpGet("{guid}")]
+    public async Task<IActionResult> Get(int guid)
     {
-        var objectIdClaim = _httpContextAccessor.HttpContext?.User.FindFirst("http://schemas.microsoft.com/identity/claims/objectidentifier");
-        return objectIdClaim?.Value;
+        try
+        {
+            var role = await _repository.GetByIdAsync(guid);
+            if (role == null) return NotFound();
+            
+            return Ok(role.ToEntity());
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, $"Error retrieving role {guid}");
+            return StatusCode(500, "Internal server error");
+        }
     }
-
-    public IEnumerable<string> GetUserRoles()
+    
+    [HttpPost]
+    public async Task<IActionResult> Post([FromBody] RoleEntity roleEntity)
     {
-        var roles = _httpContextAccessor.HttpContext?.User.Claims
-            .Where(c => c.Type == ClaimTypes.Role)
-            .Select(c => c.Value);
-        return roles ?? Enumerable.Empty<string>();
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
+            
+        try
+        {
+            var role = roleEntity.ToModel();
+            role.CREATEDBY = User.Identity.Name;
+            
+            var result = await _repository.CreateAsync(role);
+            return Created($"api/roles/{result.GUID}", result.ToEntity());
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error creating role");
+            return StatusCode(500, "Internal server error");
+        }
+    }
+    
+    [HttpPut("{guid}")]
+    public async Task<IActionResult> Put(int guid, [FromBody] RoleEntity roleEntity)
+    {
+        if (guid != roleEntity.Guid)
+            return BadRequest("GUID mismatch");
+            
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
+            
+        try
+        {
+            var exists = await _repository.ExistsAsync(guid);
+            if (!exists) return NotFound();
+            
+            var role = roleEntity.ToModel();
+            role.UPDATEDBY = User.Identity.Name;
+            
+            var result = await _repository.UpdateAsync(role);
+            return Ok(result.ToEntity());
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, $"Error updating role {guid}");
+            return StatusCode(500, "Internal server error");
+        }
+    }
+    
+    [HttpDelete("{guid}")]
+    public async Task<IActionResult> Delete(int guid)
+    {
+        try
+        {
+            var exists = await _repository.ExistsAsync(guid);
+            if (!exists) return NotFound();
+            
+            var role = await _repository.GetByIdAsync(guid);
+            role.DELETEDBY = User.Identity.Name;
+            
+            var result = await _repository.DeleteAsync(guid);
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, $"Error deleting role {guid}");
+            return StatusCode(500, "Internal server error");
+        }
     }
 }
 ```
 
-Register the service in Program.cs:
-
+2. Add OData route configuration in Startup.cs:
 ```csharp
-builder.Services.AddHttpContextAccessor();
-builder.Services.AddScoped<TokenValidationService>();
+public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
+{
+    // Existing configuration
+    
+    app.UseEndpoints(endpoints =>
+    {
+        // Existing endpoints
+        
+        endpoints.MapODataRoute("odata", "odata", GetEdmModel());
+        endpoints.EnableDependencyInjection();
+    });
+}
 ```
 
 # Test Strategy:
-Write unit tests for the TokenValidationService using mocked HttpContext with various claims configurations. Test each method with valid and invalid/missing claims scenarios.
+1. Test each endpoint (GET, POST, PUT, DELETE) with valid inputs
+2. Verify authentication is required for all endpoints
+3. Test error handling with invalid inputs
+4. Verify OData query parameters work correctly (e.g., $filter, $select, $expand)
+5. Test validation logic for required fields
+6. Verify proper HTTP status codes are returned for different scenarios
+7. Test that user information is correctly captured in CREATEDBY, UPDATEDBY, and DELETEDBY fields
+8. Verify soft delete functionality works as expected

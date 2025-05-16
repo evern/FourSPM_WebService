@@ -2,192 +2,289 @@
   "tasks": [
     {
       "id": 1,
-      "title": "Install Authentication Packages",
-      "description": "Add Microsoft.Identity.Web and related NuGet packages to the ASP.NET Core project to enable Azure AD authentication.",
-      "details": "Install the following NuGet packages:\n1. Microsoft.Identity.Web\n2. Microsoft.Identity.Web.UI (if UI components are needed)\n3. Microsoft.AspNetCore.Authentication.JwtBearer\n\nCommand line installation:\n```\ndotnet add package Microsoft.Identity.Web\ndotnet add package Microsoft.AspNetCore.Authentication.JwtBearer\n```\n\nEnsure package versions are compatible with the current ASP.NET Core version used in the project.",
-      "testStrategy": "Verify successful package installation by checking the project's .csproj file for the added package references. Ensure there are no version conflicts with existing packages.",
+      "title": "Create Entity Framework Model for ROLE Table",
+      "description": "Create and configure the Entity Framework model class for the ROLE table and integrate it into the FourSPMContext.",
+      "details": "1. Create a new class named 'Role' in the Models directory\n2. Implement all properties according to the database schema:\n   - GUID (int, primary key)\n   - NAME (string, required, max length 50)\n   - DISPLAY_NAME (string, required, max length 100)\n   - DESCRIPTION (string, nullable, max length 500)\n   - IS_SYSTEM_ROLE (bool, required)\n   - CREATED (DateTime, required)\n   - CREATEDBY (string, required)\n   - UPDATED (DateTime, nullable)\n   - UPDATEDBY (string, nullable)\n   - DELETED (DateTime, nullable)\n   - DELETEDBY (string, nullable)\n3. Add appropriate data annotations for validation\n4. Update FourSPMContext class to include DbSet<Role> property\n5. Configure entity in OnModelCreating method if needed for any special mappings\n\nExample implementation:\n```csharp\npublic class Role\n{\n    [Key]\n    public int GUID { get; set; }\n    \n    [Required]\n    [StringLength(50)]\n    public string NAME { get; set; }\n    \n    [Required]\n    [StringLength(100)]\n    public string DISPLAY_NAME { get; set; }\n    \n    [StringLength(500)]\n    public string DESCRIPTION { get; set; }\n    \n    [Required]\n    public bool IS_SYSTEM_ROLE { get; set; }\n    \n    [Required]\n    public DateTime CREATED { get; set; }\n    \n    [Required]\n    public string CREATEDBY { get; set; }\n    \n    public DateTime? UPDATED { get; set; }\n    \n    public string UPDATEDBY { get; set; }\n    \n    public DateTime? DELETED { get; set; }\n    \n    public string DELETEDBY { get; set; }\n}\n```\n\nIn FourSPMContext:\n```csharp\npublic DbSet<Role> Roles { get; set; }\n```",
+      "testStrategy": "1. Verify that the Role class has all required properties with correct types and data annotations\n2. Ensure the FourSPMContext includes the DbSet<Role> property\n3. Test database migrations to confirm proper table mapping\n4. Verify that the entity can be queried through the context\n5. Validate that constraints (required fields, string lengths) are properly enforced",
       "priority": "high",
       "dependencies": [],
       "status": "pending",
-      "subtasks": []
+      "subtasks": [
+        {
+          "id": 1,
+          "title": "Create Role class with properties",
+          "description": "Create a new class named 'Role' in the Models directory with all required properties according to the database schema",
+          "dependencies": [],
+          "details": "Create a new class file named 'Role.cs' in the Models directory. Implement all properties according to the database schema including GUID (int, primary key), NAME (string), DISPLAY_NAME (string), DESCRIPTION (string), IS_SYSTEM_ROLE (bool), CREATED (DateTime), CREATEDBY (string), UPDATED (DateTime?), UPDATEDBY (string), DELETED (DateTime?), and DELETEDBY (string).",
+          "status": "pending",
+          "testStrategy": "Verify that the Role class contains all required properties with correct data types and nullability."
+        },
+        {
+          "id": 2,
+          "title": "Add data annotations for validation",
+          "description": "Add appropriate data annotations to the Role class properties for validation and database mapping",
+          "dependencies": [
+            1
+          ],
+          "details": "Add data annotations to the Role class properties including [Key] for GUID, [Required] and [StringLength] for NAME (max 50), DISPLAY_NAME (max 100), and DESCRIPTION (max 500, nullable). Also add [Required] for non-nullable properties like IS_SYSTEM_ROLE, CREATED, and CREATEDBY.",
+          "status": "pending",
+          "testStrategy": "Verify that all properties have appropriate data annotations for validation and database mapping."
+        },
+        {
+          "id": 3,
+          "title": "Update FourSPMContext with DbSet property",
+          "description": "Add a DbSet<Role> property to the FourSPMContext class to enable database operations for the Role entity",
+          "dependencies": [
+            1
+          ],
+          "details": "Open the FourSPMContext.cs file and add a new DbSet property: public DbSet<Role> Roles { get; set; }. This will allow Entity Framework to create and manage the Roles table in the database.",
+          "status": "pending",
+          "testStrategy": "Verify that the FourSPMContext class includes the DbSet<Role> property."
+        },
+        {
+          "id": 4,
+          "title": "Configure entity in OnModelCreating method",
+          "description": "Update the OnModelCreating method in FourSPMContext to configure any special mappings for the Role entity",
+          "dependencies": [
+            3
+          ],
+          "details": "In the FourSPMContext class, modify the OnModelCreating method to add any special configurations for the Role entity using Fluent API. This may include table name configuration, relationship configurations, or any other database-specific settings not covered by data annotations.",
+          "status": "pending",
+          "testStrategy": "Verify that the OnModelCreating method includes appropriate configurations for the Role entity."
+        },
+        {
+          "id": 5,
+          "title": "Test the Role entity with database operations",
+          "description": "Create unit tests to verify that the Role entity works correctly with Entity Framework database operations",
+          "dependencies": [
+            2,
+            3,
+            4
+          ],
+          "details": "Create unit tests that verify CRUD operations (Create, Read, Update, Delete) for the Role entity using the FourSPMContext. Test that validation rules are enforced and that the entity is correctly mapped to the database schema.",
+          "status": "pending",
+          "testStrategy": "Run unit tests that perform CRUD operations on the Role entity and verify that the operations succeed and that validation rules are enforced."
+        }
+      ]
     },
     {
       "id": 2,
-      "title": "Configure Azure AD Settings in appsettings.json",
-      "description": "Set up Azure AD configuration settings in appsettings.json with environment-specific configurations.",
-      "details": "Create an 'AzureAd' section in appsettings.json with the following structure:\n\n```json\n{\n  \"AzureAd\": {\n    \"Instance\": \"https://login.microsoftonline.com/\",\n    \"Domain\": \"yourdomain.onmicrosoft.com\",\n    \"TenantId\": \"your-tenant-id\",\n    \"ClientId\": \"your-client-id\",\n    \"CallbackPath\": \"/signin-oidc\",\n    \"SignedOutCallbackPath\": \"/signout-callback-oidc\"\n  }\n}\n```\n\nCreate environment-specific settings in appsettings.Development.json and appsettings.Production.json with appropriate values. Use user secrets or Azure Key Vault for storing sensitive information in development and production environments respectively.",
-      "testStrategy": "Validate configuration file structure. Ensure sensitive information is not committed to source control. Verify environment-specific configurations load correctly by running the application in different environments.",
+      "title": "Implement OData Entity Model for Role",
+      "description": "Create the RoleEntity class for OData representation and register it in the EDM model with proper property naming conventions.",
+      "details": "1. Create a new class named 'RoleEntity' in the OData/Entities directory\n2. Implement all properties using PascalCase naming convention:\n   - Guid (int)\n   - Name (string)\n   - DisplayName (string)\n   - Description (string)\n   - IsSystemRole (bool)\n   - Created (DateTime)\n   - CreatedBy (string)\n   - Updated (DateTime?)\n   - UpdatedBy (string)\n   - Deleted (DateTime?)\n   - DeletedBy (string)\n3. Create mapping between Role and RoleEntity in the appropriate mapper class\n4. Register the RoleEntity in the EDM model configuration\n\nExample implementation:\n```csharp\npublic class RoleEntity\n{\n    public int Guid { get; set; }\n    public string Name { get; set; }\n    public string DisplayName { get; set; }\n    public string Description { get; set; }\n    public bool IsSystemRole { get; set; }\n    public DateTime Created { get; set; }\n    public string CreatedBy { get; set; }\n    public DateTime? Updated { get; set; }\n    public string UpdatedBy { get; set; }\n    public DateTime? Deleted { get; set; }\n    public string DeletedBy { get; set; }\n}\n```\n\nMapper implementation:\n```csharp\npublic static class RoleMapper\n{\n    public static RoleEntity ToEntity(Role model)\n    {\n        if (model == null) return null;\n        \n        return new RoleEntity\n        {\n            Guid = model.GUID,\n            Name = model.NAME,\n            DisplayName = model.DISPLAY_NAME,\n            Description = model.DESCRIPTION,\n            IsSystemRole = model.IS_SYSTEM_ROLE,\n            Created = model.CREATED,\n            CreatedBy = model.CREATEDBY,\n            Updated = model.UPDATED,\n            UpdatedBy = model.UPDATEDBY,\n            Deleted = model.DELETED,\n            DeletedBy = model.DELETEDBY\n        };\n    }\n    \n    public static Role ToModel(RoleEntity entity)\n    {\n        if (entity == null) return null;\n        \n        return new Role\n        {\n            GUID = entity.Guid,\n            NAME = entity.Name,\n            DISPLAY_NAME = entity.DisplayName,\n            DESCRIPTION = entity.Description,\n            IS_SYSTEM_ROLE = entity.IsSystemRole,\n            CREATED = entity.Created,\n            CREATEDBY = entity.CreatedBy,\n            UPDATED = entity.Updated,\n            UPDATEDBY = entity.UpdatedBy,\n            DELETED = entity.Deleted,\n            DELETEDBY = entity.DeletedBy\n        };\n    }\n}\n```\n\nEDM Registration:\n```csharp\nbuilder.EntitySet<RoleEntity>(\"Roles\");\n```",
+      "testStrategy": "1. Verify that the RoleEntity class has all required properties with correct PascalCase naming\n2. Test the mapper functions to ensure proper conversion between Role and RoleEntity\n3. Confirm that the entity is properly registered in the EDM model\n4. Verify that OData metadata endpoint correctly exposes the Role entity\n5. Test basic OData queries against the entity to ensure it's properly configured",
       "priority": "high",
       "dependencies": [
         1
       ],
       "status": "pending",
-      "subtasks": []
+      "subtasks": [
+        {
+          "id": 1,
+          "title": "Create RoleEntity class",
+          "description": "Create a new class named 'RoleEntity' in the OData/Entities directory with all required properties using PascalCase naming convention.",
+          "dependencies": [],
+          "details": "Create the RoleEntity class with the following properties: Guid (int), Name (string), DisplayName (string), Description (string), IsSystemRole (bool), Created (DateTime), CreatedBy (string), Updated (DateTime?), UpdatedBy (string), Deleted (DateTime?), and DeletedBy (string). Ensure all properties have proper getters and setters.",
+          "status": "pending",
+          "testStrategy": "Verify that the class exists in the correct directory and contains all required properties with correct types and naming conventions."
+        },
+        {
+          "id": 2,
+          "title": "Implement RoleMapper class",
+          "description": "Create or update the RoleMapper class to include mapping methods between Role and RoleEntity.",
+          "dependencies": [
+            1
+          ],
+          "details": "Implement two mapping methods: ToEntity(Role model) that converts from domain model to entity, and ToModel(RoleEntity entity) that converts from entity to domain model. Ensure all properties are correctly mapped between the snake_case domain model and PascalCase entity model.",
+          "status": "pending",
+          "testStrategy": "Test both mapping methods with sample data to ensure bidirectional conversion works correctly and preserves all property values."
+        },
+        {
+          "id": 3,
+          "title": "Register RoleEntity in EDM model",
+          "description": "Add RoleEntity to the OData Entity Data Model configuration.",
+          "dependencies": [
+            1
+          ],
+          "details": "Locate the OData configuration code (likely in Program.cs or a dedicated configuration class) and add the RoleEntity to the EDM model using builder.EntitySet<RoleEntity>(\"Roles\"). This registers the entity type and creates an entity set named 'Roles'.",
+          "status": "pending",
+          "testStrategy": "Verify that the entity is properly registered by checking if the Roles endpoint appears in the OData metadata document."
+        },
+        {
+          "id": 4,
+          "title": "Implement OData controller for Roles",
+          "description": "Create a controller to handle OData operations for the Roles entity set.",
+          "dependencies": [
+            1,
+            3
+          ],
+          "details": "Create a new controller class (e.g., RolesController) that inherits from ODataController. Implement at least the GET method to retrieve roles. The controller should use the RoleMapper to convert between domain models and entities.",
+          "status": "pending",
+          "testStrategy": "Test the controller by making HTTP requests to the Roles endpoint and verifying that the correct data is returned."
+        },
+        {
+          "id": 5,
+          "title": "Add OData query options for Roles",
+          "description": "Configure OData query options for the Roles entity set to enable filtering, sorting, and other operations.",
+          "dependencies": [
+            3,
+            4
+          ],
+          "details": "Update the OData configuration to enable query options such as $select, $filter, $orderby, and $expand for the Roles entity set. This allows clients to perform more complex queries on the Roles data.",
+          "status": "pending",
+          "testStrategy": "Test various OData query options against the Roles endpoint to ensure they work correctly, such as filtering by name or sorting by creation date."
+        }
+      ]
     },
     {
       "id": 3,
-      "title": "Configure JWT Bearer Authentication",
-      "description": "Configure JWT Bearer authentication in the application to validate tokens issued by Azure AD.",
-      "details": "Update Program.cs to configure JWT Bearer authentication:\n\n```csharp\nbuilder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)\n    .AddMicrosoftIdentityWebApi(builder.Configuration.GetSection(\"AzureAd\"));\n\n// Add authorization services\nbuilder.Services.AddAuthorization();\n\n// In the app configuration section\napp.UseAuthentication();\napp.UseAuthorization();\n```\n\nConfigure token validation parameters to validate issuer, audience, lifetime, and signature:\n\n```csharp\nbuilder.Services.Configure<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme, options =>\n{\n    options.TokenValidationParameters.ValidateIssuer = true;\n    options.TokenValidationParameters.ValidateAudience = true;\n    options.TokenValidationParameters.ValidateLifetime = true;\n    options.TokenValidationParameters.ValidateIssuerSigningKey = true;\n});\n```",
-      "testStrategy": "Create unit tests to verify authentication configuration. Test with valid and invalid tokens to ensure proper validation. Verify that unauthenticated requests to protected endpoints return 401 Unauthorized responses.",
-      "priority": "high",
-      "dependencies": [
-        1,
-        2
-      ],
-      "status": "pending",
-      "subtasks": []
-    },
-    {
-      "id": 4,
-      "title": "Implement Token Validation Helpers",
-      "description": "Create helper methods to validate and extract claims from Azure AD tokens.",
-      "details": "Create a TokenValidationService class to handle token validation and claims extraction:\n\n```csharp\npublic class TokenValidationService\n{\n    private readonly IHttpContextAccessor _httpContextAccessor;\n\n    public TokenValidationService(IHttpContextAccessor httpContextAccessor)\n    {\n        _httpContextAccessor = httpContextAccessor;\n    }\n\n    public ClaimsPrincipal GetCurrentUser()\n    {\n        return _httpContextAccessor.HttpContext?.User;\n    }\n\n    public string GetUserObjectId()\n    {\n        var objectIdClaim = _httpContextAccessor.HttpContext?.User.FindFirst(\"http://schemas.microsoft.com/identity/claims/objectidentifier\");\n        return objectIdClaim?.Value;\n    }\n\n    public IEnumerable<string> GetUserRoles()\n    {\n        var roles = _httpContextAccessor.HttpContext?.User.Claims\n            .Where(c => c.Type == ClaimTypes.Role)\n            .Select(c => c.Value);\n        return roles ?? Enumerable.Empty<string>();\n    }\n}\n```\n\nRegister the service in Program.cs:\n\n```csharp\nbuilder.Services.AddHttpContextAccessor();\nbuilder.Services.AddScoped<TokenValidationService>();\n```",
-      "testStrategy": "Write unit tests for the TokenValidationService using mocked HttpContext with various claims configurations. Test each method with valid and invalid/missing claims scenarios.",
+      "title": "Create Repository Layer for Role Management",
+      "description": "Implement the repository layer for Role management including the interface, implementation class, and DI registration.",
+      "details": "1. Create IRoleRepository interface in the Repositories directory\n2. Implement RoleRepository class that implements the interface\n3. Include methods for CRUD operations:\n   - GetAllRoles()\n   - GetRoleById(int guid)\n   - CreateRole(Role role)\n   - UpdateRole(Role role)\n   - DeleteRole(int guid)\n4. Register the repository in the DI container\n\nExample implementation:\n\n```csharp\npublic interface IRoleRepository\n{\n    Task<IEnumerable<Role>> GetAllRolesAsync();\n    Task<Role> GetRoleByIdAsync(int guid);\n    Task<Role> CreateRoleAsync(Role role);\n    Task<Role> UpdateRoleAsync(Role role);\n    Task<bool> DeleteRoleAsync(int guid);\n}\n\npublic class RoleRepository : IRoleRepository\n{\n    private readonly FourSPMContext _context;\n    \n    public RoleRepository(FourSPMContext context)\n    {\n        _context = context;\n    }\n    \n    public async Task<IEnumerable<Role>> GetAllRolesAsync()\n    {\n        return await _context.Roles\n            .Where(r => r.DELETED == null)\n            .ToListAsync();\n    }\n    \n    public async Task<Role> GetRoleByIdAsync(int guid)\n    {\n        return await _context.Roles\n            .FirstOrDefaultAsync(r => r.GUID == guid && r.DELETED == null);\n    }\n    \n    public async Task<Role> CreateRoleAsync(Role role)\n    {\n        role.CREATED = DateTime.UtcNow;\n        _context.Roles.Add(role);\n        await _context.SaveChangesAsync();\n        return role;\n    }\n    \n    public async Task<Role> UpdateRoleAsync(Role role)\n    {\n        var existingRole = await _context.Roles.FindAsync(role.GUID);\n        if (existingRole == null) return null;\n        \n        existingRole.NAME = role.NAME;\n        existingRole.DISPLAY_NAME = role.DISPLAY_NAME;\n        existingRole.DESCRIPTION = role.DESCRIPTION;\n        existingRole.IS_SYSTEM_ROLE = role.IS_SYSTEM_ROLE;\n        existingRole.UPDATED = DateTime.UtcNow;\n        existingRole.UPDATEDBY = role.UPDATEDBY;\n        \n        await _context.SaveChangesAsync();\n        return existingRole;\n    }\n    \n    public async Task<bool> DeleteRoleAsync(int guid)\n    {\n        var role = await _context.Roles.FindAsync(guid);\n        if (role == null) return false;\n        \n        role.DELETED = DateTime.UtcNow;\n        await _context.SaveChangesAsync();\n        return true;\n    }\n}\n```\n\nDI Registration in Startup.cs:\n```csharp\nservices.AddScoped<IRoleRepository, RoleRepository>();\n```",
+      "testStrategy": "1. Create unit tests for each repository method using a test database or mock context\n2. Verify that GetAllRoles only returns non-deleted roles\n3. Test that CreateRole properly sets the CREATED timestamp\n4. Confirm that UpdateRole updates the UPDATED timestamp\n5. Verify that DeleteRole performs a soft delete by setting the DELETED timestamp\n6. Test error handling for cases like updating or deleting non-existent roles",
       "priority": "medium",
       "dependencies": [
-        3
-      ],
-      "status": "pending",
-      "subtasks": []
-    },
-    {
-      "id": 5,
-      "title": "Implement Role-Based Access Control",
-      "description": "Configure role-based access control to restrict API access based on user roles defined in Azure AD.",
-      "details": "Configure role claim mapping in Program.cs:\n\n```csharp\nbuilder.Services.Configure<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme, options =>\n{\n    options.TokenValidationParameters.RoleClaimType = \"roles\";\n});\n```\n\nImplement role-based authorization in controllers:\n\n```csharp\n// Controller or action level\n[Authorize(Roles = \"Admin,Manager\")]\npublic class AdminController : ControllerBase\n{\n    // Controller actions\n}\n\n// Or at the action level\n[Authorize(Roles = \"User\")]\npublic IActionResult GetUserData()\n{\n    // Action implementation\n}\n```\n\nEnsure Azure AD app registration has the appropriate app roles defined and assigned to users/groups.",
-      "testStrategy": "Test authorization with users having different roles. Verify users with appropriate roles can access endpoints while those without required roles receive 403 Forbidden responses. Create integration tests that use test tokens with different role claims.",
-      "priority": "high",
-      "dependencies": [
-        3,
-        4
-      ],
-      "status": "pending",
-      "subtasks": []
-    },
-    {
-      "id": 6,
-      "title": "Implement Policy-Based Authorization",
-      "description": "Configure policy-based authorization for more complex access control scenarios.",
-      "details": "Define authorization policies in Program.cs:\n\n```csharp\nbuilder.Services.AddAuthorization(options =>\n{\n    options.AddPolicy(\"RequireAdminRole\", policy =>\n        policy.RequireRole(\"Admin\"));\n        \n    options.AddPolicy(\"RequireSpecificScope\", policy =>\n        policy.RequireClaim(\"http://schemas.microsoft.com/identity/claims/scope\", \"api.access\"));\n        \n    options.AddPolicy(\"RequireDepartment\", policy =>\n        policy.RequireClaim(\"department\", \"IT\", \"HR\"));\n});\n```\n\nUse policies in controllers:\n\n```csharp\n[Authorize(Policy = \"RequireAdminRole\")]\npublic IActionResult AdminAction()\n{\n    // Implementation\n}\n\n[Authorize(Policy = \"RequireSpecificScope\")]\npublic IActionResult ScopedAction()\n{\n    // Implementation\n}\n```\n\nImplement custom authorization requirements if needed:\n\n```csharp\npublic class MinimumAgeRequirement : IAuthorizationRequirement\n{\n    public int MinimumAge { get; }\n    \n    public MinimumAgeRequirement(int minimumAge)\n    {\n        MinimumAge = minimumAge;\n    }\n}\n\npublic class MinimumAgeHandler : AuthorizationHandler<MinimumAgeRequirement>\n{\n    protected override Task HandleRequirementAsync(AuthorizationHandlerContext context, MinimumAgeRequirement requirement)\n    {\n        // Implementation\n    }\n}\n```",
-      "testStrategy": "Create unit tests for each policy with various claim combinations. Test custom authorization handlers with mocked authorization contexts. Verify that policies correctly allow or deny access based on the defined requirements.",
-      "priority": "medium",
-      "dependencies": [
-        5
-      ],
-      "status": "pending",
-      "subtasks": []
-    },
-    {
-      "id": 7,
-      "title": "Implement Scope Validation for API Endpoints",
-      "description": "Configure and implement OAuth 2.0 scope validation for API endpoints to ensure clients have the required permissions.",
-      "details": "Configure scope validation in Program.cs:\n\n```csharp\nbuilder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)\n    .AddMicrosoftIdentityWebApi(builder.Configuration.GetSection(\"AzureAd\"), jwtBearerOptions =>\n    {\n        jwtBearerOptions.Events = new JwtBearerEvents\n        {\n            OnTokenValidated = context =>\n            {\n                // Extract scopes from the token\n                var requiredScope = \"api.access\";\n                var scopeClaim = context.Principal.FindFirst(\"http://schemas.microsoft.com/identity/claims/scope\");\n                if (scopeClaim == null || !scopeClaim.Value.Split(' ').Contains(requiredScope))\n                {\n                    context.Fail(\"Required scope not present in token\");\n                }\n                return Task.CompletedTask;\n            }\n        };\n    });\n```\n\nCreate a custom attribute for scope validation:\n\n```csharp\n[AttributeUsage(AttributeTargets.Method | AttributeTargets.Class, AllowMultiple = true)]\npublic class RequireScopeAttribute : AuthorizeAttribute\n{\n    public RequireScopeAttribute(string scope)\n    {\n        Policy = $\"RequireScope:{scope}\";\n    }\n}\n\n// Register scope policies\nbuilder.Services.AddAuthorization(options =>\n{\n    options.AddPolicy(\"RequireScope:api.read\", policy =>\n        policy.RequireClaim(\"http://schemas.microsoft.com/identity/claims/scope\", \"api.read\"));\n    options.AddPolicy(\"RequireScope:api.write\", policy =>\n        policy.RequireClaim(\"http://schemas.microsoft.com/identity/claims/scope\", \"api.write\"));\n});\n```\n\nUse the attribute on controllers or actions:\n\n```csharp\n[RequireScope(\"api.read\")]\npublic IActionResult GetData()\n{\n    // Implementation\n}\n\n[RequireScope(\"api.write\")]\npublic IActionResult UpdateData()\n{\n    // Implementation\n}\n```",
-      "testStrategy": "Test API endpoints with tokens containing different scopes. Verify that requests with missing required scopes are rejected. Create integration tests that simulate client applications with various permission levels.",
-      "priority": "medium",
-      "dependencies": [
-        3,
-        6
-      ],
-      "status": "pending",
-      "subtasks": []
-    },
-    {
-      "id": 8,
-      "title": "Create Authentication Middleware",
-      "description": "Implement custom authentication middleware to handle token validation and error responses.",
-      "details": "Create a custom authentication middleware class:\n\n```csharp\npublic class AuthenticationMiddleware\n{\n    private readonly RequestDelegate _next;\n    private readonly ILogger<AuthenticationMiddleware> _logger;\n\n    public AuthenticationMiddleware(RequestDelegate next, ILogger<AuthenticationMiddleware> logger)\n    {\n        _next = next;\n        _logger = logger;\n    }\n\n    public async Task InvokeAsync(HttpContext context)\n    {\n        try\n        {\n            await _next(context);\n        }\n        catch (SecurityTokenExpiredException ex)\n        {\n            _logger.LogWarning(ex, \"Token expired\");\n            context.Response.StatusCode = 401;\n            context.Response.ContentType = \"application/json\";\n            await context.Response.WriteAsJsonAsync(new { error = \"Token expired\", message = \"Authentication token has expired\" });\n        }\n        catch (SecurityTokenValidationException ex)\n        {\n            _logger.LogWarning(ex, \"Token validation failed\");\n            context.Response.StatusCode = 401;\n            context.Response.ContentType = \"application/json\";\n            await context.Response.WriteAsJsonAsync(new { error = \"Invalid token\", message = \"Authentication token validation failed\" });\n        }\n    }\n}\n\n// Extension method for easy registration\npublic static class AuthenticationMiddlewareExtensions\n{\n    public static IApplicationBuilder UseCustomAuthentication(this IApplicationBuilder builder)\n    {\n        return builder.UseMiddleware<AuthenticationMiddleware>();\n    }\n}\n```\n\nRegister the middleware in Program.cs:\n\n```csharp\napp.UseAuthentication();\napp.UseCustomAuthentication();\napp.UseAuthorization();\n```",
-      "testStrategy": "Create unit tests for the middleware with mocked HttpContext and various exception scenarios. Test the middleware's error handling by simulating different token validation exceptions. Verify appropriate status codes and response formats are returned.",
-      "priority": "medium",
-      "dependencies": [
-        3,
-        4
-      ],
-      "status": "pending",
-      "subtasks": []
-    },
-    {
-      "id": 9,
-      "title": "Update OData Controllers with Authentication",
-      "description": "Update existing OData controllers to use Azure AD authentication and authorization.",
-      "details": "Apply authentication and authorization attributes to OData controllers:\n\n```csharp\n[Authorize]\n[Route(\"api/[controller]\")]\npublic class ProductsController : ODataController\n{\n    private readonly TokenValidationService _tokenService;\n    \n    public ProductsController(TokenValidationService tokenService)\n    {\n        _tokenService = tokenService;\n    }\n    \n    [HttpGet]\n    [Authorize(Roles = \"Reader,Admin\")]\n    public IActionResult Get()\n    {\n        var userId = _tokenService.GetUserObjectId();\n        // Implementation\n    }\n    \n    [HttpPost]\n    [Authorize(Roles = \"Admin\")]\n    [RequireScope(\"api.write\")]\n    public IActionResult Post([FromBody] Product product)\n    {\n        // Implementation\n    }\n}\n```\n\nUpdate OData configuration to respect authorization:\n\n```csharp\nbuilder.Services.AddControllers()\n    .AddOData(options =>\n    {\n        options.Select().Filter().OrderBy().Expand().Count().SetMaxTop(100);\n        options.AddRouteComponents(\"api\", GetEdmModel());\n    });\n```\n\nEnsure OData routes are protected:\n\n```csharp\napp.MapControllers();\napp.MapODataRoute(\"odata\", \"api\", GetEdmModel())\n   .RequireAuthorization();\n```",
-      "testStrategy": "Test OData endpoints with authenticated and unauthenticated requests. Verify that endpoints enforce role and scope requirements. Create integration tests that simulate different user roles accessing OData endpoints.",
-      "priority": "high",
-      "dependencies": [
-        3,
-        5,
-        6,
-        7
+        1
       ],
       "status": "pending",
       "subtasks": [
         {
           "id": 1,
-          "title": "Update OData Controllers with Authentication/Authorization Attributes",
-          "description": "Decorate all OData controllers with appropriate authentication and authorization attributes (e.g., [Authorize], custom attributes for roles or scopes) to ensure only authenticated and authorized users can access endpoints.",
+          "title": "Define IRoleRepository Interface",
+          "description": "Create the IRoleRepository interface in the Repositories directory, specifying all required CRUD method signatures for role management.",
           "dependencies": [],
-          "details": "Apply attributes such as [Authorize] or custom authorization attributes to each OData controller and, if needed, to specific actions. Ensure attributes reflect required roles or policies for each endpoint.",
-          "status": "pending"
+          "details": "The interface should include asynchronous methods for getting all roles, getting a role by ID, creating, updating, and deleting roles.",
+          "status": "pending",
+          "testStrategy": "Verify that the interface compiles and contains all required method signatures matching the expected contract."
         },
         {
           "id": 2,
-          "title": "Integrate TokenValidationService",
-          "description": "Integrate a TokenValidationService into the authentication pipeline to validate incoming tokens and extract claims for authorization decisions.",
+          "title": "Implement RoleRepository Class",
+          "description": "Develop the RoleRepository class that implements the IRoleRepository interface, providing concrete logic for each CRUD operation.",
           "dependencies": [
             1
           ],
-          "details": "Configure the TokenValidationService in the DI container and ensure it is used by the authentication middleware to validate tokens and populate the user principal with claims.",
-          "status": "pending"
+          "details": "The implementation should interact with the data context (e.g., FourSPMContext) and handle entity persistence, updates, and soft deletes as needed.",
+          "status": "pending",
+          "testStrategy": "Write unit tests for each method to ensure correct data access and manipulation, using a mock or in-memory database."
         },
         {
           "id": 3,
-          "title": "Update OData Configuration to Enforce Authorization",
-          "description": "Modify the OData configuration to ensure authorization is enforced at the middleware and routing level, including adding OData authorization services and policies.",
+          "title": "Integrate Entity Framework Context",
+          "description": "Ensure the RoleRepository class is properly wired to use the Entity Framework context for database operations.",
           "dependencies": [
             2
           ],
-          "details": "Update OData route registration to include authorization middleware and configure OData-specific authorization options, such as scopes or policies, as needed.",
-          "status": "pending"
+          "details": "Inject the context via constructor and use it for all data access, following best practices for repository patterns.",
+          "status": "pending",
+          "testStrategy": "Test repository methods to confirm they interact with the database context as expected and handle transactions correctly."
         },
         {
           "id": 4,
-          "title": "Protect OData Routes",
-          "description": "Ensure all OData routes are protected by the configured authentication and authorization mechanisms, preventing unauthorized access to any OData endpoint.",
+          "title": "Register Repository in Dependency Injection Container",
+          "description": "Configure the DI container to register IRoleRepository with its RoleRepository implementation for scoped lifetime.",
           "dependencies": [
+            2,
             3
           ],
-          "details": "Verify that all OData endpoints, including metadata and entity sets, require authentication and authorization, and that no route is left unprotected.",
-          "status": "pending"
+          "details": "Add the registration code (e.g., services.AddScoped<IRoleRepository, RoleRepository>()) in the application's startup or DI configuration.",
+          "status": "pending",
+          "testStrategy": "Validate that the repository is correctly injected into dependent services or controllers during runtime."
         },
         {
           "id": 5,
-          "title": "Create Integration Tests for OData Endpoints",
-          "description": "Develop integration tests to verify that OData endpoints enforce authentication and authorization correctly, including tests for both authorized and unauthorized access.",
+          "title": "Document Repository Layer Usage",
+          "description": "Create documentation outlining how to use the repository layer, including interface methods, implementation details, and DI registration.",
           "dependencies": [
+            1,
+            2,
+            3,
             4
           ],
-          "details": "Write tests that attempt to access OData endpoints with and without valid tokens, and with different roles/scopes, to ensure security is enforced as expected.",
-          "status": "pending"
+          "details": "Include code examples and usage scenarios to assist developers in integrating and testing the repository layer.",
+          "status": "pending",
+          "testStrategy": "Review documentation for completeness and clarity; have a developer follow the documentation to implement a sample use case."
         }
       ]
     },
     {
-      "id": 10,
-      "title": "Implement End-to-End Testing",
-      "description": "Create comprehensive end-to-end tests to validate the Azure AD authentication integration.",
-      "details": "Create an integration test project:\n\n```csharp\npublic class AuthenticationIntegrationTests : IClassFixture<WebApplicationFactory<Program>>\n{\n    private readonly WebApplicationFactory<Program> _factory;\n    private readonly HttpClient _client;\n\n    public AuthenticationIntegrationTests(WebApplicationFactory<Program> factory)\n    {\n        _factory = factory.WithWebHostBuilder(builder =>\n        {\n            builder.ConfigureAppConfiguration((context, config) =>\n            {\n                // Use test configuration\n                config.AddInMemoryCollection(new Dictionary<string, string>\n                {\n                    [\"AzureAd:TenantId\"] = \"test-tenant-id\",\n                    [\"AzureAd:ClientId\"] = \"test-client-id\"\n                });\n            });\n            \n            builder.ConfigureTestServices(services =>\n            {\n                // Mock authentication services for testing\n                services.AddAuthentication(\"Test\")\n                    .AddScheme<AuthenticationSchemeOptions, TestAuthHandler>(\"Test\", options => { });\n            });\n        });\n        \n        _client = _factory.CreateClient();\n    }\n\n    [Fact]\n    public async Task Unauthenticated_Request_Returns_401()\n    {\n        // Arrange\n        _client.DefaultRequestHeaders.Authorization = null;\n        \n        // Act\n        var response = await _client.GetAsync(\"/api/products\");\n        \n        // Assert\n        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);\n    }\n\n    [Fact]\n    public async Task Authenticated_Admin_Can_Access_Protected_Endpoint()\n    {\n        // Arrange\n        _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(\"Bearer\", GenerateTestToken(\"admin\"));\n        \n        // Act\n        var response = await _client.GetAsync(\"/api/products\");\n        \n        // Assert\n        Assert.Equal(HttpStatusCode.OK, response.StatusCode);\n    }\n\n    private string GenerateTestToken(string role)\n    {\n        // Generate a test token with appropriate claims\n        // Implementation details\n    }\n}\n\n// Test authentication handler\npublic class TestAuthHandler : AuthenticationHandler<AuthenticationSchemeOptions>\n{\n    public TestAuthHandler(IOptionsMonitor<AuthenticationSchemeOptions> options, ILoggerFactory logger, UrlEncoder encoder, ISystemClock clock)\n        : base(options, logger, encoder, clock)\n    {\n    }\n\n    protected override Task<AuthenticateResult> HandleAuthenticateAsync()\n    {\n        // Parse the token from Authorization header and create claims principal\n        // Implementation details\n    }\n}\n```",
-      "testStrategy": "Run integration tests against a test instance of the application. Test various authentication and authorization scenarios including valid/invalid tokens, different roles, and scopes. Verify that all endpoints enforce the expected security requirements.",
+      "id": 4,
+      "title": "Implement RolesController with OData Support",
+      "description": "Create the RolesController with OData support, implementing endpoints for all CRUD operations with proper error handling, validation, and authentication.",
+      "details": "1. Create a new RolesController class in the Controllers directory\n2. Implement OData endpoints for all CRUD operations\n3. Add authentication requirements\n4. Implement proper error handling and validation\n5. Use the repository for data access\n\nExample implementation:\n\n```csharp\n[Authorize]\n[ODataRoutePrefix(\"Roles\")]\npublic class RolesController : ODataController\n{\n    private readonly IRoleRepository _roleRepository;\n    private readonly ILogger<RolesController> _logger;\n    \n    public RolesController(IRoleRepository roleRepository, ILogger<RolesController> logger)\n    {\n        _roleRepository = roleRepository;\n        _logger = logger;\n    }\n    \n    [EnableQuery]\n    [ODataRoute]\n    public async Task<IActionResult> Get()\n    {\n        try\n        {\n            var roles = await _roleRepository.GetAllRolesAsync();\n            return Ok(roles.Select(r => RoleMapper.ToEntity(r)));\n        }\n        catch (Exception ex)\n        {\n            _logger.LogError(ex, \"Error retrieving roles\");\n            return StatusCode(500, \"Internal server error\");\n        }\n    }\n    \n    [EnableQuery]\n    [ODataRoute(\"({guid})\")]\n    public async Task<IActionResult> Get([FromODataUri] int guid)\n    {\n        try\n        {\n            var role = await _roleRepository.GetRoleByIdAsync(guid);\n            if (role == null) return NotFound();\n            \n            return Ok(RoleMapper.ToEntity(role));\n        }\n        catch (Exception ex)\n        {\n            _logger.LogError(ex, $\"Error retrieving role {guid}\");\n            return StatusCode(500, \"Internal server error\");\n        }\n    }\n    \n    [ODataRoute]\n    public async Task<IActionResult> Post([FromBody] RoleEntity roleEntity)\n    {\n        if (!ModelState.IsValid)\n        {\n            return BadRequest(ModelState);\n        }\n        \n        try\n        {\n            var role = RoleMapper.ToModel(roleEntity);\n            role.CREATEDBY = User.Identity.Name;\n            \n            var createdRole = await _roleRepository.CreateRoleAsync(role);\n            return Created(RoleMapper.ToEntity(createdRole));\n        }\n        catch (Exception ex)\n        {\n            _logger.LogError(ex, \"Error creating role\");\n            return StatusCode(500, \"Internal server error\");\n        }\n    }\n    \n    [ODataRoute(\"({guid})\")]\n    public async Task<IActionResult> Put([FromODataUri] int guid, [FromBody] RoleEntity roleEntity)\n    {\n        if (!ModelState.IsValid)\n        {\n            return BadRequest(ModelState);\n        }\n        \n        if (guid != roleEntity.Guid)\n        {\n            return BadRequest(\"ID mismatch\");\n        }\n        \n        try\n        {\n            var role = RoleMapper.ToModel(roleEntity);\n            role.UPDATEDBY = User.Identity.Name;\n            \n            var updatedRole = await _roleRepository.UpdateRoleAsync(role);\n            if (updatedRole == null) return NotFound();\n            \n            return Updated(RoleMapper.ToEntity(updatedRole));\n        }\n        catch (Exception ex)\n        {\n            _logger.LogError(ex, $\"Error updating role {guid}\");\n            return StatusCode(500, \"Internal server error\");\n        }\n    }\n    \n    [ODataRoute(\"({guid})\")]\n    public async Task<IActionResult> Delete([FromODataUri] int guid)\n    {\n        try\n        {\n            var success = await _roleRepository.DeleteRoleAsync(guid);\n            if (!success) return NotFound();\n            \n            return StatusCode(204);\n        }\n        catch (Exception ex)\n        {\n            _logger.LogError(ex, $\"Error deleting role {guid}\");\n            return StatusCode(500, \"Internal server error\");\n        }\n    }\n}\n```",
+      "testStrategy": "1. Test each endpoint with valid and invalid inputs\n2. Verify authentication requirements are enforced\n3. Test OData query capabilities ($filter, $select, $expand, etc.)\n4. Verify proper HTTP status codes are returned for different scenarios\n5. Test error handling for various exception cases\n6. Verify that user identity is properly captured for audit fields (CREATEDBY, UPDATEDBY, DELETEDBY)",
       "priority": "medium",
       "dependencies": [
-        1,
         2,
-        3,
-        4,
-        5,
-        6,
-        7,
-        8,
-        9
+        3
+      ],
+      "status": "pending",
+      "subtasks": [
+        {
+          "id": 1,
+          "title": "Set Up OData Infrastructure and Configure Routing",
+          "description": "Install the Microsoft.AspNetCore.OData package, configure OData services in Program.cs, and set up the EDM model and OData routing for the Roles entity.",
+          "dependencies": [],
+          "details": "Ensure the OData package is installed. In Program.cs, add OData services and configure the EDM model to expose the Roles entity. Set up OData routing to map requests to the RolesController.",
+          "status": "pending",
+          "testStrategy": "Verify that the OData metadata endpoint exposes the Roles entity and that OData routes are correctly registered."
+        },
+        {
+          "id": 2,
+          "title": "Implement RolesController with OData Endpoints",
+          "description": "Create the RolesController class in the Controllers directory, inheriting from ODataController, and implement endpoints for all CRUD operations (GET, POST, PUT, DELETE) using OData conventions.",
+          "dependencies": [
+            1
+          ],
+          "details": "Define methods for retrieving all roles, retrieving a role by ID, creating, updating, and deleting roles. Use [EnableQuery] and OData routing attributes as appropriate.",
+          "status": "pending",
+          "testStrategy": "Use OData query options (e.g., $filter, $orderby) in requests and verify correct responses for all CRUD endpoints."
+        },
+        {
+          "id": 3,
+          "title": "Integrate Repository for Data Access",
+          "description": "Inject the IRoleRepository into the RolesController and use it for all data access operations within the controller methods.",
+          "dependencies": [
+            2
+          ],
+          "details": "Ensure all CRUD operations interact with the repository for data persistence and retrieval, abstracting away direct data access from the controller.",
+          "status": "pending",
+          "testStrategy": "Mock the repository in unit tests to verify that controller methods call the correct repository methods with expected parameters."
+        },
+        {
+          "id": 4,
+          "title": "Add Authentication and Authorization",
+          "description": "Apply authentication and authorization requirements to the RolesController to restrict access to authorized users only.",
+          "dependencies": [
+            2
+          ],
+          "details": "Use the [Authorize] attribute on the controller or specific actions. Configure authentication middleware as needed in the application startup.",
+          "status": "pending",
+          "testStrategy": "Attempt to access endpoints without authentication and verify access is denied; verify access is granted with valid credentials."
+        },
+        {
+          "id": 5,
+          "title": "Implement Validation and Error Handling",
+          "description": "Add model validation and comprehensive error handling to all controller actions, ensuring proper HTTP status codes and error messages are returned.",
+          "dependencies": [
+            3,
+            4
+          ],
+          "details": "Validate incoming models using ModelState. Handle exceptions and return appropriate error responses. Log errors for diagnostics.",
+          "status": "pending",
+          "testStrategy": "Send invalid data and simulate errors to verify that the controller returns correct status codes and error messages, and that errors are logged."
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "title": "Test and Validate Role Management API",
+      "description": "Perform comprehensive testing of the Role Management API endpoints, verify OData query parameters, and document any special considerations.",
+      "details": "1. Create a test plan covering all API endpoints\n2. Test basic CRUD operations\n3. Test OData query capabilities\n4. Document any special considerations or limitations\n5. Create Postman collection for API testing\n\nTest Plan:\n\n1. GET /odata/Roles\n   - Verify returns all non-deleted roles\n   - Test with $filter, $select, $orderby, $top, $skip parameters\n   - Verify authentication requirement\n\n2. GET /odata/Roles({guid})\n   - Test with valid and invalid GUIDs\n   - Verify 404 for non-existent roles\n   - Verify authentication requirement\n\n3. POST /odata/Roles\n   - Test with valid role data\n   - Test with invalid/missing required fields\n   - Verify CREATED and CREATEDBY are set correctly\n   - Verify authentication requirement\n\n4. PUT /odata/Roles({guid})\n   - Test with valid role data\n   - Test with invalid/missing required fields\n   - Test with non-existent GUID\n   - Verify UPDATED and UPDATEDBY are set correctly\n   - Verify authentication requirement\n\n5. DELETE /odata/Roles({guid})\n   - Test with valid GUID\n   - Test with non-existent GUID\n   - Verify soft delete (DELETED field set)\n   - Verify authentication requirement\n\nExample Postman Collection:\n```json\n{\n  \"info\": {\n    \"name\": \"FourSPM Role Management API Tests\",\n    \"schema\": \"https://schema.getpostman.com/json/collection/v2.1.0/collection.json\"\n  },\n  \"item\": [\n    {\n      \"name\": \"Get All Roles\",\n      \"request\": {\n        \"method\": \"GET\",\n        \"url\": \"{{baseUrl}}/odata/Roles\",\n        \"auth\": { \"type\": \"bearer\", \"bearer\": [{ \"key\": \"token\", \"value\": \"{{authToken}}\", \"type\": \"string\" }] }\n      }\n    },\n    {\n      \"name\": \"Get Role By ID\",\n      \"request\": {\n        \"method\": \"GET\",\n        \"url\": \"{{baseUrl}}/odata/Roles(1)\",\n        \"auth\": { \"type\": \"bearer\", \"bearer\": [{ \"key\": \"token\", \"value\": \"{{authToken}}\", \"type\": \"string\" }] }\n      }\n    },\n    {\n      \"name\": \"Create Role\",\n      \"request\": {\n        \"method\": \"POST\",\n        \"url\": \"{{baseUrl}}/odata/Roles\",\n        \"auth\": { \"type\": \"bearer\", \"bearer\": [{ \"key\": \"token\", \"value\": \"{{authToken}}\", \"type\": \"string\" }] },\n        \"header\": [{ \"key\": \"Content-Type\", \"value\": \"application/json\" }],\n        \"body\": {\n          \"mode\": \"raw\",\n          \"raw\": \"{\\n  \\\"Guid\\\": 0,\\n  \\\"Name\\\": \\\"TestRole\\\",\\n  \\\"DisplayName\\\": \\\"Test Role\\\",\\n  \\\"Description\\\": \\\"Role created for testing\\\",\\n  \\\"IsSystemRole\\\": false\\n}\"\n        }\n      }\n    },\n    {\n      \"name\": \"Update Role\",\n      \"request\": {\n        \"method\": \"PUT\",\n        \"url\": \"{{baseUrl}}/odata/Roles(1)\",\n        \"auth\": { \"type\": \"bearer\", \"bearer\": [{ \"key\": \"token\", \"value\": \"{{authToken}}\", \"type\": \"string\" }] },\n        \"header\": [{ \"key\": \"Content-Type\", \"value\": \"application/json\" }],\n        \"body\": {\n          \"mode\": \"raw\",\n          \"raw\": \"{\\n  \\\"Guid\\\": 1,\\n  \\\"Name\\\": \\\"UpdatedRole\\\",\\n  \\\"DisplayName\\\": \\\"Updated Role\\\",\\n  \\\"Description\\\": \\\"Updated role description\\\",\\n  \\\"IsSystemRole\\\": false\\n}\"\n        }\n      }\n    },\n    {\n      \"name\": \"Delete Role\",\n      \"request\": {\n        \"method\": \"DELETE\",\n        \"url\": \"{{baseUrl}}/odata/Roles(1)\",\n        \"auth\": { \"type\": \"bearer\", \"bearer\": [{ \"key\": \"token\", \"value\": \"{{authToken}}\", \"type\": \"string\" }] }\n      }\n    }\n  ]\n}\n```\n\nSpecial Considerations Documentation:\n1. System roles (IS_SYSTEM_ROLE = true) should not be deletable\n2. Role names should be unique (add validation)\n3. Consider adding pagination for large result sets\n4. Document OData query capabilities in API documentation",
+      "testStrategy": "1. Execute the test plan manually to verify all endpoints\n2. Run the Postman collection against development environment\n3. Verify that all CRUD operations work as expected\n4. Test OData query parameters to ensure they function correctly\n5. Document any issues or limitations discovered during testing\n6. Verify that authentication and authorization are properly enforced",
+      "priority": "low",
+      "dependencies": [
+        4
       ],
       "status": "pending",
       "subtasks": []

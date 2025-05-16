@@ -1,22 +1,61 @@
 # Task ID: 1
-# Title: Install Authentication Packages
-# Status: done
+# Title: Create Entity Framework Model for ROLE Table
+# Status: pending
 # Dependencies: None
 # Priority: high
-# Description: Add Microsoft.Identity.Web and related NuGet packages to the ASP.NET Core project to enable Azure AD authentication.
+# Description: Create and configure the Entity Framework model class for the ROLE table and integrate it into the FourSPMContext.
 # Details:
-Install the following NuGet packages:
-1. Microsoft.Identity.Web
-2. Microsoft.Identity.Web.UI (if UI components are needed)
-3. Microsoft.AspNetCore.Authentication.JwtBearer
-
-Command line installation:
+1. Create a new class named 'Role.cs' in the Models directory
+2. Implement the class with properties matching the database schema:
+```csharp
+public class Role
+{
+    [Key]
+    public int GUID { get; set; }
+    
+    [Required]
+    [StringLength(50)]
+    public string NAME { get; set; }
+    
+    [Required]
+    [StringLength(100)]
+    public string DISPLAY_NAME { get; set; }
+    
+    [StringLength(500)]
+    public string DESCRIPTION { get; set; }
+    
+    [Required]
+    public bool IS_SYSTEM_ROLE { get; set; }
+    
+    [Required]
+    public DateTime CREATED { get; set; }
+    
+    [Required]
+    public string CREATEDBY { get; set; }
+    
+    public DateTime? UPDATED { get; set; }
+    
+    public string UPDATEDBY { get; set; }
+    
+    public DateTime? DELETED { get; set; }
+    
+    public string DELETEDBY { get; set; }
+}
 ```
-dotnet add package Microsoft.Identity.Web
-dotnet add package Microsoft.AspNetCore.Authentication.JwtBearer
+3. Add DbSet to FourSPMContext:
+```csharp
+public DbSet<Role> Roles { get; set; }
 ```
-
-Ensure package versions are compatible with the current ASP.NET Core version used in the project.
+4. Configure entity in OnModelCreating method if needed:
+```csharp
+modelBuilder.Entity<Role>()
+    .ToTable("ROLE");
+```
+5. Ensure proper mapping of all properties with appropriate data annotations
 
 # Test Strategy:
-Verify successful package installation by checking the project's .csproj file for the added package references. Ensure there are no version conflicts with existing packages.
+1. Verify the Role class has all properties defined in the database schema
+2. Ensure proper data annotations are applied
+3. Confirm the DbSet is correctly added to FourSPMContext
+4. Run a database migration or update to verify the model maps correctly to the existing table
+5. Test basic CRUD operations through the DbContext to ensure the entity is properly configured

@@ -1,0 +1,57 @@
+# FourSPM Role Management Scaffolding
+
+## Overview
+This document outlines the requirements for scaffolding the new ROLE table in the FourSPM_WebService application. The ROLE table has been added to the database and needs to be properly integrated into the application's Entity Framework model, OData endpoints, and API layer.
+
+## Table Schema
+The ROLE table has the following schema:
+
+```sql
+CREATE TABLE [dbo].[ROLE](
+	[GUID] [int] NOT NULL,
+	[NAME] [nvarchar](50) NOT NULL,
+	[DISPLAY_NAME] [nvarchar](100) NOT NULL,
+	[DESCRIPTION] [nvarchar](500) NULL,
+	[IS_SYSTEM_ROLE] [bit] NOT NULL,
+	[CREATED] [datetime] NOT NULL,
+	[CREATEDBY] [nvarchar](max) NOT NULL,
+	[UPDATED] [datetime] NULL,
+	[UPDATEDBY] [nvarchar](max) NULL,
+	[DELETED] [datetime] NULL,
+	[DELETEDBY] [nvarchar](max) NULL,
+PRIMARY KEY CLUSTERED 
+(
+	[GUID] ASC
+))
+```
+
+## Requirements
+
+1. **Entity Framework Integration**
+   - Create an EF model class for the ROLE table
+   - Configure the entity in FourSPMContext
+   - Ensure proper mapping of all properties
+
+2. **OData Entity Model**
+   - Create a RoleEntity class for OData representation
+   - Register the entity in the EDM model
+   - Ensure proper property naming (PascalCase)
+
+3. **Repository Layer**
+   - Create the IRoleRepository interface
+   - Implement the RoleRepository class
+   - Include methods for CRUD operations
+   - Register the repository in the DI container
+
+4. **Controller Implementation**
+   - Create RolesController with OData support
+   - Implement endpoints for all CRUD operations
+   - Include proper error handling and validation
+   - Ensure authentication is required
+
+5. **Testing & Validation**
+   - Test API endpoints for CRUD operations
+   - Verify OData query parameters
+   - Document any special considerations
+
+All implementation should follow the standard pattern outlined in the ScaffoldingNewTable.md documentation to ensure consistency with the rest of the application.

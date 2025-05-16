@@ -19,6 +19,7 @@ public partial class FourSPMContext : DbContext
         AREAs = Set<AREA>();
         DELIVERABLE_GATEs = Set<DELIVERABLE_GATE>();
         VARIATIONs = Set<VARIATION>();
+        ROLEs = Set<ROLE>();
     }
 
     public FourSPMContext(DbContextOptions<FourSPMContext> options)
@@ -34,6 +35,7 @@ public partial class FourSPMContext : DbContext
         AREAs = Set<AREA>();
         DELIVERABLE_GATEs = Set<DELIVERABLE_GATE>();
         VARIATIONs = Set<VARIATION>();
+        ROLEs = Set<ROLE>();
     }
 
     public virtual DbSet<PROJECT> PROJECTs { get; set; }
@@ -46,6 +48,7 @@ public partial class FourSPMContext : DbContext
     public virtual DbSet<AREA> AREAs { get; set; }
     public virtual DbSet<DELIVERABLE_GATE> DELIVERABLE_GATEs { get; set; }
     public virtual DbSet<VARIATION> VARIATIONs { get; set; }
+    public virtual DbSet<ROLE> ROLEs { get; set; }
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
 #warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see https://go.microsoft.com/fwlink/?LinkId=723263.
@@ -323,6 +326,24 @@ public partial class FourSPMContext : DbContext
                 .WithMany(p => p.Variations)
                 .HasForeignKey(d => d.GUID_PROJECT)
                 .OnDelete(DeleteBehavior.NoAction);
+        });
+
+        modelBuilder.Entity<ROLE>(entity =>
+        {
+            entity.HasKey(e => e.GUID);
+            entity.ToTable("ROLE");
+
+            entity.Property(e => e.GUID).ValueGeneratedNever();
+            entity.Property(e => e.NAME).HasMaxLength(50).IsRequired();
+            entity.Property(e => e.DISPLAY_NAME).HasMaxLength(100).IsRequired();
+            entity.Property(e => e.DESCRIPTION).HasMaxLength(500);
+            entity.Property(e => e.IS_SYSTEM_ROLE).IsRequired().HasDefaultValue(false);
+            entity.Property(e => e.CREATED).HasColumnType("datetime").IsRequired();
+            entity.Property(e => e.CREATEDBY).IsRequired();
+            entity.Property(e => e.UPDATED).HasColumnType("datetime");
+            entity.Property(e => e.UPDATEDBY);
+            entity.Property(e => e.DELETED).HasColumnType("datetime");
+            entity.Property(e => e.DELETEDBY);
         });
 
         OnModelCreatingPartial(modelBuilder);
