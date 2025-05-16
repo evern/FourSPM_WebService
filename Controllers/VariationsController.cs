@@ -4,6 +4,8 @@ using FourSPM_WebService.Data.OData.FourSPM;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.OData.Query;
+using FourSPM_WebService.Config;
+using FourSPM_WebService.Authorization;
 using Microsoft.AspNetCore.OData.Routing.Attributes;
 using Microsoft.AspNetCore.OData.Deltas;
 using Microsoft.Extensions.Logging;
@@ -34,6 +36,7 @@ namespace FourSPM_WebService.Controllers
         }
 
         [EnableQuery]
+        [RequirePermission(AuthConstants.Permissions.ReadVariations)]
         public async Task<IActionResult> Get()
         {
             var variations = await _repository.GetAllAsync();
@@ -42,6 +45,7 @@ namespace FourSPM_WebService.Controllers
         }
 
         [EnableQuery]
+        [RequirePermission(AuthConstants.Permissions.ReadVariations)]
         public async Task<IActionResult> Get([FromRoute] Guid key)
         {
             var variation = await _repository.GetByIdAsync(key);
@@ -51,6 +55,7 @@ namespace FourSPM_WebService.Controllers
             return Ok(MapToEntity(variation));
         }
 
+        [RequirePermission(AuthConstants.Permissions.WriteVariations)]
         public async Task<IActionResult> Post([FromBody] VariationEntity entity)
         {
             if (!ModelState.IsValid)
@@ -72,6 +77,7 @@ namespace FourSPM_WebService.Controllers
             return Created(MapToEntity(result));
         }
 
+        [RequirePermission(AuthConstants.Permissions.WriteVariations)]
         public async Task<IActionResult> Put([FromRoute] Guid key, [FromBody] VariationEntity entity)
         {
             if (!ModelState.IsValid)
@@ -105,6 +111,7 @@ namespace FourSPM_WebService.Controllers
             }
         }
 
+        [RequirePermission(AuthConstants.Permissions.WriteVariations)]
         public async Task<IActionResult> Delete([FromRoute] Guid key)
         {
             try
@@ -137,6 +144,7 @@ namespace FourSPM_WebService.Controllers
             }
         }
 
+        [RequirePermission(AuthConstants.Permissions.WriteVariations)]
         public async Task<IActionResult> Patch([FromODataUri] Guid key, [FromBody] Delta<VariationEntity> delta)
         {
             try
@@ -189,6 +197,7 @@ namespace FourSPM_WebService.Controllers
         /// </summary>
         /// <param name="id">The GUID of the variation to approve</param>
         /// <returns>The updated variation entity with approval information</returns>
+        [RequirePermission(AuthConstants.Permissions.WriteVariations)]
         [HttpPost("odata/v1/Variations/ApproveVariation/{id}")]
         public async Task<IActionResult> ApproveVariation([FromRoute] Guid id)
         {
@@ -229,6 +238,7 @@ namespace FourSPM_WebService.Controllers
         /// </summary>
         /// <param name="id">The GUID of the variation to reject</param>
         /// <returns>The updated variation entity with approval information cleared</returns>
+        [RequirePermission(AuthConstants.Permissions.WriteVariations)]
         [HttpPost("odata/v1/Variations/RejectVariation/{id}")]
         public async Task<IActionResult> RejectVariation([FromRoute] Guid id)
         {

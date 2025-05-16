@@ -19,6 +19,7 @@ public partial class FourSPMContext : DbContext
         AREAs = Set<AREA>();
         DELIVERABLE_GATEs = Set<DELIVERABLE_GATE>();
         VARIATIONs = Set<VARIATION>();
+        ROLE_PERMISSIONs = Set<ROLE_PERMISSION>();
     }
 
     public FourSPMContext(DbContextOptions<FourSPMContext> options)
@@ -34,6 +35,7 @@ public partial class FourSPMContext : DbContext
         AREAs = Set<AREA>();
         DELIVERABLE_GATEs = Set<DELIVERABLE_GATE>();
         VARIATIONs = Set<VARIATION>();
+        ROLE_PERMISSIONs = Set<ROLE_PERMISSION>();
     }
 
     public virtual DbSet<PROJECT> PROJECTs { get; set; }
@@ -45,7 +47,9 @@ public partial class FourSPMContext : DbContext
     public virtual DbSet<DOCUMENT_TYPE> DOCUMENT_TYPEs { get; set; }
     public virtual DbSet<AREA> AREAs { get; set; }
     public virtual DbSet<DELIVERABLE_GATE> DELIVERABLE_GATEs { get; set; }
-    public virtual DbSet<VARIATION> VARIATIONs { get; set; }
+    public virtual DbSet<VARIATION> VARIATIONs { get; set; } = null!;
+    public virtual DbSet<ROLE> ROLEs { get; set; } = null!;
+    public virtual DbSet<ROLE_PERMISSION> ROLE_PERMISSIONs { get; set; }
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
 #warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see https://go.microsoft.com/fwlink/?LinkId=723263.
@@ -322,6 +326,252 @@ public partial class FourSPMContext : DbContext
             entity.HasOne(d => d.Project)
                 .WithMany(p => p.Variations)
                 .HasForeignKey(d => d.GUID_PROJECT)
+                .OnDelete(DeleteBehavior.NoAction);
+        });
+
+        modelBuilder.Entity<ROLE_PERMISSION>(entity =>
+        {
+            entity.HasKey(e => e.GUID);
+            entity.ToTable("ROLE_PERMISSION");
+
+            entity.Property(e => e.GUID).ValueGeneratedNever();
+            entity.Property(e => e.ROLE_NAME).HasMaxLength(100).IsRequired();
+            entity.Property(e => e.PERMISSION_NAME).HasMaxLength(200).IsRequired();
+            entity.Property(e => e.IS_GRANTED).IsRequired();
+            entity.Property(e => e.DESCRIPTION).HasMaxLength(500);
+            entity.Property(e => e.CREATED).HasColumnType("datetime").IsRequired();
+            entity.Property(e => e.CREATEDBY).IsRequired();
+            // Create an index for ensuring uniqueness of role-permission combinations for active records
+            entity.HasIndex(e => new { e.ROLE_NAME, e.PERMISSION_NAME })
+                .HasFilter("DELETED IS NULL");
+
+            // Add the relationship to the ROLE table
+            entity.HasOne(rp => rp.Role)
+                .WithMany(r => r.RolePermissions)
+                .HasForeignKey(rp => rp.ROLE_NAME)
+                .HasPrincipalKey(r => r.ROLE_NAME)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<ROLE>(entity =>
+        {
+            entity.HasKey(e => e.GUID);
+            entity.ToTable("ROLE");
+
+            entity.Property(e => e.GUID).ValueGeneratedNever();
+            entity.Property(e => e.ROLE_NAME).HasMaxLength(100).IsRequired();
+            entity.Property(e => e.DISPLAY_NAME).HasMaxLength(200);
+            entity.Property(e => e.DESCRIPTION).HasMaxLength(500);
+            entity.Property(e => e.IS_SYSTEM_ROLE).IsRequired().HasDefaultValue(false);
+            entity.Property(e => e.CREATED).HasColumnType("datetime").IsRequired();
+            entity.Property(e => e.CREATEDBY).IsRequired();
+            entity.Property(e => e.UPDATED).HasColumnType("datetime");
+            entity.Property(e => e.UPDATEDBY);
+            entity.Property(e => e.DELETED).HasColumnType("datetime");
+            entity.Property(e => e.DELETEDBY);
+            
+            // Add a unique constraint on ROLE_NAME
+            entity.HasAlternateKey(e => e.ROLE_NAME);
+            
+            // Add an index on DELETED for performance
+            entity.HasIndex(e => e.DELETED).HasDatabaseName("IX_ROLE_DELETED");
+        });
+
+        modelBuilder.Entity<AREA>(entity =>
+        {
+            entity.HasKey(e => e.GUID);
+            entity.ToTable("AREA");
+
+            entity.Property(e => e.GUID).ValueGeneratedNever();
+            entity.Property(e => e.GUID_PROJECT).IsRequired();
+            entity.Property(e => e.NUMBER).HasMaxLength(2).IsRequired();
+            entity.Property(e => e.DESCRIPTION).HasMaxLength(500).IsRequired();
+            entity.Property(e => e.CREATED).HasColumnType("datetime").IsRequired();
+            entity.Property(e => e.CREATEDBY).IsRequired();
+            entity.Property(e => e.UPDATED).HasColumnType("datetime");
+            entity.Property(e => e.UPDATEDBY);
+            entity.Property(e => e.DELETED).HasColumnType("datetime");
+            entity.Property(e => e.DELETEDBY);
+
+            // Configure the foreign key relationship
+            entity.HasOne(d => d.Project)
+                .WithMany(p => p.Areas)
+                .HasForeignKey(d => d.GUID_PROJECT)
+                .OnDelete(DeleteBehavior.NoAction);
+        });
+
+        modelBuilder.Entity<DELIVERABLE_GATE>(entity =>
+        {
+            entity.HasKey(e => e.GUID);
+            entity.ToTable("DELIVERABLE_GATE");
+
+            entity.HasIndex(e => e.DELETED).HasDatabaseName("IX_DELIVERABLE_GATE_DELETED");
+
+            entity.Property(e => e.GUID).ValueGeneratedNever();
+            entity.Property(e => e.NAME).HasMaxLength(100).IsRequired();
+            entity.Property(e => e.MAX_PERCENTAGE).HasColumnType("decimal(5, 2)").IsRequired();
+            entity.Property(e => e.AUTO_PERCENTAGE).HasColumnType("decimal(5, 2)");
+            entity.Property(e => e.CREATED).HasColumnType("datetime").IsRequired();
+            entity.Property(e => e.CREATEDBY).IsRequired();
+            entity.Property(e => e.UPDATED).HasColumnType("datetime");
+            entity.Property(e => e.UPDATEDBY);
+            entity.Property(e => e.DELETED).HasColumnType("datetime");
+            entity.Property(e => e.DELETEDBY);
+        });
+
+        modelBuilder.Entity<VARIATION>(entity =>
+        {
+            entity.HasKey(e => e.GUID);
+            entity.ToTable("VARIATION");
+
+            entity.HasIndex(e => e.GUID_PROJECT).HasDatabaseName("IX_VARIATION_PROJECT_ID");
+            entity.HasIndex(e => e.DELETED).HasDatabaseName("IX_VARIATION_DELETED");
+
+            entity.Property(e => e.GUID).ValueGeneratedNever();
+            entity.Property(e => e.GUID_PROJECT).IsRequired();
+            entity.Property(e => e.NAME).HasMaxLength(500).IsRequired();
+            entity.Property(e => e.COMMENTS).HasMaxLength(1000);
+            entity.Property(e => e.SUBMITTED).HasColumnType("datetime");
+            entity.Property(e => e.SUBMITTEDBY);
+            entity.Property(e => e.CLIENT_APPROVED).HasColumnType("datetime");
+            entity.Property(e => e.CLIENT_APPROVEDBY);
+            entity.Property(e => e.CREATED).HasColumnType("datetime").IsRequired();
+            entity.Property(e => e.CREATEDBY).IsRequired();
+            entity.Property(e => e.UPDATED).HasColumnType("datetime");
+            entity.Property(e => e.UPDATEDBY);
+            entity.Property(e => e.DELETED).HasColumnType("datetime");
+            entity.Property(e => e.DELETEDBY);
+
+            // Configure the foreign key relationship
+            entity.HasOne(d => d.Project)
+                .WithMany(p => p.Variations)
+                .HasForeignKey(d => d.GUID_PROJECT)
+                .OnDelete(DeleteBehavior.NoAction);
+        });
+
+        modelBuilder.Entity<DISCIPLINE>(entity =>
+        {
+            entity.HasKey(e => e.GUID);
+            entity.ToTable("DISCIPLINE");
+
+            entity.HasIndex(e => e.CODE).HasDatabaseName("IX_DISCIPLINE_CODE");
+            entity.HasIndex(e => e.DELETED).HasDatabaseName("IX_DISCIPLINE_DELETED");
+
+            entity.Property(e => e.GUID).ValueGeneratedNever();
+            entity.Property(e => e.CODE).HasMaxLength(2).IsRequired();
+            entity.Property(e => e.NAME).HasMaxLength(500);
+            entity.Property(e => e.CREATED).HasColumnType("datetime").IsRequired();
+            entity.Property(e => e.CREATEDBY).IsRequired();
+            entity.Property(e => e.UPDATED).HasColumnType("datetime");
+            entity.Property(e => e.UPDATEDBY);
+            entity.Property(e => e.DELETED).HasColumnType("datetime");
+            entity.Property(e => e.DELETEDBY);
+        });
+
+        modelBuilder.Entity<DOCUMENT_TYPE>(entity =>
+        {
+            entity.HasKey(e => e.GUID);
+            entity.ToTable("DOCUMENT_TYPE");
+
+            entity.HasIndex(e => e.CODE).HasDatabaseName("IX_DOCUMENT_TYPE_CODE");
+            entity.HasIndex(e => e.DELETED).HasDatabaseName("IX_DOCUMENT_TYPE_DELETED");
+
+            entity.Property(e => e.GUID).ValueGeneratedNever();
+            entity.Property(e => e.CODE).HasMaxLength(3).IsRequired();
+            entity.Property(e => e.NAME).HasMaxLength(500);
+            entity.Property(e => e.CREATED).HasColumnType("datetime").IsRequired();
+            entity.Property(e => e.CREATEDBY).IsRequired();
+            entity.Property(e => e.UPDATED).HasColumnType("datetime");
+            entity.Property(e => e.UPDATEDBY);
+            entity.Property(e => e.DELETED).HasColumnType("datetime");
+            entity.Property(e => e.DELETEDBY);
+        });
+
+        modelBuilder.Entity<PROGRESS>(entity =>
+        {
+            entity.HasKey(e => e.GUID);
+            entity.ToTable("PROGRESS");
+
+            entity.HasIndex(e => e.GUID_DELIVERABLE).HasDatabaseName("IX_PROGRESS_DELIVERABLE_ID");
+            entity.HasIndex(e => e.PERIOD).HasDatabaseName("IX_PROGRESS_PERIOD");
+            entity.HasIndex(e => e.DELETED).HasDatabaseName("IX_PROGRESS_DELETED");
+            
+            // Add filtered unique index for active progress records
+            entity.HasIndex(e => new { e.GUID_DELIVERABLE, e.PERIOD })
+                .HasDatabaseName("IX_PROGRESS_DELIVERABLE_PERIOD_UNIQUE_ACTIVE")
+                .IsUnique()
+                .HasFilter("[DELETED] IS NULL");
+
+            entity.Property(e => e.GUID).HasDefaultValueSql("NEWID()");
+            entity.Property(e => e.GUID_DELIVERABLE).IsRequired();
+            entity.Property(e => e.PERIOD).IsRequired();
+            entity.Property(e => e.UNITS).HasColumnType("decimal(10,2)").IsRequired();
+            entity.Property(e => e.CREATED).HasColumnType("datetime").IsRequired().HasDefaultValueSql("GETDATE()");
+            entity.Property(e => e.CREATEDBY).IsRequired();
+            entity.Property(e => e.UPDATED).HasColumnType("datetime");
+            entity.Property(e => e.UPDATEDBY);
+            entity.Property(e => e.DELETED).HasColumnType("datetime");
+            entity.Property(e => e.DELETEDBY);
+
+            // Foreign key relationship
+            entity.HasOne(d => d.Deliverable)
+                .WithMany(p => p.ProgressItems)
+                .HasForeignKey(d => d.GUID_DELIVERABLE)
+                .OnDelete(DeleteBehavior.NoAction);
+        });
+
+        modelBuilder.Entity<DELIVERABLE>(entity =>
+        {
+            entity.HasKey(e => e.GUID);
+            entity.ToTable("DELIVERABLE");
+
+            entity.HasIndex(e => e.GUID_PROJECT).HasDatabaseName("IX_DELIVERABLE_PROJECT_ID");
+            entity.HasIndex(e => e.GUID_DELIVERABLE_GATE).HasDatabaseName("IX_DELIVERABLE_GATE_ID");
+            entity.HasIndex(e => e.GUID_VARIATION).HasDatabaseName("IX_DELIVERABLE_VARIATION_ID");
+            entity.HasIndex(e => e.INTERNAL_DOCUMENT_NUMBER).HasDatabaseName("IX_DELIVERABLE_INTERNAL_DOCUMENT_NUMBER");
+            entity.HasIndex(e => e.CLIENT_DOCUMENT_NUMBER).HasDatabaseName("IX_DELIVERABLE_CLIENT_DOCUMENT_NUMBER");
+            entity.HasIndex(e => e.DOCUMENT_TITLE).HasDatabaseName("IX_DELIVERABLE_DOCUMENT_TITLE");
+            entity.HasIndex(e => e.DELETED).HasDatabaseName("IX_DELIVERABLE_DELETED");
+
+            entity.Property(e => e.GUID).ValueGeneratedNever();
+            entity.Property(e => e.GUID_PROJECT).IsRequired();
+            entity.Property(e => e.INTERNAL_DOCUMENT_NUMBER).HasMaxLength(50).IsRequired();
+            entity.Property(e => e.CLIENT_DOCUMENT_NUMBER).HasMaxLength(100);
+            entity.Property(e => e.DOCUMENT_TITLE).HasMaxLength(255).IsRequired();
+            entity.Property(e => e.BUDGET_HOURS).HasColumnType("decimal(10,2)").IsRequired().HasDefaultValue(0);
+            entity.Property(e => e.VARIATION_HOURS).HasColumnType("decimal(10,2)").IsRequired().HasDefaultValue(0);
+            entity.Property(e => e.TOTAL_COST).HasColumnType("decimal(15,2)").IsRequired().HasDefaultValue(0);
+            entity.Property(e => e.CREATED).HasColumnType("datetime").IsRequired().HasDefaultValueSql("GETDATE()");
+            entity.Property(e => e.CREATEDBY).IsRequired();
+            entity.Property(e => e.UPDATED).HasColumnType("datetime");
+            entity.Property(e => e.UPDATEDBY);
+            entity.Property(e => e.DELETED).HasColumnType("datetime");
+            entity.Property(e => e.DELETEDBY);
+            entity.Property(e => e.GUID_DELIVERABLE_GATE);
+
+            // Configure the enum properties
+            entity.Property(e => e.DELIVERABLE_TYPE_ID)
+                .HasColumnType("int")
+                .IsRequired();
+
+            entity.Property(e => e.DEPARTMENT_ID)
+                .HasColumnType("int")
+                .IsRequired();
+
+            // Foreign key relationships
+            entity.HasOne(d => d.Project)
+                .WithMany(p => p.Deliverables)
+                .HasForeignKey(d => d.GUID_PROJECT)
+                .OnDelete(DeleteBehavior.NoAction);
+
+            entity.HasOne(d => d.DeliverableGate)
+                .WithMany(p => p.Deliverables)
+                .HasForeignKey(d => d.GUID_DELIVERABLE_GATE)
+                .OnDelete(DeleteBehavior.NoAction);
+                
+            entity.HasOne(d => d.Variation)
+                .WithMany(v => v.Deliverables)
+                .HasForeignKey(d => d.GUID_VARIATION)
                 .OnDelete(DeleteBehavior.NoAction);
         });
 

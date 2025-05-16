@@ -1,6 +1,7 @@
 using FourSPM_WebService.Data.Extensions;
 using FourSPM_WebService.Middleware;
 using FourSPM_WebService.Data.EF.FourSPM;
+using FourSPM_WebService.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.OData;
 using Microsoft.AspNetCore.OData.Batch;
@@ -8,11 +9,14 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.OData.UriParser;
 using System.Text;
 using FourSPM_WebService.Config;
-using FourSPM_WebService.Services;
 using Microsoft.IdentityModel.Tokens;
 using FourSPM_WebService.Extensions;
 using System.Text.Json;
 using Azure.Core;
+using Microsoft.Identity.Web;
+using Microsoft.Identity.Web.TokenCacheProviders.InMemory;
+using Microsoft.AspNetCore.Authorization;
+using FourSPM_WebService.Authorization;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -124,26 +128,66 @@ builder.Services.Configure<IISServerOptions>(options =>
     options.AllowSynchronousIO = true;
 });
 
+// Register services
 builder.Services.AddScoped<IAuthService, AuthService>();
 
-// Add JWT Authentication
-builder.Services.AddAuthentication(options =>
+// Register ApplicationUser as a scoped service to hold the current user's context
+builder.Services.AddScoped<FourSPM_WebService.Models.Session.ApplicationUser>();
+builder.Services.AddScoped<IUserPermissionService, UserPermissionService>(); 
+builder.Services.AddScoped<ITokenValidationService, TokenValidationService>();
+builder.Services.AddHttpContextAccessor(); // Required for TokenValidationService
+
+// Register authorization handlers
+builder.Services.AddScoped<IAuthorizationHandler, RequirePermissionHandler>();
+
+// Add Microsoft Identity Web and JWT Bearer Authentication for Azure AD
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddMicrosoftIdentityWebApi(builder.Configuration.GetSection("AzureAd"),
+        jwtBearerScheme: JwtBearerDefaults.AuthenticationScheme)
+    .EnableTokenAcquisitionToCallDownstreamApi()
+    .AddInMemoryTokenCaches();
+
+// Configure authorization with permission-based policies
+builder.Services.AddAuthorization(options =>
 {
-    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-})
-.AddJwtBearer(options =>
+    // Configure default policy to require authentication
+    options.FallbackPolicy = new AuthorizationPolicyBuilder()
+        .RequireAuthenticatedUser()
+        .Build();
+    
+    // Add dynamically generated permission-based policies
+    options.AddPermissionPolicies();
+});
+
+// Add custom token validation handling
+builder.Services.Configure<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme, options =>
 {
-    options.TokenValidationParameters = new TokenValidationParameters
+    // Keep track of the original events
+    var originalOnTokenValidated = options.Events.OnTokenValidated;
+    
+    options.Events = new JwtBearerEvents
     {
-        ValidateIssuer = true,
-        ValidateAudience = true,
-        ValidateLifetime = true,
-        ValidateIssuerSigningKey = true,
-        ValidIssuer = jwtConfig.Issuer,
-        ValidAudience = jwtConfig.Audience,
-        IssuerSigningKey = new SymmetricSecurityKey(
-            Encoding.UTF8.GetBytes(jwtConfig.Secret))
+        OnAuthenticationFailed = async context =>
+        {
+            var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
+            logger.LogError("Authentication failed: {Error}", context.Exception.Message);
+            await Task.CompletedTask;
+        },
+        
+        OnTokenValidated = async context =>
+        {
+            // Call the original event first
+            if (originalOnTokenValidated != null)
+            {
+                await originalOnTokenValidated(context);
+            }
+            
+            var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
+            logger.LogInformation("Token validated successfully for user: {Name}", context.Principal?.Identity?.Name ?? "unknown");
+            
+            // Here you could add custom claims or perform additional validation
+            await Task.CompletedTask;
+        }
     };
 });
 
@@ -208,7 +252,7 @@ app.Use(async (context, next) =>
 
 app.UseAuthentication();
 app.UseAuthorization();
-app.UseJwtValidation();
+app.UseCustomAuthentication(); // New authentication middleware that handles permission loading
 app.MapControllers();
 
 app.Run();

@@ -57,6 +57,8 @@ namespace FourSPM_WebService.Data.Extensions
             builder.EntitySet<AreaEntity>("Areas").EntityType.HasKey(a => a.Guid);
             builder.EntitySet<DeliverableGateEntity>("DeliverableGates").EntityType.HasKey(dg => dg.Guid);
             builder.EntitySet<VariationEntity>("Variations").EntityType.HasKey(v => v.Guid);
+            builder.EntitySet<RolePermissionEntity>("RolePermissions").EntityType.HasKey(rp => rp.Guid);
+            builder.EntitySet<RoleEntity>("Roles").EntityType.HasKey(r => r.Guid);
             
             // Register VariationDeliverables - using DeliverableEntity type but different endpoint
             // This ensures that variation deliverables can be separately queried while maintaining the same model

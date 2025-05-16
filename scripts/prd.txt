@@ -1,0 +1,32 @@
+# FourSPM WebService Azure AD Authentication
+
+## Overview
+This PRD outlines the requirements for implementing Azure AD authentication in the FourSPM WebService backend application. The backend will validate tokens issued by Azure AD to authenticate and authorize users accessing the API.
+
+## Requirements
+
+### Authentication Package Installation
+- Add Microsoft.Identity.Web and related packages to the ASP.NET Core project
+- Configure JWT Bearer authentication for API protection
+- Implement proper token validation
+
+### Configuration
+- Set up Azure AD settings in appsettings.json
+- Support different environments (Development, Production)
+- Secure configuration for client and tenant IDs
+
+### Authorization
+- Implement role-based access control
+- Configure policy-based authorization
+- Set up scope validation for API endpoints
+
+### Integration
+- Update Program.cs to register required services
+- Create authentication middleware
+- Implement token validation helpers
+
+## Success Criteria
+- API endpoints validate tokens from Azure AD
+- Role-based access control functions correctly
+- Configuration supports multiple environments
+- Clean integration with existing OData controllers

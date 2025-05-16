@@ -4,6 +4,8 @@ using FourSPM_WebService.Data.OData.FourSPM;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.OData.Deltas;
+using FourSPM_WebService.Config;
+using FourSPM_WebService.Authorization;
 using Microsoft.AspNetCore.OData.Formatter;
 using Microsoft.AspNetCore.OData.Query;
 using Microsoft.AspNetCore.OData.Routing.Attributes;
@@ -30,6 +32,7 @@ namespace FourSPM_WebService.Controllers
         }
 
         [EnableQuery]
+        [RequirePermission(AuthConstants.Permissions.ReadDisciplines)]
         public async Task<IActionResult> Get()
         {
             var disciplines = await _repository.GetAllAsync();
@@ -38,6 +41,7 @@ namespace FourSPM_WebService.Controllers
         }
 
         [EnableQuery]
+        [RequirePermission(AuthConstants.Permissions.ReadDisciplines)]
         public async Task<IActionResult> Get([FromRoute] Guid key)
         {
             var discipline = await _repository.GetByIdAsync(key);
@@ -48,6 +52,7 @@ namespace FourSPM_WebService.Controllers
         }
 
         [EnableQuery]
+        [RequirePermission(AuthConstants.Permissions.ReadDisciplines)]
         [HttpGet("odata/v1/Disciplines/GetByCode(code={code})")]
         public async Task<IActionResult> GetByCode([FromRoute] string code)
         {
@@ -58,6 +63,7 @@ namespace FourSPM_WebService.Controllers
             return Ok(MapToEntity(discipline));
         }
 
+        [RequirePermission(AuthConstants.Permissions.WriteDisciplines)]
         public async Task<IActionResult> Post([FromBody] DisciplineEntity entity)
         {
             if (!ModelState.IsValid)
@@ -74,6 +80,7 @@ namespace FourSPM_WebService.Controllers
             return Created(MapToEntity(result));
         }
 
+        [RequirePermission(AuthConstants.Permissions.WriteDisciplines)]
         public async Task<IActionResult> Put([FromRoute] Guid key, [FromBody] DisciplineEntity entity)
         {
             if (!ModelState.IsValid)
@@ -100,6 +107,7 @@ namespace FourSPM_WebService.Controllers
             }
         }
 
+        [RequirePermission(AuthConstants.Permissions.WriteDisciplines)]
         public async Task<IActionResult> Delete([FromRoute] Guid key, [FromBody] Guid deletedBy)
         {
             var result = await _repository.DeleteAsync(key, deletedBy);
@@ -112,6 +120,7 @@ namespace FourSPM_WebService.Controllers
         /// <param name="key">The GUID of the discipline to update</param>
         /// <param name="delta">The discipline properties to update</param>
         /// <returns>The updated discipline</returns>
+        [RequirePermission(AuthConstants.Permissions.WriteDisciplines)]
         public async Task<IActionResult> Patch([FromODataUri] Guid key, [FromBody] Delta<DisciplineEntity> delta)
         {
             try

@@ -4,6 +4,8 @@ using FourSPM_WebService.Data.OData.FourSPM;
 using FourSPM_WebService.Helpers;
 using FourSPM_WebService.Models.Session;
 using FourSPM_WebService.Utilities;
+using FourSPM_WebService.Config;
+using FourSPM_WebService.Authorization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
@@ -49,6 +51,7 @@ namespace FourSPM_WebService.Controllers
         }
 
         [EnableQuery]
+        [RequirePermission(AuthConstants.Permissions.ReadDeliverables)]
         public IQueryable<DeliverableEntity> Get()
         {
             // Get the collection from repository directly as IQueryable
@@ -64,6 +67,7 @@ namespace FourSPM_WebService.Controllers
         }
 
         [EnableQuery]
+        [RequirePermission(AuthConstants.Permissions.ReadDeliverables)]
         public async Task<IActionResult> Get([FromRoute] Guid key)
         {
             var deliverable = await _repository.GetByIdAsync(key);
@@ -77,6 +81,7 @@ namespace FourSPM_WebService.Controllers
             return Ok(entity);
         }
 
+        [RequirePermission(AuthConstants.Permissions.WriteDeliverables)]
         public async Task<IActionResult> Post([FromBody] DeliverableEntity entity)
         {
             if (!ModelState.IsValid)
@@ -113,6 +118,7 @@ namespace FourSPM_WebService.Controllers
             return Created(DeliverableMapperHelper.MapToEntity(result));
         }
 
+        [RequirePermission(AuthConstants.Permissions.WriteDeliverables)]
         public async Task<IActionResult> Put([FromRoute] Guid key, [FromBody] DeliverableEntity entity)
         {
             if (!ModelState.IsValid)
@@ -192,6 +198,7 @@ namespace FourSPM_WebService.Controllers
         /// <param name="key">The GUID of the deliverable to update</param>
         /// <param name="delta">The deliverable properties to update</param>
         /// <returns>The updated deliverable</returns>
+        [RequirePermission(AuthConstants.Permissions.WriteDeliverables)]
         public async Task<IActionResult> Patch([FromODataUri] Guid key, [FromBody] Delta<DeliverableEntity> delta)
         {
             try
@@ -330,6 +337,7 @@ namespace FourSPM_WebService.Controllers
         // Endpoint to get deliverables with progress percentages for a specific project and period
         // This follows OData conventions, ensuring proper serialization of enum values as strings
         [HttpGet]
+        [RequirePermission(AuthConstants.Permissions.ReadDeliverables)]
         public async Task<IActionResult> GetWithProgressPercentages([FromODataUri] Guid projectGuid, int period)
         {
             try
@@ -376,6 +384,7 @@ namespace FourSPM_WebService.Controllers
         /// Gets all deliverables for a specific project
         /// </summary>
         [HttpGet("odata/v1/Deliverables/ByProject/{projectGuid}")]
+        [RequirePermission(AuthConstants.Permissions.ReadDeliverables)]
         public async Task<IActionResult> GetByProject(Guid projectGuid)
         {
             try

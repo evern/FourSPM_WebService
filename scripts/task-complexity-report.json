@@ -1,0 +1,91 @@
+{
+  "meta": {
+    "generatedAt": "2025-05-14T10:40:23.926Z",
+    "tasksAnalyzed": 10,
+    "thresholdScore": 5,
+    "projectName": "Taskmaster",
+    "usedResearch": true
+  },
+  "complexityAnalysis": [
+    {
+      "taskId": 1,
+      "taskTitle": "Install Authentication Packages",
+      "complexityScore": 2,
+      "recommendedSubtasks": 2,
+      "expansionPrompt": "Break down the installation of authentication packages into: (1) identifying compatible package versions for the current ASP.NET Core version, and (2) executing and verifying the installation of each required NuGet package.",
+      "reasoning": "This task is straightforward and mostly involves package installation and compatibility checks. It is low complexity but benefits from splitting version research and installation/verification."
+    },
+    {
+      "taskId": 2,
+      "taskTitle": "Configure Azure AD Settings in appsettings.json",
+      "complexityScore": 4,
+      "recommendedSubtasks": 3,
+      "expansionPrompt": "Expand this task into: (1) creating the AzureAd section in appsettings.json, (2) setting up environment-specific configurations (Development, Production), and (3) securing sensitive information using user secrets or Azure Key Vault.",
+      "reasoning": "Requires careful configuration for multiple environments and secure handling of secrets, but follows well-documented patterns."
+    },
+    {
+      "taskId": 3,
+      "taskTitle": "Configure JWT Bearer Authentication",
+      "complexityScore": 5,
+      "recommendedSubtasks": 4,
+      "expansionPrompt": "Divide into: (1) updating Program.cs to add JWT Bearer authentication, (2) configuring token validation parameters, (3) adding authorization services and middleware, and (4) writing unit tests for authentication setup.",
+      "reasoning": "Involves code changes, configuration, and testing. Slightly more complex due to the need for correct security parameterization and validation."
+    },
+    {
+      "taskId": 4,
+      "taskTitle": "Implement Token Validation Helpers",
+      "complexityScore": 4,
+      "recommendedSubtasks": 3,
+      "expansionPrompt": "Expand into: (1) implementing the TokenValidationService class, (2) registering the service in dependency injection, and (3) writing unit tests for each helper method.",
+      "reasoning": "Moderate complexity—requires custom code and testing, but the logic is straightforward and isolated."
+    },
+    {
+      "taskId": 5,
+      "taskTitle": "Implement Role-Based Access Control",
+      "complexityScore": 6,
+      "recommendedSubtasks": 4,
+      "expansionPrompt": "Break down into: (1) configuring role claim mapping, (2) updating controllers/actions with role-based authorization attributes, (3) ensuring Azure AD app roles are defined and assigned, and (4) creating integration tests for role-based access.",
+      "reasoning": "Requires coordination between code and Azure AD configuration, as well as thorough testing for different role scenarios."
+    },
+    {
+      "taskId": 6,
+      "taskTitle": "Implement Policy-Based Authorization",
+      "complexityScore": 6,
+      "recommendedSubtasks": 4,
+      "expansionPrompt": "Expand into: (1) defining authorization policies in Program.cs, (2) applying policies to controllers/actions, (3) implementing custom authorization requirements/handlers if needed, and (4) writing unit tests for each policy.",
+      "reasoning": "Involves both configuration and potentially custom code for complex policies, plus comprehensive testing."
+    },
+    {
+      "taskId": 7,
+      "taskTitle": "Implement Scope Validation for API Endpoints",
+      "complexityScore": 5,
+      "recommendedSubtasks": 4,
+      "expansionPrompt": "Divide into: (1) configuring scope validation in authentication setup, (2) creating custom attributes for scope enforcement, (3) applying scope requirements to endpoints, and (4) writing integration tests for scope validation.",
+      "reasoning": "Requires custom attribute creation and integration with authentication, but follows established OAuth 2.0 patterns."
+    },
+    {
+      "taskId": 8,
+      "taskTitle": "Create Authentication Middleware",
+      "complexityScore": 5,
+      "recommendedSubtasks": 4,
+      "expansionPrompt": "Expand into: (1) implementing the custom authentication middleware class, (2) adding extension methods for middleware registration, (3) integrating middleware into the application pipeline, and (4) writing unit tests for middleware error handling.",
+      "reasoning": "Custom middleware requires careful error handling and integration, as well as robust testing for security exceptions."
+    },
+    {
+      "taskId": 9,
+      "taskTitle": "Update OData Controllers with Authentication",
+      "complexityScore": 7,
+      "recommendedSubtasks": 5,
+      "expansionPrompt": "Break down into: (1) updating OData controllers with authentication/authorization attributes, (2) integrating TokenValidationService, (3) updating OData configuration to enforce authorization, (4) protecting OData routes, and (5) creating integration tests for OData endpoints.",
+      "reasoning": "Involves updating multiple layers (controllers, services, routing) and ensuring security is enforced throughout, with significant integration testing required."
+    },
+    {
+      "taskId": 10,
+      "taskTitle": "Implement End-to-End Testing",
+      "complexityScore": 8,
+      "recommendedSubtasks": 6,
+      "expansionPrompt": "Expand into: (1) setting up the integration test project, (2) configuring test authentication handlers, (3) writing tests for unauthenticated requests, (4) writing tests for authenticated requests with various roles/scopes, (5) generating and managing test tokens, and (6) running and validating test results.",
+      "reasoning": "End-to-end testing is the most complex, requiring setup of test infrastructure, mocking authentication, and comprehensive scenario coverage."
+    }
+  ]
+}

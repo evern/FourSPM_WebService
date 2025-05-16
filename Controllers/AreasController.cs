@@ -3,6 +3,8 @@ using FourSPM_WebService.Data.Interfaces;
 using FourSPM_WebService.Data.OData.FourSPM;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using FourSPM_WebService.Config;
+using FourSPM_WebService.Authorization;
 using Microsoft.AspNetCore.OData.Query;
 using Microsoft.AspNetCore.OData.Routing.Attributes;
 using Microsoft.AspNetCore.OData.Deltas;
@@ -32,6 +34,7 @@ namespace FourSPM_WebService.Controllers
         }
 
         [EnableQuery]
+        [RequirePermission(AuthConstants.Permissions.ReadAreas)]
         public async Task<IActionResult> Get()
         {
             var areas = await _repository.GetAllAsync();
@@ -40,6 +43,7 @@ namespace FourSPM_WebService.Controllers
         }
 
         [EnableQuery]
+        [RequirePermission(AuthConstants.Permissions.ReadAreas)]
         public async Task<IActionResult> Get([FromRoute] Guid key)
         {
             var area = await _repository.GetByIdAsync(key);
@@ -49,6 +53,7 @@ namespace FourSPM_WebService.Controllers
             return Ok(MapToEntity(area));
         }
 
+        [RequirePermission(AuthConstants.Permissions.WriteAreas)]
         public async Task<IActionResult> Post([FromBody] AreaEntity entity)
         {
             if (!ModelState.IsValid)
@@ -72,6 +77,7 @@ namespace FourSPM_WebService.Controllers
             return Created(MapToEntity(result));
         }
 
+        [RequirePermission(AuthConstants.Permissions.WriteAreas)]
         public async Task<IActionResult> Put([FromRoute] Guid key, [FromBody] AreaEntity entity)
         {
             if (!ModelState.IsValid)
@@ -105,12 +111,14 @@ namespace FourSPM_WebService.Controllers
             }
         }
 
+        [RequirePermission(AuthConstants.Permissions.WriteAreas)]
         public async Task<IActionResult> Delete([FromRoute] Guid key, [FromBody] Guid deletedBy)
         {
             var result = await _repository.DeleteAsync(key, deletedBy);
             return result ? NoContent() : NotFound();
         }
 
+        [RequirePermission(AuthConstants.Permissions.WriteAreas)]
         public async Task<IActionResult> Patch([FromODataUri] Guid key, [FromBody] Delta<AreaEntity> delta)
         {
             try

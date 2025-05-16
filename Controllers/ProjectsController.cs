@@ -20,6 +20,8 @@ using Microsoft.AspNetCore.OData.Formatter;
 using Microsoft.AspNetCore.OData.Routing.Attributes;
 using FourSPM_WebService.Data.EF.FourSPM;
 using FourSPM_WebService.Models.Shared;
+using FourSPM_WebService.Config;
+using FourSPM_WebService.Authorization;
 
 namespace FourSPM_WebService.Controllers;
 
@@ -43,6 +45,7 @@ public class ProjectsController : FourSPMODataController
     /// </summary>
     /// <returns>A list of projects</returns>
     [EnableQuery]
+    [RequirePermission(AuthConstants.Permissions.ReadProjects)]
     public async Task<IActionResult> Get()
     {
         var projects = await _projectRepository.GetAllAsync();
@@ -56,6 +59,7 @@ public class ProjectsController : FourSPMODataController
     /// <param name="key">The GUID of the project to retrieve</param>
     /// <returns>The project with the specified GUID</returns>
     [EnableQuery]
+    [RequirePermission(AuthConstants.Permissions.ReadProjects)]
     public async Task<IActionResult> Get([FromODataUri] Guid key)
     {
         var project = await _projectRepository.GetByIdAsync(key);
@@ -70,11 +74,12 @@ public class ProjectsController : FourSPMODataController
     /// </summary>
     /// <param name="project">The project to create</param>
     /// <returns>The created project</returns>
+    [RequirePermission(AuthConstants.Permissions.WriteProjects)]
     public async Task<IActionResult> Post([FromBody] ProjectEntity entity)
     {
         if (!ModelState.IsValid)
             return BadRequest(ModelState);
-            
+
         // Check if project number is unique
         if (!await IsProjectNumberUnique(entity.ProjectNumber, null))
         {
@@ -102,6 +107,7 @@ public class ProjectsController : FourSPMODataController
     /// </summary>
     /// <param name="key">The GUID of the project to delete</param>
     /// <returns>A success message if the project was deleted successfully</returns>
+    [RequirePermission(AuthConstants.Permissions.WriteProjects)]
     public async Task<IActionResult> Delete([FromRoute] Guid key, [FromBody] Guid deletedBy)
     {
         var result = await _projectRepository.DeleteAsync(key, deletedBy);
@@ -114,6 +120,7 @@ public class ProjectsController : FourSPMODataController
     /// <param name="key">The GUID of the project to update</param>
     /// <param name="entity">The project properties to update</param>
     /// <returns>The updated project</returns>
+    [RequirePermission(AuthConstants.Permissions.WriteProjects)]
     public async Task<IActionResult> Put([FromRoute] Guid key, [FromBody] ProjectEntity entity)
     {
         if (!ModelState.IsValid)
@@ -129,7 +136,7 @@ public class ProjectsController : FourSPMODataController
             {
                 return BadRequest($"A project with number '{entity.ProjectNumber}' already exists.");
             }
-            
+
             var project = new PROJECT
             {
                 GUID = entity.Guid,
@@ -156,6 +163,7 @@ public class ProjectsController : FourSPMODataController
     /// <param name="key">The GUID of the project to update</param>
     /// <param name="delta">The project properties to update</param>
     /// <returns>The updated project</returns>
+    [RequirePermission(AuthConstants.Permissions.WriteProjects)]
     public async Task<IActionResult> Patch([FromODataUri] Guid key, [FromBody] Delta<ProjectEntity> delta)
     {
         try
@@ -183,9 +191,9 @@ public class ProjectsController : FourSPMODataController
             // Get the changed property names
             var changedProperties = delta.GetChangedPropertyNames();
             _logger?.LogInformation($"Changed properties: {string.Join(", ", changedProperties)}");
-            
+
             // Log if client_* fields are being sent (but we won't use them)
-            bool hasClientContactFields = changedProperties.Any(p => 
+            bool hasClientContactFields = changedProperties.Any(p =>
                 p.StartsWith("client_"));
             if (hasClientContactFields)
             {
@@ -196,9 +204,9 @@ public class ProjectsController : FourSPMODataController
             // Create a copy of the entity to track changes
             var updatedEntity = MapToEntity(existingProject);
             delta.CopyChangedValues(updatedEntity);
-            
+
             // Check if project number is being changed and is unique (if it's being updated)
-            if (changedProperties.Contains("ProjectNumber") && 
+            if (changedProperties.Contains("ProjectNumber") &&
                 !await IsProjectNumberUnique(updatedEntity.ProjectNumber, key))
             {
                 return BadRequest($"A project with number '{updatedEntity.ProjectNumber}' already exists.");
@@ -229,26 +237,27 @@ public class ProjectsController : FourSPMODataController
     /// Gets projects with their client data explicitly included
     /// </summary>
     /// <returns>Projects with client data</returns>
+    [RequirePermission(AuthConstants.Permissions.ReadProjects)]
     [HttpGet("/odata/v1/Projects/GetWithClientData")]
     public async Task<IActionResult> GetWithClientData()
     {
         try
         {
             _logger?.LogInformation("Getting projects with client data");
-            
+
             // Get all projects with eager loading of client data
             var projects = await _projectRepository.GetAllWithClientsAsync();
-            
+
             // Map to entities with client data included
             var entities = projects.Select(p => MapToEntity(p)).ToList();
-            
+
             // Use the ODataResponse class for proper OData format
             var response = new ODataResponse<ProjectEntity>
             {
                 Value = entities,
                 Count = entities.Count()
             };
-            
+
             return Ok(response);
         }
         catch (Exception ex)
@@ -263,12 +272,14 @@ public class ProjectsController : FourSPMODataController
     /// </summary>
     /// <param name="projectId">The GUID of the project</param>
     /// <returns>Project with client data</returns>
+    [RequirePermission(AuthConstants.Permissions.ReadProjects)]
     [HttpGet("/odata/v1/Projects/GetWithClientData/{projectId}")]
     public async Task<IActionResult> GetWithClientData(Guid projectId)
     {
         try
         {
             _logger?.LogInformation($"Getting project {projectId} with client data");
+
             
             // Get project with eager loading of client data
             var project = await _projectRepository.GetProjectWithClientAsync(projectId);

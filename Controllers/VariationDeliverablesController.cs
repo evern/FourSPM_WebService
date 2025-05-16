@@ -4,6 +4,8 @@ using FourSPM_WebService.Data.OData.FourSPM;
 using FourSPM_WebService.Helpers;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authorization;
+using FourSPM_WebService.Config;
+using FourSPM_WebService.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.OData;
 using Microsoft.AspNetCore.OData.Query;
@@ -50,6 +52,7 @@ namespace FourSPM_WebService.Controllers
         /// <param name="variationId">Required parameter to filter by a specific variation. Returns merged view of original and variation deliverables.</param>
         [HttpGet]
         [EnableQuery]
+        [RequirePermission(AuthConstants.Permissions.ReadVariationDeliverables)]
         public IQueryable<DeliverableEntity> Get([FromODataUri] Guid variationId)
         {
             _logger?.LogInformation($"Getting merged deliverables for variation {variationId} with IQueryable support");
@@ -65,6 +68,7 @@ namespace FourSPM_WebService.Controllers
             return entitiesQuery;
         }
 
+        [RequirePermission(AuthConstants.Permissions.WriteVariationDeliverables)]
         public async Task<IActionResult> Patch([FromODataUri] Guid key, [FromBody] Delta<DeliverableEntity> delta)
         {
             try
@@ -313,7 +317,8 @@ namespace FourSPM_WebService.Controllers
         /// <param name="originalDeliverableGuid">The GUID of the original deliverable to cancel</param>
         /// <param name="variationGuid">The GUID of the variation this cancellation belongs to</param>
         /// <returns>The cancelled deliverable with updated status</returns>
-        [HttpPost("/odata/v1/VariationDeliverables/CancelDeliverable(originalDeliverableGuid={originalDeliverableGuid},variationGuid={variationGuid})")]
+        [RequirePermission(AuthConstants.Permissions.WriteVariationDeliverables)]
+        [HttpPost("/odata/v1/VariationDeliverables/CancelDeliverable({originalDeliverableGuid},{variationGuid})")]
         public async Task<IActionResult> CancelDeliverable([FromODataUri] Guid originalDeliverableGuid, [FromODataUri] Guid variationGuid)
         {
             try
@@ -344,6 +349,7 @@ namespace FourSPM_WebService.Controllers
             }
         }
 
+        [RequirePermission(AuthConstants.Permissions.WriteVariationDeliverables)]
         public async Task<IActionResult> Post([FromBody] DeliverableEntity entity)
         {
             try
