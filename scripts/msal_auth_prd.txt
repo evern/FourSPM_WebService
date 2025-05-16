@@ -1,0 +1,42 @@
+# MSAL Authentication Integration for FourSPM_WebService
+
+## Overview
+This PRD outlines the implementation of Microsoft Authentication Library (MSAL) authentication in the FourSPM_WebService application while maintaining compatibility with legacy authentication methods. This dual-authentication approach will provide a smooth transition path for existing users while enabling new modern authentication features.
+
+## Requirements
+
+### Azure AD Configuration (Already Completed)
+- Azure AD application registration is complete
+- Application ID: c67bf91d-8b6a-494a-8b99-c7a4592e08c1
+- Redirect URLs configured
+- API scopes defined (Application.Admin and Application.User)
+- Organization-only authentication enforced
+
+### Authentication Implementation Requirements
+1. Integrate Microsoft Authentication Library (MSAL) for modern authentication
+2. Maintain compatibility with legacy authentication methods
+3. Create middleware to handle both authentication types
+4. Update JWT token validation to support MSAL tokens
+5. Implement role-based authorization using existing ROLE and ROLE_PERMISSION tables
+6. Configure JWT bearer options to support both auth methods
+7. Create helper methods to validate token claims
+
+### Specific Technical Requirements
+1. Update Startup.cs to configure MSAL authentication alongside existing auth
+2. Implement AuthService updates to support dual auth modes
+3. Create MSAL-specific token validation logic
+4. Update application user model to support new claims
+5. Implement role and permission claim transformation
+6. Configure proper authority and audience validation
+7. Create documentation for auth flow and configuration
+
+### Non-Requirements
+1. Front-end implementation (will be handled separately)
+2. Testing tasks (deferred until front-end is adjusted)
+
+### Deliverables
+1. Updated authentication middleware
+2. Enhanced AuthService with MSAL support
+3. Token validation and claim handling logic
+4. Role-based authorization integration with MSAL
+5. Configuration updates for dual authentication

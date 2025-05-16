@@ -1,0 +1,38 @@
+# MSAL Basic Login Integration for FourSPM_WebService
+
+## Overview
+This PRD outlines the implementation of Microsoft Authentication Library (MSAL) authentication in the FourSPM_WebService application while maintaining compatibility with legacy authentication methods. This focuses solely on the login functionality, without implementing more advanced role and permission-based authorization features yet.
+
+## Requirements
+
+### Azure AD Configuration (Already Completed)
+- Azure AD application registration is complete
+- Application ID: c67bf91d-8b6a-494a-8b99-c7a4592e08c1
+- Redirect URLs configured
+- Organization-only authentication enforced
+
+### Authentication Implementation Requirements
+1. Integrate Microsoft Authentication Library (MSAL) for login authentication
+2. Maintain compatibility with legacy authentication methods
+3. Update JWT token validation to support MSAL tokens
+4. Configure JWT bearer options to support both auth methods
+
+### Specific Technical Requirements
+1. Update Startup.cs to configure MSAL authentication alongside existing auth
+2. Create authentication middleware to detect token type (MSAL vs legacy)
+3. Implement AuthService updates to support dual auth modes
+4. Implement basic MSAL-specific token validation logic
+5. Update user model to extract basic identity information
+
+### Non-Requirements
+1. Role-based authorization and permissions
+2. Claims transformation for roles and permissions
+3. Advanced authorization policies
+4. Front-end implementation (will be handled separately)
+5. Testing tasks (deferred until front-end is adjusted)
+
+### Deliverables
+1. Updated authentication middleware
+2. Enhanced AuthService with basic MSAL support
+3. Token validation for MSAL tokens
+4. Basic user identity extraction

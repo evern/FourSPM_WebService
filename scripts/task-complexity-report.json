@@ -1,7 +1,7 @@
 {
   "meta": {
-    "generatedAt": "2025-05-16T17:15:48.444Z",
-    "tasksAnalyzed": 9,
+    "generatedAt": "2025-05-16T17:33:19.269Z",
+    "tasksAnalyzed": 10,
     "thresholdScore": 5,
     "projectName": "Taskmaster",
     "usedResearch": true
@@ -9,75 +9,83 @@
   "complexityAnalysis": [
     {
       "taskId": 1,
-      "taskTitle": "Create Entity Framework model class for ROLE_PERMISSION",
-      "complexityScore": 2,
-      "recommendedSubtasks": 2,
-      "expansionPrompt": "Break down the creation of the ROLE_PERMISSION entity class into: 1) Creating the basic class with properties, and 2) Adding navigation properties and ensuring proper relationships",
-      "reasoning": "This is a straightforward task involving creating a simple entity class with standard properties. The code is already provided and follows a common pattern. Low complexity due to clear requirements and minimal decision-making."
+      "taskTitle": "Update Startup.cs for MSAL Configuration",
+      "complexityScore": 6,
+      "recommendedSubtasks": 5,
+      "expansionPrompt": "Break down the process of updating Startup.cs for MSAL configuration into: (1) Adding MSAL configuration to ConfigureServices, (2) Configuring JWT bearer options for dual authentication, (3) Registering Azure AD application details, (4) Setting up authority and audience validation, (5) Implementing organization-only authentication logic.",
+      "reasoning": "This task involves integrating MSAL authentication into an existing authentication setup, requiring careful configuration of services, JWT options, and Azure AD details. It is moderately complex due to the need to support both legacy and MSAL tokens, but follows established patterns in ASP.NET Core[2][5]."
     },
     {
       "taskId": 2,
-      "taskTitle": "Update ROLE entity class with navigation property",
-      "complexityScore": 2,
-      "recommendedSubtasks": 2,
-      "expansionPrompt": "Break down the ROLE entity update into: 1) Adding the navigation property collection, and 2) Updating the constructor to initialize the collection properly",
-      "reasoning": "This is a simple modification to an existing class, adding a single navigation property and initializing it. The code is provided and the changes are minimal with low risk of side effects."
+      "taskTitle": "Create Authentication Middleware",
+      "complexityScore": 7,
+      "recommendedSubtasks": 6,
+      "expansionPrompt": "Expand the middleware creation into: (1) Designing the middleware class structure, (2) Implementing token extraction logic, (3) Determining token type (MSAL vs legacy), (4) Validating and storing token type in HttpContext, (5) Passing authentication info to the next middleware, (6) Registering and testing the middleware in the pipeline.",
+      "reasoning": "Developing custom middleware to handle dual authentication requires a solid understanding of the ASP.NET Core pipeline, token processing, and extensibility. The logic for distinguishing and handling both token types adds to the complexity[2][5]."
     },
     {
       "taskId": 3,
-      "taskTitle": "Update DbContext configuration",
-      "complexityScore": 4,
-      "recommendedSubtasks": 3,
-      "expansionPrompt": "Break down the DbContext update into: 1) Adding the DbSet property, 2) Configuring entity properties and constraints, and 3) Setting up the relationship with the ROLE entity",
-      "reasoning": "This task involves more complexity as it requires configuring the entity in the DbContext, including setting up keys, required properties, and relationships. Errors here could affect database schema and application functionality."
+      "taskTitle": "Update AuthService for Dual Authentication",
+      "complexityScore": 7,
+      "recommendedSubtasks": 6,
+      "expansionPrompt": "Decompose the AuthService update into: (1) Modifying the interface for dual methods, (2) Implementing MSAL token validation, (3) Implementing legacy token validation, (4) Creating token type detection helpers, (5) Ensuring backward compatibility, (6) Writing unit tests for all methods.",
+      "reasoning": "Enhancing AuthService to support both authentication methods involves interface changes, new validation logic, and maintaining backward compatibility, which increases the risk of regression and requires thorough testing[2][5]."
     },
     {
       "taskId": 4,
-      "taskTitle": "Create OData entity model",
-      "complexityScore": 3,
-      "recommendedSubtasks": 2,
-      "expansionPrompt": "Break down the OData entity creation into: 1) Creating the basic entity class with properties, and 2) Setting up the navigation property for the relationship with RoleEntity",
-      "reasoning": "This task requires creating a separate model for OData operations with proper naming conventions. It's slightly more complex than the EF model due to the need to follow OData-specific patterns."
+      "taskTitle": "Implement MSAL-Specific Token Validation",
+      "complexityScore": 6,
+      "recommendedSubtasks": 5,
+      "expansionPrompt": "Break down MSAL token validation into: (1) Implementing detailed MSAL token validation logic, (2) Extracting and validating MSAL-specific claims, (3) Handling MSAL token formats, (4) Authority and audience validation, (5) Integrating with AuthService.",
+      "reasoning": "While MSAL token validation follows established patterns, handling MSAL-specific claims and integrating with existing services requires attention to detail but is not highly complex if familiar with JWT and Azure AD[2]."
     },
     {
       "taskId": 5,
-      "taskTitle": "Create repository interface",
-      "complexityScore": 3,
-      "recommendedSubtasks": 3,
-      "expansionPrompt": "Break down the repository interface creation into: 1) Defining basic CRUD operations, 2) Adding specialized query methods, and 3) Ensuring proper async patterns are followed",
-      "reasoning": "Creating the interface requires defining the contract for all repository operations. While not technically difficult, it requires careful consideration of the methods needed for the application's requirements."
+      "taskTitle": "Update Application User Model",
+      "complexityScore": 5,
+      "recommendedSubtasks": 4,
+      "expansionPrompt": "Expand the user model update into: (1) Adding MSAL-specific properties, (2) Implementing claim-to-property mapping logic, (3) Ensuring backward compatibility, (4) Updating user service methods for both authentication types.",
+      "reasoning": "Updating the user model and mapping logic is straightforward but requires careful handling to avoid breaking legacy functionality and to ensure all new claims are mapped correctly."
     },
     {
       "taskId": 6,
-      "taskTitle": "Implement repository class",
-      "complexityScore": 6,
-      "recommendedSubtasks": 4,
-      "expansionPrompt": "Break down the repository implementation into: 1) Implementing query methods (GetAll, GetById, GetByRoleId), 2) Implementing Create method, 3) Implementing Update and Delete methods, and 4) Implementing utility methods like Exists",
-      "reasoning": "This task has higher complexity as it involves implementing all the repository methods with proper database interactions, error handling, and business logic. The soft delete pattern adds additional complexity."
+      "taskTitle": "Implement Role and Permission Claim Transformation",
+      "complexityScore": 7,
+      "recommendedSubtasks": 6,
+      "expansionPrompt": "Decompose claim transformation into: (1) Mapping MSAL claims to roles, (2) Querying ROLE and ROLE_PERMISSION tables, (3) Adding role claims, (4) Adding permission claims, (5) Ensuring compatibility with authorization checks, (6) Updating repositories for MSAL users.",
+      "reasoning": "Mapping claims to roles and permissions and integrating with existing database structures is moderately complex, especially when ensuring compatibility with both authentication methods and existing authorization logic."
     },
     {
       "taskId": 7,
-      "taskTitle": "Create controller with CRUD operations",
+      "taskTitle": "Configure JWT Bearer Options for Dual Authentication",
       "complexityScore": 7,
-      "recommendedSubtasks": 5,
-      "expansionPrompt": "Break down the controller implementation into: 1) Setting up the controller class with dependencies, 2) Implementing GET operations, 3) Implementing the custom GetByRoleId method, 4) Implementing POST and PUT operations, and 5) Implementing DELETE operation",
-      "reasoning": "Controller implementation has high complexity due to the need to handle HTTP requests, map between entity types, implement proper OData routing, and handle various error conditions and status codes."
+      "recommendedSubtasks": 6,
+      "expansionPrompt": "Break down JWT bearer configuration into: (1) Setting up JWT options for both token types, (2) Defining validation parameters for each, (3) Implementing token validation events, (4) Handling authority and audience checks, (5) Integrating with AuthService and claim transformer, (6) Testing with both token types.",
+      "reasoning": "Configuring JWT bearer options for dual authentication involves advanced setup of validation parameters and event handling, requiring a deep understanding of the authentication pipeline and security best practices[2][5]."
     },
     {
       "taskId": 8,
-      "taskTitle": "Update service registration",
-      "complexityScore": 2,
-      "recommendedSubtasks": 1,
-      "expansionPrompt": "Implement the service registration by adding the repository to the dependency injection container in the appropriate configuration method",
-      "reasoning": "This is a simple task involving a single line of code to register the repository in the DI container. The pattern is well-established and the risk is low."
+      "taskTitle": "Create Token Claim Validation Helpers",
+      "complexityScore": 5,
+      "recommendedSubtasks": 4,
+      "expansionPrompt": "Expand helper creation into: (1) Implementing required claim validation, (2) Implementing scope validation, (3) Creating utilities for claim extraction, (4) Integrating helpers into middleware and services.",
+      "reasoning": "Implementing helper methods is relatively straightforward but important for code reuse and correctness. The complexity is moderate due to the need to handle both MSAL and legacy claim formats."
     },
     {
       "taskId": 9,
-      "taskTitle": "Update EDM model registration",
-      "complexityScore": 3,
-      "recommendedSubtasks": 2,
-      "expansionPrompt": "Break down the EDM registration into: 1) Registering the entity set in the OData model builder, and 2) Configuring the custom function for GetByRoleId",
-      "reasoning": "This task involves configuring the OData EDM model with the new entity and function. While not highly complex, errors here could affect the OData API's functionality and discoverability."
+      "taskTitle": "Implement Role-Based Authorization",
+      "complexityScore": 6,
+      "recommendedSubtasks": 5,
+      "expansionPrompt": "Break down role-based authorization into: (1) Implementing authorization policies, (2) Configuring policy-based authorization, (3) Creating custom authorization handlers, (4) Ensuring compatibility with both authentication methods, (5) Testing authorization scenarios.",
+      "reasoning": "Setting up role-based authorization with custom policies and handlers is moderately complex, especially when ensuring seamless operation with both authentication methods and transformed claims."
+    },
+    {
+      "taskId": 10,
+      "taskTitle": "Create Authentication Documentation",
+      "complexityScore": 4,
+      "recommendedSubtasks": 4,
+      "expansionPrompt": "Expand documentation creation into: (1) Documenting authentication flows for both methods, (2) Providing configuration instructions, (3) Documenting roles and permissions, (4) Including troubleshooting and best practices.",
+      "reasoning": "While comprehensive documentation is critical, the task is less technically complex than implementation tasks, focusing on clarity, completeness, and accuracy."
     }
   ]
 }

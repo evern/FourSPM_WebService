@@ -1,5 +1,7 @@
 using FourSPM_WebService.Data.EF.FourSPM;
 using FourSPM_WebService.Models.Auth;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using System.Threading.Tasks;
 
 namespace FourSPM_WebService.Services
 {
@@ -12,5 +14,6 @@ namespace FourSPM_WebService.Services
         UserInfo? GetUserInfoFromToken(string token);
         string GeneratePasswordResetToken(USER user);
         UserInfo? ValidatePasswordResetToken(string token);
+        Task ValidateTokenAsync(TokenValidatedContext context);
     }
 }

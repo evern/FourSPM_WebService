@@ -1,129 +1,118 @@
 # Task ID: 10
-# Title: Implement End-to-End Testing
+# Title: Create Authentication Documentation
 # Status: pending
-# Dependencies: 1, 2, 3, 4, 5, 8, 9
-# Priority: medium
-# Description: Create comprehensive end-to-end tests to validate the Azure AD authentication integration.
+# Dependencies: 1, 2, 3, 4, 5, 6, 7, 8, 9
+# Priority: low
+# Description: Document the authentication flow, configuration, and usage for both authentication methods
 # Details:
-Create an integration test project:
+1. Create comprehensive documentation for the dual authentication system
+2. Document the authentication flow for both methods
+3. Provide configuration instructions
+4. Include examples of using authentication in the application
+5. Document the role and permission system
 
-```csharp
-public class AuthenticationIntegrationTests : IClassFixture<WebApplicationFactory<Program>>
+Documentation should include:
+
+```markdown
+# FourSPM_WebService Authentication Documentation
+
+## Overview
+This document describes the authentication system for FourSPM_WebService, which supports both Microsoft Authentication Library (MSAL) and legacy authentication methods.
+
+## Authentication Methods
+
+### MSAL Authentication
+MSAL authentication uses Azure AD for identity management and provides modern authentication features.
+
+#### Configuration
+- Azure AD Application ID: c67bf91d-8b6a-494a-8b99-c7a4592e08c1
+- Redirect URLs: [List configured redirect URLs]
+- API Scopes: Application.Admin and Application.User
+- Authentication Type: Organization-only
+
+#### Authentication Flow
+1. User authenticates with Azure AD
+2. Azure AD issues a JWT token
+3. Token is validated by the application
+4. User's roles and permissions are determined from the database
+5. User is granted access based on their roles and permissions
+
+### Legacy Authentication
+Legacy authentication uses the existing authentication system and is maintained for backward compatibility.
+
+#### Authentication Flow
+1. User authenticates using the legacy system
+2. Legacy system issues a JWT token
+3. Token is validated by the application
+4. User's roles and permissions are determined from the database
+5. User is granted access based on their roles and permissions
+
+## Configuration
+
+### appsettings.json
+```json
 {
-    private readonly WebApplicationFactory<Program> _factory;
-    private readonly HttpClient _client;
-
-    public AuthenticationIntegrationTests(WebApplicationFactory<Program> factory)
-    {
-        _factory = factory.WithWebHostBuilder(builder =>
-        {
-            builder.ConfigureAppConfiguration((context, config) =>
-            {
-                // Use test configuration
-                config.AddInMemoryCollection(new Dictionary<string, string>
-                {
-                    ["AzureAd:TenantId"] = "test-tenant-id",
-                    ["AzureAd:ClientId"] = "test-client-id"
-                });
-            });
-            
-            builder.ConfigureTestServices(services =>
-            {
-                // Mock authentication services for testing
-                services.AddAuthentication("Test")
-                    .AddScheme<AuthenticationSchemeOptions, TestAuthHandler>("Test", options => { });
-            });
-        });
-        
-        _client = _factory.CreateClient();
-    }
-
-    [Fact]
-    public async Task Unauthenticated_Request_Returns_401()
-    {
-        // Arrange
-        _client.DefaultRequestHeaders.Authorization = null;
-        
-        // Act
-        var response = await _client.GetAsync("/api/products");
-        
-        // Assert
-        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
-    }
-
-    [Fact]
-    public async Task Authenticated_Admin_Can_Access_Protected_Endpoint()
-    {
-        // Arrange
-        _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", GenerateTestToken("admin"));
-        
-        // Act
-        var response = await _client.GetAsync("/api/products");
-        
-        // Assert
-        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-    }
-
-    private string GenerateTestToken(string role)
-    {
-        // Generate a test token with appropriate claims
-        // Implementation details
-    }
-}
-
-// Test authentication handler
-public class TestAuthHandler : AuthenticationHandler<AuthenticationSchemeOptions>
-{
-    public TestAuthHandler(IOptionsMonitor<AuthenticationSchemeOptions> options, ILoggerFactory logger, UrlEncoder encoder, ISystemClock clock)
-        : base(options, logger, encoder, clock)
-    {
-    }
-
-    protected override Task<AuthenticateResult> HandleAuthenticateAsync()
-    {
-        // Parse the token from Authorization header and create claims principal
-        // Implementation details
-    }
+  "AzureAd": {
+    "Instance": "https://login.microsoftonline.com/",
+    "TenantId": "your-tenant-id",
+    "ClientId": "c67bf91d-8b6a-494a-8b99-c7a4592e08c1",
+    "Authority": "https://login.microsoftonline.com/your-tenant-id"
+  },
+  "LegacyAuth": {
+    "Issuer": "your-legacy-issuer",
+    "Audience": "your-legacy-audience",
+    "SecretKey": "your-legacy-secret-key"
+  }
 }
 ```
 
+## Role-Based Authorization
+
+### Roles and Permissions
+The application uses a role-based authorization system with the following components:
+- ROLE table: Defines the available roles
+- ROLE_PERMISSION table: Maps roles to permissions
+- User roles are assigned in the database
+
+### Authorization Policies
+The following authorization policies are available:
+- RequireAdminRole: Requires the "Admin" role
+- RequireUserRole: Requires the "User" role
+- CanManageUsers: Requires the "users.manage" permission
+- CanViewReports: Requires the "reports.view" permission
+- RequireAdminScope: Requires the MSAL "Application.Admin" scope
+
+### Using Authorization in Controllers
+```csharp
+[Authorize(Policy = "CanManageUsers")]
+public IActionResult ProtectedEndpoint()
+{
+    // Only accessible to users with the "users.manage" permission
+}
+```
+
+## Troubleshooting
+
+### Common Issues
+- Token validation failures: Check that the token is valid and has not expired
+- Missing roles or permissions: Check the database to ensure the user has the required roles
+- MSAL configuration issues: Verify the Azure AD configuration in appsettings.json
+
+### Logging
+Authentication events are logged using the standard logging system. Check the logs for detailed error information.
+```
+
+Additional documentation should include:
+1. Sequence diagrams for authentication flows
+2. Database schema for roles and permissions
+3. API documentation for authentication endpoints
+4. Examples of client-side integration
+5. Security best practices
+
 # Test Strategy:
-Run integration tests against a test instance of the application. Test various authentication and authorization scenarios including valid/invalid tokens, different roles, and scopes. Verify that all endpoints enforce the expected security requirements.
-
-# Subtasks:
-## 1. Set up the integration test project [pending]
-### Dependencies: None
-### Description: Create and configure the test project structure with necessary dependencies and frameworks for API integration testing
-### Details:
-Install required testing libraries and mocking frameworks. Configure the test environment with appropriate settings for API endpoints. Set up the project structure with separate folders for test cases, utilities, and configuration files. Include network request mocking libraries as recommended for efficient API testing.
-
-## 2. Configure test authentication handlers [pending]
-### Dependencies: 10.1
-### Description: Implement authentication handlers and middleware for simulating various authentication scenarios
-### Details:
-Create mock authentication services that can simulate different authentication states. Implement middleware to intercept and modify authentication headers. Set up handlers for different authentication methods (Basic, OAuth, JWT, etc.). Configure the test environment to use these authentication handlers.
-
-## 3. Write tests for unauthenticated requests [pending]
-### Dependencies: 10.1
-### Description: Develop test cases for API endpoints that don't require authentication
-### Details:
-Create test cases for public API endpoints. Test various HTTP methods (GET, POST, PUT, DELETE). Include boundary value tests and error scenario tests. Verify correct response codes and payload structures for unauthenticated requests. Implement tests for rate limiting and error handling.
-
-## 4. Write tests for authenticated requests with various roles/scopes [pending]
-### Dependencies: 10.2
-### Description: Develop test cases for API endpoints that require different authentication levels and user permissions
-### Details:
-Create test cases for endpoints requiring authentication. Test access with different user roles (admin, regular user, etc.). Verify proper authorization enforcement for protected resources. Test boundary conditions where permissions might overlap. Include negative tests where authentication should fail.
-
-## 5. Generate and manage test tokens [pending]
-### Dependencies: 10.2
-### Description: Implement utilities for creating, validating, and managing authentication tokens for testing
-### Details:
-Create utilities to generate valid and invalid tokens for testing. Implement token management for different user roles and permissions. Set up token expiration testing scenarios. Create helpers for injecting tokens into requests. Develop utilities for validating token usage in API responses.
-
-## 6. Run and validate test results [pending]
-### Dependencies: 10.3, 10.4, 10.5
-### Description: Execute the integration tests and analyze the results for API functionality and authentication
-### Details:
-Set up continuous integration for automated test execution. Implement reporting mechanisms for test results. Create dashboards for visualizing test coverage and success rates. Develop procedures for investigating and documenting test failures. Establish criteria for determining when tests pass or fail.
-
+1. Review documentation for completeness and accuracy
+2. Verify that all authentication flows are correctly documented
+3. Ensure that configuration instructions are clear and complete
+4. Check that examples are correct and follow best practices
+5. Validate that troubleshooting information is helpful and accurate
+6. Have team members review the documentation for clarity and usability

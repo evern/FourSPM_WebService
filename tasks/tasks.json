@@ -2,10 +2,10 @@
   "tasks": [
     {
       "id": 1,
-      "title": "Create Entity Framework model class for ROLE_PERMISSION",
-      "description": "Create the ROLE_PERMISSION.cs class that represents the ROLE_PERMISSION table in the database with all required properties.",
-      "details": "Create a new class file ROLE_PERMISSION.cs in the Models directory with the following properties:\n\n```csharp\npublic class ROLE_PERMISSION\n{\n    public int GUID { get; set; }\n    public int GUID_ROLE { get; set; }\n    public string PERMISSION { get; set; }\n    public DateTime CREATED { get; set; }\n    public string CREATEDBY { get; set; }\n    public DateTime? UPDATED { get; set; }\n    public string UPDATEDBY { get; set; }\n    public DateTime? DELETED { get; set; }\n    public string DELETEDBY { get; set; }\n    \n    // Navigation property\n    public virtual ROLE ROLE { get; set; }\n}\n```\n\nEnsure that the class follows the same naming conventions and structure as other entity models in the project.",
-      "testStrategy": "Verify that the class has all required properties with correct data types. Ensure navigation property is properly defined for the relationship with the ROLE table.",
+      "title": "Update Startup.cs for MSAL Configuration",
+      "description": "Modify the Startup.cs file to configure MSAL authentication alongside existing authentication methods",
+      "details": "1. Install required NuGet packages: Microsoft.Identity.Web and Microsoft.Identity.Web.UI\n2. Update ConfigureServices method to add MSAL support:\n```csharp\npublic void ConfigureServices(IServiceCollection services)\n{\n    // Existing authentication configuration\n    \n    // Add MSAL support\n    services.AddMicrosoftIdentityWebApiAuthentication(Configuration, \"AzureAd\");\n    \n    // Configure JWT options to support both auth methods\n    services.Configure<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme, options =>\n    {\n        // Existing JWT configuration\n        \n        // Add event handlers for MSAL token validation\n        options.Events = new JwtBearerEvents\n        {\n            OnTokenValidated = async context => \n            {\n                // Token validation logic will be implemented in AuthService\n                var authService = context.HttpContext.RequestServices.GetRequiredService<IAuthService>();\n                await authService.ValidateTokenAsync(context);\n            }\n        };\n    });\n}\n```\n3. Update appsettings.json to include MSAL configuration:\n```json\n{\n  \"AzureAd\": {\n    \"Instance\": \"https://login.microsoftonline.com/\",\n    \"TenantId\": \"your-tenant-id\",\n    \"ClientId\": \"c67bf91d-8b6a-494a-8b99-c7a4592e08c1\",\n    \"CallbackPath\": \"/signin-oidc\"\n  },\n  // Existing configuration\n}\n```",
+      "testStrategy": "1. Verify that the application builds successfully after the changes\n2. Ensure that the application starts without errors\n3. Check that both authentication configurations are loaded correctly\n4. Verify that the JWT bearer options are configured correctly\n5. Use logging to confirm the configuration is loaded as expected",
       "priority": "high",
       "dependencies": [],
       "status": "done",
@@ -13,10 +13,10 @@
     },
     {
       "id": 2,
-      "title": "Update ROLE entity class with navigation property",
-      "description": "Update the ROLE.cs class to include a navigation property for the relationship with ROLE_PERMISSION.",
-      "details": "Modify the existing ROLE.cs class to include a collection navigation property for ROLE_PERMISSION entities:\n\n```csharp\npublic class ROLE\n{\n    // Existing properties\n    \n    // Add this new navigation property\n    public virtual ICollection<ROLE_PERMISSION> ROLE_PERMISSIONS { get; set; }\n    \n    // Constructor to initialize the collection\n    public ROLE()\n    {\n        ROLE_PERMISSIONS = new HashSet<ROLE_PERMISSION>();\n    }\n}\n```\n\nIf the constructor already exists, just add the initialization for the new collection.",
-      "testStrategy": "Verify that the ROLE class now includes the ROLE_PERMISSIONS collection property and that it's properly initialized in the constructor.",
+      "title": "Create Authentication Middleware for Token Type Detection",
+      "description": "Implement middleware to detect and handle different token types (MSAL vs legacy)",
+      "details": "1. Create a new middleware class:\n```csharp\npublic class AuthenticationTypeMiddleware\n{\n    private readonly RequestDelegate _next;\n\n    public AuthenticationTypeMiddleware(RequestDelegate next)\n    {\n        _next = next;\n    }\n\n    public async Task InvokeAsync(HttpContext context)\n    {\n        // Check for Authorization header\n        if (context.Request.Headers.ContainsKey(\"Authorization\"))\n        {\n            var authHeader = context.Request.Headers[\"Authorization\"].ToString();\n            if (!string.IsNullOrEmpty(authHeader) && authHeader.StartsWith(\"Bearer \"))\n            {\n                var token = authHeader.Substring(\"Bearer \".Length).Trim();\n                \n                // Determine token type (MSAL vs Legacy)\n                bool isMsalToken = IsMsalToken(token);\n                \n                // Add token type to HttpContext items for later use\n                context.Items[\"IsMsalToken\"] = isMsalToken;\n            }\n        }\n\n        await _next(context);\n    }\n\n    private bool IsMsalToken(string token)\n    {\n        try\n        {\n            // Decode JWT token without validation\n            var handler = new JwtSecurityTokenHandler();\n            var jsonToken = handler.ReadToken(token) as JwtSecurityToken;\n\n            // MSAL tokens typically have specific claims or issuers\n            // Check for MSAL-specific indicators\n            return jsonToken?.Issuer?.Contains(\"login.microsoftonline.com\") == true ||\n                   jsonToken?.Claims?.Any(c => c.Type == \"aud\" && \n                                              c.Value == \"c67bf91d-8b6a-494a-8b99-c7a4592e08c1\") == true;\n        }\n        catch\n        {\n            // If token can't be parsed, assume it's not MSAL\n            return false;\n        }\n    }\n}\n\n// Extension method for easy middleware registration\npublic static class AuthenticationTypeMiddlewareExtensions\n{\n    public static IApplicationBuilder UseAuthenticationTypeDetection(\n        this IApplicationBuilder builder)\n    {\n        return builder.UseMiddleware<AuthenticationTypeMiddleware>();\n    }\n}\n```\n2. Register the middleware in Startup.cs Configure method:\n```csharp\npublic void Configure(IApplicationBuilder app, IWebHostEnvironment env)\n{\n    // Other middleware\n    \n    // Add our custom middleware before authentication\n    app.UseAuthenticationTypeDetection();\n    \n    app.UseAuthentication();\n    app.UseAuthorization();\n    \n    // Rest of the configuration\n}\n```",
+      "testStrategy": "1. Create unit tests for the IsMsalToken method with sample tokens\n2. Test the middleware with mock HttpContext and various Authorization headers\n3. Verify that the middleware correctly identifies MSAL tokens\n4. Ensure the middleware adds the correct token type to HttpContext.Items\n5. Test with invalid tokens to ensure proper error handling",
       "priority": "high",
       "dependencies": [
         1
@@ -26,11 +26,11 @@
     },
     {
       "id": 3,
-      "title": "Update DbContext configuration",
-      "description": "Update the FourSPMContext.cs file to include the ROLE_PERMISSION entity and configure the relationship with ROLE.",
-      "details": "Modify the FourSPMContext.cs file to include:\n\n1. Add DbSet property:\n```csharp\npublic DbSet<ROLE_PERMISSION> ROLE_PERMISSIONS { get; set; }\n```\n\n2. Configure the entity in OnModelCreating method:\n```csharp\nmodelBuilder.Entity<ROLE_PERMISSION>(entity =>\n{\n    entity.HasKey(e => e.GUID);\n    \n    entity.Property(e => e.PERMISSION)\n        .IsRequired()\n        .HasMaxLength(100);\n    \n    entity.Property(e => e.CREATED).IsRequired();\n    entity.Property(e => e.CREATEDBY).IsRequired();\n    \n    entity.HasOne(d => d.ROLE)\n        .WithMany(p => p.ROLE_PERMISSIONS)\n        .HasForeignKey(d => d.GUID_ROLE);\n});\n```\n\nEnsure that the configuration follows the same pattern as other entities in the context.",
-      "testStrategy": "Verify that the DbSet is properly added to the context. Test that the entity configuration in OnModelCreating correctly sets up the primary key, required properties, and the relationship with the ROLE entity.",
-      "priority": "high",
+      "title": "Update AuthService for Dual Authentication Support",
+      "description": "Enhance the existing AuthService to support both MSAL and legacy authentication methods",
+      "details": "1. Update the IAuthService interface:\n```csharp\npublic interface IAuthService\n{\n    // Existing methods\n    \n    // New methods for MSAL support\n    Task ValidateTokenAsync(TokenValidatedContext context);\n    Task<ClaimsPrincipal> ValidateMsalTokenAsync(string token);\n    Task<ClaimsPrincipal> ValidateLegacyTokenAsync(string token);\n}\n```\n\n2. Implement the updated AuthService:\n```csharp\npublic class AuthService : IAuthService\n{\n    private readonly IConfiguration _configuration;\n    private readonly ILogger<AuthService> _logger;\n    \n    public AuthService(IConfiguration configuration, ILogger<AuthService> logger)\n    {\n        _configuration = configuration;\n        _logger = logger;\n    }\n    \n    // Implement existing methods\n    \n    // Implement new methods\n    public async Task ValidateTokenAsync(TokenValidatedContext context)\n    {\n        try\n        {\n            // Check if token type was determined by middleware\n            if (context.HttpContext.Items.TryGetValue(\"IsMsalToken\", out var isMsalTokenObj) && \n                isMsalTokenObj is bool isMsalToken)\n            {\n                if (isMsalToken)\n                {\n                    _logger.LogInformation(\"Validating MSAL token\");\n                    // MSAL tokens are already validated by the framework\n                    // Additional custom validation can be added here if needed\n                }\n                else\n                {\n                    _logger.LogInformation(\"Validating legacy token\");\n                    // Perform legacy token validation\n                    // This would call into your existing validation logic\n                }\n            }\n        }\n        catch (Exception ex)\n        {\n            _logger.LogError(ex, \"Error validating token\");\n            context.Fail(\"Token validation failed\");\n        }\n    }\n    \n    public async Task<ClaimsPrincipal> ValidateMsalTokenAsync(string token)\n    {\n        // This method would be used when you need to manually validate an MSAL token\n        // Microsoft.Identity.Web handles most validation automatically\n        \n        var validationParameters = new TokenValidationParameters\n        {\n            ValidateIssuer = true,\n            ValidIssuer = $\"https://login.microsoftonline.com/{_configuration[\"AzureAd:TenantId\"]}/v2.0\",\n            ValidateAudience = true,\n            ValidAudience = _configuration[\"AzureAd:ClientId\"],\n            ValidateLifetime = true,\n            ClockSkew = TimeSpan.FromMinutes(5),\n            ValidateIssuerSigningKey = true,\n            IssuerSigningKeys = await GetMsalSigningKeysAsync()\n        };\n        \n        var handler = new JwtSecurityTokenHandler();\n        var principal = handler.ValidateToken(token, validationParameters, out _);\n        return principal;\n    }\n    \n    public async Task<ClaimsPrincipal> ValidateLegacyTokenAsync(string token)\n    {\n        // Call into existing legacy token validation logic\n        // This would use your current validation parameters and logic\n        \n        // Example (replace with your actual implementation):\n        var validationParameters = new TokenValidationParameters\n        {\n            // Your existing validation parameters\n        };\n        \n        var handler = new JwtSecurityTokenHandler();\n        var principal = handler.ValidateToken(token, validationParameters, out _);\n        return principal;\n    }\n    \n    private async Task<IEnumerable<SecurityKey>> GetMsalSigningKeysAsync()\n    {\n        // Fetch OpenID configuration and signing keys from Microsoft\n        var tenantId = _configuration[\"AzureAd:TenantId\"];\n        var openIdConfigUrl = $\"https://login.microsoftonline.com/{tenantId}/v2.0/.well-known/openid-configuration\";\n        \n        using var httpClient = new HttpClient();\n        var openIdConfig = await httpClient.GetFromJsonAsync<OpenIdConnectConfiguration>(openIdConfigUrl);\n        return openIdConfig.SigningKeys;\n    }\n}\n\n// Helper class for OpenID configuration\npublic class OpenIdConnectConfiguration\n{\n    [JsonPropertyName(\"jwks_uri\")]\n    public string JwksUri { get; set; }\n    \n    // Other properties as needed\n    \n    public ICollection<SecurityKey> SigningKeys { get; } = new List<SecurityKey>();\n}\n```",
+      "testStrategy": "1. Create unit tests for each new method in the AuthService\n2. Test ValidateTokenAsync with both MSAL and legacy token scenarios\n3. Mock the HttpContext and TokenValidatedContext for testing\n4. Test error handling scenarios\n5. Verify that the correct validation path is taken based on token type\n6. Test with actual MSAL tokens in a controlled environment",
+      "priority": "medium",
       "dependencies": [
         1,
         2
@@ -40,161 +40,29 @@
     },
     {
       "id": 4,
-      "title": "Create OData entity model",
-      "description": "Create the RolePermissionEntity.cs class that will be used for OData operations.",
-      "details": "Create a new class file RolePermissionEntity.cs in the appropriate OData entities directory:\n\n```csharp\npublic class RolePermissionEntity\n{\n    public int Id { get; set; }\n    public int RoleId { get; set; }\n    public string Permission { get; set; }\n    public DateTime Created { get; set; }\n    public string CreatedBy { get; set; }\n    public DateTime? Updated { get; set; }\n    public string UpdatedBy { get; set; }\n    public DateTime? Deleted { get; set; }\n    public string DeletedBy { get; set; }\n    \n    // Navigation property\n    public RoleEntity Role { get; set; }\n}\n```\n\nEnsure the property names follow the OData naming conventions used in the project (typically PascalCase for OData entities).",
-      "testStrategy": "Verify that the OData entity class has all the required properties with appropriate data types and naming conventions. Ensure the navigation property is properly defined.",
+      "title": "Implement MSAL-Specific Token Validation Logic",
+      "description": "Create specialized validation logic for MSAL tokens to ensure proper authentication",
+      "details": "1. Create a dedicated MSAL token validator class:\n```csharp\npublic class MsalTokenValidator\n{\n    private readonly IConfiguration _configuration;\n    private readonly IMemoryCache _cache;\n    private readonly ILogger<MsalTokenValidator> _logger;\n    \n    public MsalTokenValidator(IConfiguration configuration, IMemoryCache cache, ILogger<MsalTokenValidator> logger)\n    {\n        _configuration = configuration;\n        _cache = cache;\n        _logger = logger;\n    }\n    \n    public async Task<(bool isValid, ClaimsPrincipal principal)> ValidateTokenAsync(string token)\n    {\n        try\n        {\n            var validationParameters = new TokenValidationParameters\n            {\n                ValidateIssuer = true,\n                ValidIssuers = new[] \n                { \n                    $\"https://login.microsoftonline.com/{_configuration[\"AzureAd:TenantId\"]}/v2.0\",\n                    $\"https://sts.windows.net/{_configuration[\"AzureAd:TenantId\"]}/\"\n                },\n                ValidateAudience = true,\n                ValidAudience = _configuration[\"AzureAd:ClientId\"],\n                ValidateLifetime = true,\n                ClockSkew = TimeSpan.FromMinutes(5),\n                ValidateIssuerSigningKey = true,\n                IssuerSigningKeys = await GetSigningKeysAsync()\n            };\n            \n            var handler = new JwtSecurityTokenHandler();\n            var principal = handler.ValidateToken(token, validationParameters, out var validatedToken);\n            \n            // Additional custom validation if needed\n            // For example, check for required claims\n            if (!principal.HasClaim(c => c.Type == \"oid\") && !principal.HasClaim(c => c.Type == \"sub\"))\n            {\n                _logger.LogWarning(\"MSAL token missing required identity claims\");\n                return (false, null);\n            }\n            \n            return (true, principal);\n        }\n        catch (Exception ex)\n        {\n            _logger.LogError(ex, \"MSAL token validation failed\");\n            return (false, null);\n        }\n    }\n    \n    private async Task<IEnumerable<SecurityKey>> GetSigningKeysAsync()\n    {\n        // Try to get signing keys from cache first\n        const string cacheKey = \"MsalSigningKeys\";\n        if (_cache.TryGetValue(cacheKey, out IEnumerable<SecurityKey> cachedKeys))\n        {\n            return cachedKeys;\n        }\n        \n        // Fetch OpenID configuration and signing keys from Microsoft\n        var tenantId = _configuration[\"AzureAd:TenantId\"];\n        var openIdConfigUrl = $\"https://login.microsoftonline.com/{tenantId}/v2.0/.well-known/openid-configuration\";\n        \n        using var httpClient = new HttpClient();\n        var openIdConfigJson = await httpClient.GetStringAsync(openIdConfigUrl);\n        var openIdConfig = JsonDocument.Parse(openIdConfigJson);\n        \n        var jwksUri = openIdConfig.RootElement.GetProperty(\"jwks_uri\").GetString();\n        var jwksJson = await httpClient.GetStringAsync(jwksUri);\n        \n        var jwks = new JsonWebKeySet(jwksJson);\n        var keys = jwks.Keys.Select(k => (SecurityKey)k).ToList();\n        \n        // Cache the keys (typically good for 24 hours)\n        _cache.Set(cacheKey, keys, TimeSpan.FromHours(24));\n        \n        return keys;\n    }\n}\n```\n\n2. Register the validator in Startup.cs:\n```csharp\npublic void ConfigureServices(IServiceCollection services)\n{\n    // Existing configuration\n    \n    // Register the MSAL token validator\n    services.AddSingleton<MsalTokenValidator>();\n    \n    // Ensure memory cache is registered\n    services.AddMemoryCache();\n}\n```\n\n3. Update the AuthService to use the validator:\n```csharp\npublic class AuthService : IAuthService\n{\n    private readonly MsalTokenValidator _msalTokenValidator;\n    // Other dependencies\n    \n    public AuthService(MsalTokenValidator msalTokenValidator, /* other dependencies */)\n    {\n        _msalTokenValidator = msalTokenValidator;\n        // Initialize other dependencies\n    }\n    \n    public async Task ValidateTokenAsync(TokenValidatedContext context)\n    {\n        // Get the token from the context\n        var token = context.SecurityToken as JwtSecurityToken;\n        if (token == null) return;\n        \n        // Check if it's an MSAL token\n        if (context.HttpContext.Items.TryGetValue(\"IsMsalToken\", out var isMsalTokenObj) && \n            isMsalTokenObj is bool isMsalToken && isMsalToken)\n        {\n            // Perform additional MSAL-specific validation if needed\n            var (isValid, principal) = await _msalTokenValidator.ValidateTokenAsync(token.RawData);\n            if (!isValid)\n            {\n                context.Fail(\"MSAL token validation failed\");\n                return;\n            }\n            \n            // You could potentially replace the principal if needed\n            // context.Principal = principal;\n        }\n        else\n        {\n            // Legacy token validation logic\n        }\n    }\n    \n    // Other methods\n}\n```",
+      "testStrategy": "1. Create unit tests for the MsalTokenValidator class\n2. Test with valid and invalid MSAL tokens\n3. Mock the HTTP responses for OpenID configuration and JWKS\n4. Test caching behavior for signing keys\n5. Verify that token validation correctly identifies valid and invalid tokens\n6. Test with expired tokens, tokens with invalid signatures, and tokens with missing claims\n7. Verify integration with the AuthService",
       "priority": "medium",
       "dependencies": [
-        1
+        3
       ],
       "status": "done",
       "subtasks": []
     },
     {
       "id": 5,
-      "title": "Create repository interface",
-      "description": "Create the IRolePermissionRepository.cs interface that defines the contract for role permission operations.",
-      "details": "Create a new interface file IRolePermissionRepository.cs in the repository interfaces directory:\n\n```csharp\npublic interface IRolePermissionRepository\n{\n    Task<IEnumerable<ROLE_PERMISSION>> GetAllAsync();\n    Task<ROLE_PERMISSION> GetByIdAsync(int id);\n    Task<IEnumerable<ROLE_PERMISSION>> GetByRoleIdAsync(int roleId);\n    Task<ROLE_PERMISSION> CreateAsync(ROLE_PERMISSION rolePermission);\n    Task<ROLE_PERMISSION> UpdateAsync(ROLE_PERMISSION rolePermission);\n    Task<bool> DeleteAsync(int id);\n    Task<bool> ExistsAsync(int id);\n}\n```\n\nEnsure the interface follows the same pattern as other repository interfaces in the project.",
-      "testStrategy": "Review the interface to ensure it includes all necessary CRUD operations and follows the project's repository pattern. Verify method signatures match the expected usage patterns.",
-      "priority": "medium",
-      "dependencies": [
-        1
-      ],
-      "status": "done",
-      "subtasks": []
-    },
-    {
-      "id": 6,
-      "title": "Implement repository class",
-      "description": "Create the RolePermissionRepository.cs class that implements the IRolePermissionRepository interface.",
-      "details": "Create a new class file RolePermissionRepository.cs in the repository implementations directory:\n\n```csharp\npublic class RolePermissionRepository : IRolePermissionRepository\n{\n    private readonly FourSPMContext _context;\n    \n    public RolePermissionRepository(FourSPMContext context)\n    {\n        _context = context;\n    }\n    \n    public async Task<IEnumerable<ROLE_PERMISSION>> GetAllAsync()\n    {\n        return await _context.ROLE_PERMISSIONS\n            .Where(rp => rp.DELETED == null)\n            .ToListAsync();\n    }\n    \n    public async Task<ROLE_PERMISSION> GetByIdAsync(int id)\n    {\n        return await _context.ROLE_PERMISSIONS\n            .Where(rp => rp.GUID == id && rp.DELETED == null)\n            .FirstOrDefaultAsync();\n    }\n    \n    public async Task<IEnumerable<ROLE_PERMISSION>> GetByRoleIdAsync(int roleId)\n    {\n        return await _context.ROLE_PERMISSIONS\n            .Where(rp => rp.GUID_ROLE == roleId && rp.DELETED == null)\n            .ToListAsync();\n    }\n    \n    public async Task<ROLE_PERMISSION> CreateAsync(ROLE_PERMISSION rolePermission)\n    {\n        rolePermission.CREATED = DateTime.UtcNow;\n        _context.ROLE_PERMISSIONS.Add(rolePermission);\n        await _context.SaveChangesAsync();\n        return rolePermission;\n    }\n    \n    public async Task<ROLE_PERMISSION> UpdateAsync(ROLE_PERMISSION rolePermission)\n    {\n        var existingEntity = await GetByIdAsync(rolePermission.GUID);\n        if (existingEntity == null) return null;\n        \n        existingEntity.PERMISSION = rolePermission.PERMISSION;\n        existingEntity.UPDATED = DateTime.UtcNow;\n        existingEntity.UPDATEDBY = rolePermission.UPDATEDBY;\n        \n        await _context.SaveChangesAsync();\n        return existingEntity;\n    }\n    \n    public async Task<bool> DeleteAsync(int id)\n    {\n        var entity = await GetByIdAsync(id);\n        if (entity == null) return false;\n        \n        entity.DELETED = DateTime.UtcNow;\n        await _context.SaveChangesAsync();\n        return true;\n    }\n    \n    public async Task<bool> ExistsAsync(int id)\n    {\n        return await _context.ROLE_PERMISSIONS\n            .AnyAsync(rp => rp.GUID == id && rp.DELETED == null);\n    }\n}\n```\n\nEnsure the implementation follows the soft delete pattern used in the project (setting DELETED timestamp rather than removing records).",
-      "testStrategy": "Unit test each method to verify correct behavior:\n1. GetAllAsync should return only non-deleted records\n2. GetByIdAsync should return the correct record if it exists and is not deleted\n3. GetByRoleIdAsync should return all permissions for a specific role\n4. CreateAsync should add a new record with the current timestamp\n5. UpdateAsync should update only the allowed fields and set the UPDATED timestamp\n6. DeleteAsync should set the DELETED timestamp rather than removing the record\n7. ExistsAsync should return true only for existing non-deleted records",
-      "priority": "medium",
+      "title": "Update User Model for MSAL Identity Information",
+      "description": "Enhance the user model to extract and store identity information from MSAL tokens",
+      "details": "1. Update the User model to include MSAL-specific properties:\n```csharp\npublic class User\n{\n    // Existing properties\n    \n    // MSAL-specific properties\n    public string ObjectId { get; set; } // Maps to 'oid' claim\n    public string TenantId { get; set; } // Maps to 'tid' claim\n    public string PreferredUsername { get; set; } // Maps to 'preferred_username' claim\n    public bool IsAuthenticatedWithMsal { get; set; }\n    \n    // Method to create user from claims\n    public static User FromClaimsPrincipal(ClaimsPrincipal principal, bool isMsalAuth = false)\n    {\n        if (principal == null) return null;\n        \n        var user = new User\n        {\n            IsAuthenticatedWithMsal = isMsalAuth\n        };\n        \n        // Fill common properties\n        user.Username = principal.FindFirstValue(ClaimTypes.Name) ?? \n                       principal.FindFirstValue(\"preferred_username\") ?? \n                       principal.FindFirstValue(\"upn\");\n                       \n        user.Email = principal.FindFirstValue(ClaimTypes.Email) ?? \n                    principal.FindFirstValue(\"email\") ?? \n                    principal.FindFirstValue(\"preferred_username\");\n        \n        // Fill MSAL-specific properties if authenticated with MSAL\n        if (isMsalAuth)\n        {\n            user.ObjectId = principal.FindFirstValue(\"oid\") ?? principal.FindFirstValue(\"sub\");\n            user.TenantId = principal.FindFirstValue(\"tid\");\n            user.PreferredUsername = principal.FindFirstValue(\"preferred_username\");\n        }\n        else\n        {\n            // Map legacy claims if needed\n        }\n        \n        return user;\n    }\n}\n```\n\n2. Create a UserService to handle user creation and retrieval:\n```csharp\npublic interface IUserService\n{\n    User GetUserFromPrincipal(ClaimsPrincipal principal, bool isMsalAuth = false);\n    Task<User> GetOrCreateUserAsync(ClaimsPrincipal principal, bool isMsalAuth = false);\n}\n\npublic class UserService : IUserService\n{\n    private readonly IUserRepository _userRepository;\n    private readonly ILogger<UserService> _logger;\n    \n    public UserService(IUserRepository userRepository, ILogger<UserService> logger)\n    {\n        _userRepository = userRepository;\n        _logger = logger;\n    }\n    \n    public User GetUserFromPrincipal(ClaimsPrincipal principal, bool isMsalAuth = false)\n    {\n        return User.FromClaimsPrincipal(principal, isMsalAuth);\n    }\n    \n    public async Task<User> GetOrCreateUserAsync(ClaimsPrincipal principal, bool isMsalAuth = false)\n    {\n        var user = GetUserFromPrincipal(principal, isMsalAuth);\n        if (user == null) return null;\n        \n        // For MSAL users, try to find by ObjectId\n        if (isMsalAuth && !string.IsNullOrEmpty(user.ObjectId))\n        {\n            var existingUser = await _userRepository.GetByObjectIdAsync(user.ObjectId);\n            if (existingUser != null)\n            {\n                // Update properties if needed\n                existingUser.PreferredUsername = user.PreferredUsername;\n                existingUser.Email = user.Email;\n                await _userRepository.UpdateAsync(existingUser);\n                return existingUser;\n            }\n        }\n        \n        // Try to find by username/email for both auth types\n        var userByUsername = await _userRepository.GetByUsernameAsync(user.Username);\n        if (userByUsername != null)\n        {\n            // Update with MSAL info if needed\n            if (isMsalAuth && string.IsNullOrEmpty(userByUsername.ObjectId))\n            {\n                userByUsername.ObjectId = user.ObjectId;\n                userByUsername.TenantId = user.TenantId;\n                userByUsername.IsAuthenticatedWithMsal = true;\n                await _userRepository.UpdateAsync(userByUsername);\n            }\n            return userByUsername;\n        }\n        \n        // Create new user if not found\n        await _userRepository.CreateAsync(user);\n        return user;\n    }\n}\n```\n\n3. Register the service in Startup.cs:\n```csharp\npublic void ConfigureServices(IServiceCollection services)\n{\n    // Existing configuration\n    \n    // Register user service\n    services.AddScoped<IUserService, UserService>();\n}\n```\n\n4. Update the AuthService to use the UserService:\n```csharp\npublic class AuthService : IAuthService\n{\n    private readonly IUserService _userService;\n    // Other dependencies\n    \n    public AuthService(IUserService userService, /* other dependencies */)\n    {\n        _userService = userService;\n        // Initialize other dependencies\n    }\n    \n    public async Task ValidateTokenAsync(TokenValidatedContext context)\n    {\n        // Existing validation logic\n        \n        // After successful validation, get or create the user\n        bool isMsalToken = context.HttpContext.Items.TryGetValue(\"IsMsalToken\", out var msalTokenObj) && \n                          msalTokenObj is bool msalToken && msalToken;\n        \n        var user = await _userService.GetOrCreateUserAsync(context.Principal, isMsalToken);\n        if (user != null)\n        {\n            // Add user to HttpContext for later use\n            context.HttpContext.Items[\"CurrentUser\"] = user;\n        }\n    }\n    \n    // Other methods\n}\n```",
+      "testStrategy": "1. Create unit tests for the User.FromClaimsPrincipal method\n2. Test with both MSAL and legacy claims\n3. Create unit tests for UserService methods\n4. Mock the IUserRepository for testing\n5. Test user creation, retrieval, and updating scenarios\n6. Verify that MSAL-specific properties are correctly extracted from claims\n7. Test the integration with AuthService\n8. Verify that users can be correctly identified regardless of authentication method",
+      "priority": "low",
       "dependencies": [
         3,
-        5
+        4
       ],
-      "status": "done",
-      "subtasks": [
-        {
-          "id": 1,
-          "title": "Implement Query Methods (GetAll, GetById, GetByRoleId)",
-          "description": "Develop repository methods to retrieve all records, a single record by its ID, and records filtered by role ID. Ensure these methods respect the soft delete pattern by excluding soft-deleted records from standard queries.",
-          "dependencies": [],
-          "details": "Use appropriate query filters or annotations (such as @Filter or global query filters) to automatically exclude soft-deleted entities from results. Ensure efficient database access and proper error handling for cases where records are not found.",
-          "status": "done"
-        },
-        {
-          "id": 2,
-          "title": "Implement Create Method",
-          "description": "Develop the repository method to create new records in the database, ensuring all required fields are validated and the soft delete flag is set to false by default.",
-          "dependencies": [
-            1
-          ],
-          "details": "Implement input validation and handle any database exceptions. Ensure that the created entity is not marked as deleted and that all business logic for creation is respected.",
-          "status": "done"
-        },
-        {
-          "id": 3,
-          "title": "Implement Update and Delete Methods (with Soft Delete)",
-          "description": "Implement methods to update existing records and to perform soft deletes. The delete method should set the soft delete flag (e.g., IsDeleted or deleted) instead of physically removing the record.",
-          "dependencies": [
-            2
-          ],
-          "details": "For updates, ensure only non-deleted records can be updated. For deletes, update the soft delete flag and optionally set a deletion timestamp. Use interceptors or SQL update statements as appropriate for the technology stack.",
-          "status": "done"
-        }
-      ]
-    },
-    {
-      "id": 7,
-      "title": "Create controller with CRUD operations",
-      "description": "Create the RolePermissionsController.cs class that provides OData endpoints for role permission operations.",
-      "details": "Create a new controller file RolePermissionsController.cs in the controllers directory:\n\n```csharp\n[ODataRoutePrefix(\"RolePermissions\")]\npublic class RolePermissionsController : ODataController\n{\n    private readonly IRolePermissionRepository _repository;\n    private readonly IMapper _mapper;\n    \n    public RolePermissionsController(IRolePermissionRepository repository, IMapper mapper)\n    {\n        _repository = repository;\n        _mapper = mapper;\n    }\n    \n    [EnableQuery]\n    [ODataRoute]\n    public async Task<IHttpActionResult> Get()\n    {\n        var rolePermissions = await _repository.GetAllAsync();\n        var entities = _mapper.Map<IEnumerable<RolePermissionEntity>>(rolePermissions);\n        return Ok(entities);\n    }\n    \n    [EnableQuery]\n    [ODataRoute(\"({id})\")]\n    public async Task<IHttpActionResult> Get([FromODataUri] int id)\n    {\n        var rolePermission = await _repository.GetByIdAsync(id);\n        if (rolePermission == null) return NotFound();\n        \n        var entity = _mapper.Map<RolePermissionEntity>(rolePermission);\n        return Ok(entity);\n    }\n    \n    [EnableQuery]\n    [ODataRoute(\"GetByRoleId(roleId={roleId})\")]\n    [HttpGet]\n    public async Task<IHttpActionResult> GetByRoleId([FromODataUri] int roleId)\n    {\n        var rolePermissions = await _repository.GetByRoleIdAsync(roleId);\n        var entities = _mapper.Map<IEnumerable<RolePermissionEntity>>(rolePermissions);\n        return Ok(entities);\n    }\n    \n    [ODataRoute]\n    public async Task<IHttpActionResult> Post(RolePermissionEntity entity)\n    {\n        if (!ModelState.IsValid) return BadRequest(ModelState);\n        \n        var rolePermission = _mapper.Map<ROLE_PERMISSION>(entity);\n        var result = await _repository.CreateAsync(rolePermission);\n        \n        var newEntity = _mapper.Map<RolePermissionEntity>(result);\n        return Created(newEntity);\n    }\n    \n    [ODataRoute(\"({id})\")]\n    public async Task<IHttpActionResult> Put([FromODataUri] int id, RolePermissionEntity entity)\n    {\n        if (!ModelState.IsValid) return BadRequest(ModelState);\n        if (id != entity.Id) return BadRequest(\"ID mismatch\");\n        \n        var exists = await _repository.ExistsAsync(id);\n        if (!exists) return NotFound();\n        \n        var rolePermission = _mapper.Map<ROLE_PERMISSION>(entity);\n        var result = await _repository.UpdateAsync(rolePermission);\n        \n        return Updated(_mapper.Map<RolePermissionEntity>(result));\n    }\n    \n    [ODataRoute(\"({id})\")]\n    public async Task<IHttpActionResult> Delete([FromODataUri] int id)\n    {\n        var success = await _repository.DeleteAsync(id);\n        if (!success) return NotFound();\n        \n        return StatusCode(HttpStatusCode.NoContent);\n    }\n}\n```\n\nEnsure the controller follows the OData conventions used in the project and includes appropriate attribute routing.",
-      "testStrategy": "Test each endpoint to verify:\n1. GET returns all non-deleted role permissions\n2. GET(id) returns the correct role permission or 404\n3. GetByRoleId returns all permissions for a specific role\n4. POST creates a new role permission and returns 201 Created\n5. PUT updates an existing role permission and returns 200 OK\n6. DELETE soft-deletes a role permission and returns 204 No Content",
-      "priority": "medium",
-      "dependencies": [
-        4,
-        6
-      ],
-      "status": "done",
-      "subtasks": [
-        {
-          "id": 1,
-          "title": "Set Up Controller Class with Dependencies",
-          "description": "Create the controller class, inherit from the appropriate OData controller base, and inject required dependencies such as data context, services, or repositories.",
-          "dependencies": [],
-          "details": "This includes defining the controller's namespace, importing necessary libraries, and setting up constructor injection for dependencies.",
-          "status": "done"
-        },
-        {
-          "id": 2,
-          "title": "Implement GET Operations",
-          "description": "Add methods to handle HTTP GET requests for retrieving all entities and single entities by key, supporting OData query options.",
-          "dependencies": [
-            1
-          ],
-          "details": "Implement methods decorated with [EnableQuery] to return collections and single entities, handling query parameters as per OData standards.",
-          "status": "done"
-        },
-        {
-          "id": 3,
-          "title": "Implement Custom GetByRoleId Method",
-          "description": "Create a custom GET method to retrieve entities filtered by a specific RoleId parameter.",
-          "dependencies": [
-            2
-          ],
-          "details": "Define a route and method that accepts a RoleId, queries the data source accordingly, and returns the filtered results.",
-          "status": "done"
-        },
-        {
-          "id": 4,
-          "title": "Implement POST and PUT Operations",
-          "description": "Add methods to handle HTTP POST for creating new entities and PUT for updating existing entities.",
-          "dependencies": [
-            3
-          ],
-          "details": "Ensure correct mapping between DTOs and entities, handle validation, and return appropriate status codes for success and error cases.",
-          "status": "done"
-        },
-        {
-          "id": 5,
-          "title": "Implement DELETE Operation",
-          "description": "Add a method to handle HTTP DELETE requests for removing entities by key.",
-          "dependencies": [
-            4
-          ],
-          "details": "Implement logic to locate the entity by key, perform deletion, and return suitable status codes for success or failure.",
-          "status": "done"
-        }
-      ]
-    },
-    {
-      "id": 8,
-      "title": "Update service registration",
-      "description": "Register the role permission repository in the dependency injection container.",
-      "details": "Update the service registration code (typically in Startup.cs or a dedicated registration class) to register the repository:\n\n```csharp\n// Add this line to the existing service registration method\nservices.AddScoped<IRolePermissionRepository, RolePermissionRepository>();\n```\n\nEnsure this follows the same pattern as other repository registrations in the project.",
-      "testStrategy": "Verify that the repository is properly registered by inspecting the DI container configuration. Test that the repository can be injected into controllers and other services.",
-      "priority": "medium",
-      "dependencies": [
-        6
-      ],
-      "status": "done",
-      "subtasks": []
-    },
-    {
-      "id": 9,
-      "title": "Update EDM model registration",
-      "description": "Register the RolePermissionEntity in the OData Entity Data Model (EDM).",
-      "details": "Update the OData EDM configuration (typically in a method like ConfigureOData in Startup.cs or a dedicated configuration class):\n\n```csharp\n// Add this to the existing EDM builder configuration\nbuilder.EntitySet<RolePermissionEntity>(\"RolePermissions\");\n\n// If you have the custom function for GetByRoleId, add this as well\nvar getRolePermissionsByRoleIdFunction = builder.Function(\"GetByRoleId\");\ngetRolePermissionsByRoleIdFunction.Parameter<int>(\"roleId\");\ngetRolePermissionsByRoleIdFunction.ReturnsCollectionFromEntitySet<RolePermissionEntity>(\"RolePermissions\");\n```\n\nEnsure this follows the same pattern as other entity registrations in the project.",
-      "testStrategy": "Verify that the RolePermissionEntity is properly registered in the EDM by inspecting the OData metadata document ($metadata endpoint). Test that OData queries work correctly for the new entity type.",
-      "priority": "medium",
-      "dependencies": [
-        4,
-        7
-      ],
-      "status": "done",
+      "status": "pending",
       "subtasks": []
     }
   ]

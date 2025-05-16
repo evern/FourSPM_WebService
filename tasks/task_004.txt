@@ -1,31 +1,159 @@
 # Task ID: 4
-# Title: Create OData entity model
+# Title: Implement MSAL-Specific Token Validation Logic
 # Status: done
-# Dependencies: 1
+# Dependencies: 3
 # Priority: medium
-# Description: Create the RolePermissionEntity.cs class that will be used for OData operations.
+# Description: Create specialized validation logic for MSAL tokens to ensure proper authentication
 # Details:
-Create a new class file RolePermissionEntity.cs in the appropriate OData entities directory:
-
+1. Create a dedicated MSAL token validator class:
 ```csharp
-public class RolePermissionEntity
+public class MsalTokenValidator
 {
-    public int Id { get; set; }
-    public int RoleId { get; set; }
-    public string Permission { get; set; }
-    public DateTime Created { get; set; }
-    public string CreatedBy { get; set; }
-    public DateTime? Updated { get; set; }
-    public string UpdatedBy { get; set; }
-    public DateTime? Deleted { get; set; }
-    public string DeletedBy { get; set; }
+    private readonly IConfiguration _configuration;
+    private readonly IMemoryCache _cache;
+    private readonly ILogger<MsalTokenValidator> _logger;
     
-    // Navigation property
-    public RoleEntity Role { get; set; }
+    public MsalTokenValidator(IConfiguration configuration, IMemoryCache cache, ILogger<MsalTokenValidator> logger)
+    {
+        _configuration = configuration;
+        _cache = cache;
+        _logger = logger;
+    }
+    
+    public async Task<(bool isValid, ClaimsPrincipal principal)> ValidateTokenAsync(string token)
+    {
+        try
+        {
+            var validationParameters = new TokenValidationParameters
+            {
+                ValidateIssuer = true,
+                ValidIssuers = new[] 
+                { 
+                    $"https://login.microsoftonline.com/{_configuration["AzureAd:TenantId"]}/v2.0",
+                    $"https://sts.windows.net/{_configuration["AzureAd:TenantId"]}/"
+                },
+                ValidateAudience = true,
+                ValidAudience = _configuration["AzureAd:ClientId"],
+                ValidateLifetime = true,
+                ClockSkew = TimeSpan.FromMinutes(5),
+                ValidateIssuerSigningKey = true,
+                IssuerSigningKeys = await GetSigningKeysAsync()
+            };
+            
+            var handler = new JwtSecurityTokenHandler();
+            var principal = handler.ValidateToken(token, validationParameters, out var validatedToken);
+            
+            // Additional custom validation if needed
+            // For example, check for required claims
+            if (!principal.HasClaim(c => c.Type == "oid") && !principal.HasClaim(c => c.Type == "sub"))
+            {
+                _logger.LogWarning("MSAL token missing required identity claims");
+                return (false, null);
+            }
+            
+            return (true, principal);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "MSAL token validation failed");
+            return (false, null);
+        }
+    }
+    
+    private async Task<IEnumerable<SecurityKey>> GetSigningKeysAsync()
+    {
+        // Try to get signing keys from cache first
+        const string cacheKey = "MsalSigningKeys";
+        if (_cache.TryGetValue(cacheKey, out IEnumerable<SecurityKey> cachedKeys))
+        {
+            return cachedKeys;
+        }
+        
+        // Fetch OpenID configuration and signing keys from Microsoft
+        var tenantId = _configuration["AzureAd:TenantId"];
+        var openIdConfigUrl = $"https://login.microsoftonline.com/{tenantId}/v2.0/.well-known/openid-configuration";
+        
+        using var httpClient = new HttpClient();
+        var openIdConfigJson = await httpClient.GetStringAsync(openIdConfigUrl);
+        var openIdConfig = JsonDocument.Parse(openIdConfigJson);
+        
+        var jwksUri = openIdConfig.RootElement.GetProperty("jwks_uri").GetString();
+        var jwksJson = await httpClient.GetStringAsync(jwksUri);
+        
+        var jwks = new JsonWebKeySet(jwksJson);
+        var keys = jwks.Keys.Select(k => (SecurityKey)k).ToList();
+        
+        // Cache the keys (typically good for 24 hours)
+        _cache.Set(cacheKey, keys, TimeSpan.FromHours(24));
+        
+        return keys;
+    }
 }
 ```
 
-Ensure the property names follow the OData naming conventions used in the project (typically PascalCase for OData entities).
+2. Register the validator in Startup.cs:
+```csharp
+public void ConfigureServices(IServiceCollection services)
+{
+    // Existing configuration
+    
+    // Register the MSAL token validator
+    services.AddSingleton<MsalTokenValidator>();
+    
+    // Ensure memory cache is registered
+    services.AddMemoryCache();
+}
+```
+
+3. Update the AuthService to use the validator:
+```csharp
+public class AuthService : IAuthService
+{
+    private readonly MsalTokenValidator _msalTokenValidator;
+    // Other dependencies
+    
+    public AuthService(MsalTokenValidator msalTokenValidator, /* other dependencies */)
+    {
+        _msalTokenValidator = msalTokenValidator;
+        // Initialize other dependencies
+    }
+    
+    public async Task ValidateTokenAsync(TokenValidatedContext context)
+    {
+        // Get the token from the context
+        var token = context.SecurityToken as JwtSecurityToken;
+        if (token == null) return;
+        
+        // Check if it's an MSAL token
+        if (context.HttpContext.Items.TryGetValue("IsMsalToken", out var isMsalTokenObj) && 
+            isMsalTokenObj is bool isMsalToken && isMsalToken)
+        {
+            // Perform additional MSAL-specific validation if needed
+            var (isValid, principal) = await _msalTokenValidator.ValidateTokenAsync(token.RawData);
+            if (!isValid)
+            {
+                context.Fail("MSAL token validation failed");
+                return;
+            }
+            
+            // You could potentially replace the principal if needed
+            // context.Principal = principal;
+        }
+        else
+        {
+            // Legacy token validation logic
+        }
+    }
+    
+    // Other methods
+}
+```
 
 # Test Strategy:
-Verify that the OData entity class has all the required properties with appropriate data types and naming conventions. Ensure the navigation property is properly defined.
+1. Create unit tests for the MsalTokenValidator class
+2. Test with valid and invalid MSAL tokens
+3. Mock the HTTP responses for OpenID configuration and JWKS
+4. Test caching behavior for signing keys
+5. Verify that token validation correctly identifies valid and invalid tokens
+6. Test with expired tokens, tokens with invalid signatures, and tokens with missing claims
+7. Verify integration with the AuthService

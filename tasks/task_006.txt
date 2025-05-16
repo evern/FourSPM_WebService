@@ -1,0 +1,101 @@
+# Task ID: 6
+# Title: Implement JWT Bearer Options Configuration
+# Status: pending
+# Dependencies: 1, 4
+# Priority: medium
+# Description: Configure JWT bearer options to support both MSAL and legacy token validation.
+# Details:
+1. Create a custom JWT bearer events handler to support dual authentication
+2. Configure token validation to use the appropriate validator based on token type
+3. Update the JWT bearer options in Startup.cs
+
+Code example:
+```csharp
+public class DualAuthJwtBearerEvents : JwtBearerEvents
+{
+    private readonly MsalTokenValidator _msalTokenValidator;
+    
+    public DualAuthJwtBearerEvents(MsalTokenValidator msalTokenValidator)
+    {
+        _msalTokenValidator = msalTokenValidator;
+    }
+    
+    public override Task MessageReceived(MessageReceivedContext context)
+    {
+        // Extract token from Authorization header
+        string authHeader = context.Request.Headers["Authorization"];
+        if (!string.IsNullOrEmpty(authHeader) && authHeader.StartsWith("Bearer "))
+        {
+            string token = authHeader.Substring("Bearer ".Length);
+            
+            // Determine token type (MSAL vs legacy)
+            bool isMsalToken = IsMsalToken(token);
+            
+            // Store token type in HTTP context for later use
+            context.HttpContext.Items["IsMsalToken"] = isMsalToken;
+        }
+        
+        return base.MessageReceived(context);
+    }
+    
+    public override Task TokenValidated(TokenValidatedContext context)
+    {
+        // Additional validation or claims transformation if needed
+        return base.TokenValidated(context);
+    }
+    
+    private bool IsMsalToken(string token)
+    {
+        try
+        {
+            var handler = new JwtSecurityTokenHandler();
+            var jsonToken = handler.ReadToken(token) as JwtSecurityToken;
+            
+            return jsonToken?.Issuer?.Contains("login.microsoftonline.com") == true;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+}
+```
+
+In Startup.cs:
+```csharp
+services.AddAuthentication(options =>
+{
+    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+})
+.AddJwtBearer(options =>
+{
+    // Configure for both token types
+    options.TokenValidationParameters = new TokenValidationParameters
+    {
+        // Common validation parameters
+        ValidateLifetime = true,
+        ClockSkew = TimeSpan.FromMinutes(5),
+        
+        // For legacy tokens
+        // ...
+        
+        // For MSAL tokens
+        ValidAudiences = new[] { "c67bf91d-8b6a-494a-8b99-c7a4592e08c1" },
+        ValidIssuers = new[] { $"https://login.microsoftonline.com/{Configuration["AzureAd:TenantId"]}/v2.0" },
+    };
+    
+    // Use custom events handler
+    options.EventsType = typeof(DualAuthJwtBearerEvents);
+});
+
+// Register the events handler
+services.AddScoped<DualAuthJwtBearerEvents>();
+```
+
+# Test Strategy:
+1. Test with both MSAL and legacy tokens to verify proper validation
+2. Verify that token type detection works correctly
+3. Test with invalid tokens to ensure proper rejection
+4. Verify that the custom events handler is correctly invoked during authentication
+5. Test integration with the rest of the authentication pipeline

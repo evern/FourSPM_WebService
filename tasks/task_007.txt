@@ -1,0 +1,98 @@
+# Task ID: 7
+# Title: Create Authentication Middleware for Token Type Detection
+# Status: pending
+# Dependencies: 2, 5, 6
+# Priority: medium
+# Description: Implement middleware to detect and process different token types in the authentication pipeline.
+# Details:
+1. Create middleware to intercept authentication requests
+2. Implement logic to detect token type and route to appropriate handler
+3. Register the middleware in the request pipeline
+
+Code example:
+```csharp
+public class AuthenticationMiddleware
+{
+    private readonly RequestDelegate _next;
+    private readonly IAuthService _authService;
+    
+    public AuthenticationMiddleware(RequestDelegate next, IAuthService authService)
+    {
+        _next = next;
+        _authService = authService;
+    }
+    
+    public async Task InvokeAsync(HttpContext context)
+    {
+        // Check if authentication is required for this endpoint
+        // This is a simplified example - in practice, you might check route metadata or other factors
+        bool requiresAuth = !context.Request.Path.StartsWithSegments("/api/public");
+        
+        if (requiresAuth)
+        {
+            // Extract token from Authorization header
+            string authHeader = context.Request.Headers["Authorization"];
+            if (string.IsNullOrEmpty(authHeader) || !authHeader.StartsWith("Bearer "))
+            {
+                context.Response.StatusCode = 401; // Unauthorized
+                await context.Response.WriteAsJsonAsync(new { error = "Authentication required" });
+                return;
+            }
+            
+            string token = authHeader.Substring("Bearer ".Length);
+            
+            try
+            {
+                // Authenticate using the appropriate method based on token type
+                var user = await _authService.AuthenticateAsync(token);
+                
+                // Store user information in the HTTP context for later use
+                context.Items["CurrentUser"] = user;
+            }
+            catch (Exception ex)
+            {
+                // Log authentication error
+                // _logger.LogError(ex, "Authentication failed");
+                
+                context.Response.StatusCode = 401; // Unauthorized
+                await context.Response.WriteAsJsonAsync(new { error = "Invalid authentication token" });
+                return;
+            }
+        }
+        
+        await _next(context);
+    }
+}
+
+// Extension method for registering the middleware
+public static class AuthenticationMiddlewareExtensions
+{
+    public static IApplicationBuilder UseCustomAuthentication(this IApplicationBuilder builder)
+    {
+        return builder.UseMiddleware<AuthenticationMiddleware>();
+    }
+}
+```
+
+In Startup.cs Configure method:
+```csharp
+public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
+{
+    // Other middleware
+    
+    app.UseTokenTypeDetection(); // From Task 2
+    app.UseCustomAuthentication(); // This middleware
+    
+    app.UseAuthentication();
+    app.UseAuthorization();
+    
+    // Rest of the pipeline
+}
+```
+
+# Test Strategy:
+1. Test the middleware with various authentication scenarios
+2. Verify proper handling of missing or invalid tokens
+3. Test with both MSAL and legacy tokens
+4. Verify that user information is correctly stored in the HTTP context
+5. Test integration with protected and public endpoints

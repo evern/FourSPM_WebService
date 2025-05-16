@@ -13,6 +13,8 @@ using Microsoft.IdentityModel.Tokens;
 using FourSPM_WebService.Extensions;
 using System.Text.Json;
 using Azure.Core;
+using Microsoft.Identity.Web;
+using System.Security.Claims;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -124,16 +126,35 @@ builder.Services.Configure<IISServerOptions>(options =>
     options.AllowSynchronousIO = true;
 });
 
+// Register HttpClientFactory
+builder.Services.AddHttpClient("MsalValidator", client =>
+{
+    client.Timeout = TimeSpan.FromSeconds(30);
+    client.DefaultRequestHeaders.Add("Accept", "application/json");
+});
+
+// Add memory cache for token validation
+builder.Services.AddMemoryCache();
+
+// Register MSAL token validator
+builder.Services.AddScoped<MsalTokenValidator>();
+
+// Register auth service
 builder.Services.AddScoped<IAuthService, AuthService>();
 
-// Add JWT Authentication
-builder.Services.AddAuthentication(options =>
+// Add Authentication with support for both JWT and MSAL
+builder.Services
+    .AddAuthentication(options =>
+    {
+        options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+        options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+    })
+    .AddMicrosoftIdentityWebApi(builder.Configuration.GetSection("AzureAd"));
+
+// Configure JWT bearer options to support legacy authentication
+builder.Services.Configure<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme, options =>
 {
-    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-})
-.AddJwtBearer(options =>
-{
+    // Keep existing JWT validation for backward compatibility
     options.TokenValidationParameters = new TokenValidationParameters
     {
         ValidateIssuer = true,
@@ -144,6 +165,28 @@ builder.Services.AddAuthentication(options =>
         ValidAudience = jwtConfig.Audience,
         IssuerSigningKey = new SymmetricSecurityKey(
             Encoding.UTF8.GetBytes(jwtConfig.Secret))
+    };
+    
+    // Add event handlers for token validation
+    options.Events = new JwtBearerEvents
+    {
+        OnTokenValidated = async context => 
+        {
+            // Token validation logic will be implemented in AuthService
+            var authService = context.HttpContext.RequestServices.GetRequiredService<IAuthService>();
+            await authService.ValidateTokenAsync(context);
+            
+            // Store flag in HttpContext to indicate token type
+            var securityToken = context.SecurityToken as System.IdentityModel.Tokens.Jwt.JwtSecurityToken;
+            if (securityToken != null)
+            {
+                // Check if this is an MSAL token based on issuer pattern
+                var isMsalToken = securityToken.Issuer.Contains("login.microsoftonline.com") || 
+                                 securityToken.Issuer.Contains("sts.windows.net");
+                                 
+                context.HttpContext.Items["IsMsalToken"] = isMsalToken;
+            }
+        }
     };
 });
 
@@ -208,6 +251,9 @@ app.Use(async (context, next) =>
 
 app.UseAuthentication();
 app.UseAuthorization();
+
+// Add token type detection middleware before JWT validation
+app.UseTokenTypeDetection();
 app.UseJwtValidation();
 app.MapControllers();
 

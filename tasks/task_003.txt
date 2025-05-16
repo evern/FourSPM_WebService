@@ -1,37 +1,134 @@
 # Task ID: 3
-# Title: Update DbContext configuration
+# Title: Update AuthService for Dual Authentication Support
 # Status: done
 # Dependencies: 1, 2
-# Priority: high
-# Description: Update the FourSPMContext.cs file to include the ROLE_PERMISSION entity and configure the relationship with ROLE.
+# Priority: medium
+# Description: Enhance the existing AuthService to support both MSAL and legacy authentication methods
 # Details:
-Modify the FourSPMContext.cs file to include:
-
-1. Add DbSet property:
+1. Update the IAuthService interface:
 ```csharp
-public DbSet<ROLE_PERMISSION> ROLE_PERMISSIONS { get; set; }
-```
-
-2. Configure the entity in OnModelCreating method:
-```csharp
-modelBuilder.Entity<ROLE_PERMISSION>(entity =>
+public interface IAuthService
 {
-    entity.HasKey(e => e.GUID);
+    // Existing methods
     
-    entity.Property(e => e.PERMISSION)
-        .IsRequired()
-        .HasMaxLength(100);
-    
-    entity.Property(e => e.CREATED).IsRequired();
-    entity.Property(e => e.CREATEDBY).IsRequired();
-    
-    entity.HasOne(d => d.ROLE)
-        .WithMany(p => p.ROLE_PERMISSIONS)
-        .HasForeignKey(d => d.GUID_ROLE);
-});
+    // New methods for MSAL support
+    Task ValidateTokenAsync(TokenValidatedContext context);
+    Task<ClaimsPrincipal> ValidateMsalTokenAsync(string token);
+    Task<ClaimsPrincipal> ValidateLegacyTokenAsync(string token);
+}
 ```
 
-Ensure that the configuration follows the same pattern as other entities in the context.
+2. Implement the updated AuthService:
+```csharp
+public class AuthService : IAuthService
+{
+    private readonly IConfiguration _configuration;
+    private readonly ILogger<AuthService> _logger;
+    
+    public AuthService(IConfiguration configuration, ILogger<AuthService> logger)
+    {
+        _configuration = configuration;
+        _logger = logger;
+    }
+    
+    // Implement existing methods
+    
+    // Implement new methods
+    public async Task ValidateTokenAsync(TokenValidatedContext context)
+    {
+        try
+        {
+            // Check if token type was determined by middleware
+            if (context.HttpContext.Items.TryGetValue("IsMsalToken", out var isMsalTokenObj) && 
+                isMsalTokenObj is bool isMsalToken)
+            {
+                if (isMsalToken)
+                {
+                    _logger.LogInformation("Validating MSAL token");
+                    // MSAL tokens are already validated by the framework
+                    // Additional custom validation can be added here if needed
+                }
+                else
+                {
+                    _logger.LogInformation("Validating legacy token");
+                    // Perform legacy token validation
+                    // This would call into your existing validation logic
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error validating token");
+            context.Fail("Token validation failed");
+        }
+    }
+    
+    public async Task<ClaimsPrincipal> ValidateMsalTokenAsync(string token)
+    {
+        // This method would be used when you need to manually validate an MSAL token
+        // Microsoft.Identity.Web handles most validation automatically
+        
+        var validationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidIssuer = $"https://login.microsoftonline.com/{_configuration["AzureAd:TenantId"]}/v2.0",
+            ValidateAudience = true,
+            ValidAudience = _configuration["AzureAd:ClientId"],
+            ValidateLifetime = true,
+            ClockSkew = TimeSpan.FromMinutes(5),
+            ValidateIssuerSigningKey = true,
+            IssuerSigningKeys = await GetMsalSigningKeysAsync()
+        };
+        
+        var handler = new JwtSecurityTokenHandler();
+        var principal = handler.ValidateToken(token, validationParameters, out _);
+        return principal;
+    }
+    
+    public async Task<ClaimsPrincipal> ValidateLegacyTokenAsync(string token)
+    {
+        // Call into existing legacy token validation logic
+        // This would use your current validation parameters and logic
+        
+        // Example (replace with your actual implementation):
+        var validationParameters = new TokenValidationParameters
+        {
+            // Your existing validation parameters
+        };
+        
+        var handler = new JwtSecurityTokenHandler();
+        var principal = handler.ValidateToken(token, validationParameters, out _);
+        return principal;
+    }
+    
+    private async Task<IEnumerable<SecurityKey>> GetMsalSigningKeysAsync()
+    {
+        // Fetch OpenID configuration and signing keys from Microsoft
+        var tenantId = _configuration["AzureAd:TenantId"];
+        var openIdConfigUrl = $"https://login.microsoftonline.com/{tenantId}/v2.0/.well-known/openid-configuration";
+        
+        using var httpClient = new HttpClient();
+        var openIdConfig = await httpClient.GetFromJsonAsync<OpenIdConnectConfiguration>(openIdConfigUrl);
+        return openIdConfig.SigningKeys;
+    }
+}
+
+// Helper class for OpenID configuration
+public class OpenIdConnectConfiguration
+{
+    [JsonPropertyName("jwks_uri")]
+    public string JwksUri { get; set; }
+    
+    // Other properties as needed
+    
+    public ICollection<SecurityKey> SigningKeys { get; } = new List<SecurityKey>();
+}
+```
 
 # Test Strategy:
-Verify that the DbSet is properly added to the context. Test that the entity configuration in OnModelCreating correctly sets up the primary key, required properties, and the relationship with the ROLE entity.
+1. Create unit tests for each new method in the AuthService
+2. Test ValidateTokenAsync with both MSAL and legacy token scenarios
+3. Mock the HttpContext and TokenValidatedContext for testing
+4. Test error handling scenarios
+5. Verify that the correct validation path is taken based on token type
+6. Test with actual MSAL tokens in a controlled environment

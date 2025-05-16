@@ -1,31 +1,54 @@
 # Task ID: 1
-# Title: Create Entity Framework model class for ROLE_PERMISSION
+# Title: Update Startup.cs for MSAL Configuration
 # Status: done
 # Dependencies: None
 # Priority: high
-# Description: Create the ROLE_PERMISSION.cs class that represents the ROLE_PERMISSION table in the database with all required properties.
+# Description: Modify the Startup.cs file to configure MSAL authentication alongside existing authentication methods
 # Details:
-Create a new class file ROLE_PERMISSION.cs in the Models directory with the following properties:
-
+1. Install required NuGet packages: Microsoft.Identity.Web and Microsoft.Identity.Web.UI
+2. Update ConfigureServices method to add MSAL support:
 ```csharp
-public class ROLE_PERMISSION
+public void ConfigureServices(IServiceCollection services)
 {
-    public int GUID { get; set; }
-    public int GUID_ROLE { get; set; }
-    public string PERMISSION { get; set; }
-    public DateTime CREATED { get; set; }
-    public string CREATEDBY { get; set; }
-    public DateTime? UPDATED { get; set; }
-    public string UPDATEDBY { get; set; }
-    public DateTime? DELETED { get; set; }
-    public string DELETEDBY { get; set; }
+    // Existing authentication configuration
     
-    // Navigation property
-    public virtual ROLE ROLE { get; set; }
+    // Add MSAL support
+    services.AddMicrosoftIdentityWebApiAuthentication(Configuration, "AzureAd");
+    
+    // Configure JWT options to support both auth methods
+    services.Configure<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme, options =>
+    {
+        // Existing JWT configuration
+        
+        // Add event handlers for MSAL token validation
+        options.Events = new JwtBearerEvents
+        {
+            OnTokenValidated = async context => 
+            {
+                // Token validation logic will be implemented in AuthService
+                var authService = context.HttpContext.RequestServices.GetRequiredService<IAuthService>();
+                await authService.ValidateTokenAsync(context);
+            }
+        };
+    });
+}
+```
+3. Update appsettings.json to include MSAL configuration:
+```json
+{
+  "AzureAd": {
+    "Instance": "https://login.microsoftonline.com/",
+    "TenantId": "your-tenant-id",
+    "ClientId": "c67bf91d-8b6a-494a-8b99-c7a4592e08c1",
+    "CallbackPath": "/signin-oidc"
+  },
+  // Existing configuration
 }
 ```
 
-Ensure that the class follows the same naming conventions and structure as other entity models in the project.
-
 # Test Strategy:
-Verify that the class has all required properties with correct data types. Ensure navigation property is properly defined for the relationship with the ROLE table.
+1. Verify that the application builds successfully after the changes
+2. Ensure that the application starts without errors
+3. Check that both authentication configurations are loaded correctly
+4. Verify that the JWT bearer options are configured correctly
+5. Use logging to confirm the configuration is loaded as expected

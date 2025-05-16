@@ -1,23 +1,122 @@
 # Task ID: 9
-# Title: Update EDM model registration
-# Status: done
-# Dependencies: 4, 7
-# Priority: medium
-# Description: Register the RolePermissionEntity in the OData Entity Data Model (EDM).
+# Title: Implement Role-Based Authorization
+# Status: pending
+# Dependencies: 6
+# Priority: high
+# Description: Configure role-based authorization to work with both authentication methods using existing ROLE and ROLE_PERMISSION tables
 # Details:
-Update the OData EDM configuration (typically in a method like ConfigureOData in Startup.cs or a dedicated configuration class):
+1. Implement authorization policies based on roles and permissions
+2. Configure policy-based authorization
+3. Create custom authorization handlers if needed
+4. Ensure compatibility with both authentication methods
 
+Code example:
 ```csharp
-// Add this to the existing EDM builder configuration
-builder.EntitySet<RolePermissionEntity>("RolePermissions");
+// In Startup.cs
+public void ConfigureServices(IServiceCollection services)
+{
+    // Other service configuration
+    
+    services.AddAuthorization(options =>
+    {
+        // Add policies based on roles
+        options.AddPolicy("RequireAdminRole", policy =>
+            policy.RequireRole("Admin"));
+            
+        options.AddPolicy("RequireUserRole", policy =>
+            policy.RequireRole("User"));
+            
+        // Add policies based on permissions
+        options.AddPolicy("CanManageUsers", policy =>
+            policy.RequireClaim("permission", "users.manage"));
+            
+        options.AddPolicy("CanViewReports", policy =>
+            policy.RequireClaim("permission", "reports.view"));
+            
+        // Add custom policy that requires specific MSAL scope
+        options.AddPolicy("RequireAdminScope", policy =>
+            policy.Requirements.Add(new MsalScopeRequirement("Application.Admin")));
+    });
+    
+    // Register custom authorization handlers
+    services.AddSingleton<IAuthorizationHandler, MsalScopeHandler>();
+}
 
-// If you have the custom function for GetByRoleId, add this as well
-var getRolePermissionsByRoleIdFunction = builder.Function("GetByRoleId");
-getRolePermissionsByRoleIdFunction.Parameter<int>("roleId");
-getRolePermissionsByRoleIdFunction.ReturnsCollectionFromEntitySet<RolePermissionEntity>("RolePermissions");
+// Custom requirement for MSAL scopes
+public class MsalScopeRequirement : IAuthorizationRequirement
+{
+    public string RequiredScope { get; }
+    
+    public MsalScopeRequirement(string requiredScope)
+    {
+        RequiredScope = requiredScope;
+    }
+}
+
+// Custom handler for MSAL scope requirement
+public class MsalScopeHandler : AuthorizationHandler<MsalScopeRequirement>
+{
+    protected override Task HandleRequirementAsync(AuthorizationHandlerContext context, MsalScopeRequirement requirement)
+    {
+        // Check if this is an MSAL authentication
+        if (context.Resource is HttpContext httpContext)
+        {
+            bool isMsalAuth = (bool)(httpContext.Items["IsMsalToken"] ?? false);
+            
+            if (!isMsalAuth)
+            {
+                // Not MSAL auth, so this requirement doesn't apply
+                context.Succeed(requirement);
+                return Task.CompletedTask;
+            }
+            
+            // Check for the required scope
+            if (ClaimValidationHelpers.ValidateScopes(context.User, new[] { requirement.RequiredScope }))
+            {
+                context.Succeed(requirement);
+            }
+        }
+        
+        return Task.CompletedTask;
+    }
+}
+
+// Example controller with authorization
+[ApiController]
+[Route("api/[controller]")]
+public class UsersController : ControllerBase
+{
+    [HttpGet]
+    [Authorize(Policy = "CanManageUsers")]
+    public IActionResult GetUsers()
+    {
+        // Only accessible to users with the "users.manage" permission
+        // ...
+    }
+    
+    [HttpPost]
+    [Authorize(Policy = "RequireAdminRole")]
+    public IActionResult CreateUser([FromBody] CreateUserRequest request)
+    {
+        // Only accessible to users with the "Admin" role
+        // ...
+    }
+    
+    [HttpGet("admin-only")]
+    [Authorize(Policy = "RequireAdminScope")]
+    public IActionResult AdminOnlyEndpoint()
+    {
+        // Only accessible to MSAL users with the Application.Admin scope
+        // ...
+    }
+}
 ```
 
-Ensure this follows the same pattern as other entity registrations in the project.
-
 # Test Strategy:
-Verify that the RolePermissionEntity is properly registered in the EDM by inspecting the OData metadata document ($metadata endpoint). Test that OData queries work correctly for the new entity type.
+1. Create unit tests for authorization policies
+2. Test with users having different roles and permissions
+3. Test with both MSAL and legacy authentication
+4. Verify that custom authorization handlers work correctly
+5. Test endpoints with different authorization requirements
+6. Ensure that authorization works correctly with the transformed claims
+7. Test with users that have no roles or permissions

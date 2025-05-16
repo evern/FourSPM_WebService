@@ -1,0 +1,173 @@
+# Task ID: 5
+# Title: Update User Model for MSAL Identity Information
+# Status: pending
+# Dependencies: 3, 4
+# Priority: low
+# Description: Enhance the user model to extract and store identity information from MSAL tokens
+# Details:
+1. Update the User model to include MSAL-specific properties:
+```csharp
+public class User
+{
+    // Existing properties
+    
+    // MSAL-specific properties
+    public string ObjectId { get; set; } // Maps to 'oid' claim
+    public string TenantId { get; set; } // Maps to 'tid' claim
+    public string PreferredUsername { get; set; } // Maps to 'preferred_username' claim
+    public bool IsAuthenticatedWithMsal { get; set; }
+    
+    // Method to create user from claims
+    public static User FromClaimsPrincipal(ClaimsPrincipal principal, bool isMsalAuth = false)
+    {
+        if (principal == null) return null;
+        
+        var user = new User
+        {
+            IsAuthenticatedWithMsal = isMsalAuth
+        };
+        
+        // Fill common properties
+        user.Username = principal.FindFirstValue(ClaimTypes.Name) ?? 
+                       principal.FindFirstValue("preferred_username") ?? 
+                       principal.FindFirstValue("upn");
+                       
+        user.Email = principal.FindFirstValue(ClaimTypes.Email) ?? 
+                    principal.FindFirstValue("email") ?? 
+                    principal.FindFirstValue("preferred_username");
+        
+        // Fill MSAL-specific properties if authenticated with MSAL
+        if (isMsalAuth)
+        {
+            user.ObjectId = principal.FindFirstValue("oid") ?? principal.FindFirstValue("sub");
+            user.TenantId = principal.FindFirstValue("tid");
+            user.PreferredUsername = principal.FindFirstValue("preferred_username");
+        }
+        else
+        {
+            // Map legacy claims if needed
+        }
+        
+        return user;
+    }
+}
+```
+
+2. Create a UserService to handle user creation and retrieval:
+```csharp
+public interface IUserService
+{
+    User GetUserFromPrincipal(ClaimsPrincipal principal, bool isMsalAuth = false);
+    Task<User> GetOrCreateUserAsync(ClaimsPrincipal principal, bool isMsalAuth = false);
+}
+
+public class UserService : IUserService
+{
+    private readonly IUserRepository _userRepository;
+    private readonly ILogger<UserService> _logger;
+    
+    public UserService(IUserRepository userRepository, ILogger<UserService> logger)
+    {
+        _userRepository = userRepository;
+        _logger = logger;
+    }
+    
+    public User GetUserFromPrincipal(ClaimsPrincipal principal, bool isMsalAuth = false)
+    {
+        return User.FromClaimsPrincipal(principal, isMsalAuth);
+    }
+    
+    public async Task<User> GetOrCreateUserAsync(ClaimsPrincipal principal, bool isMsalAuth = false)
+    {
+        var user = GetUserFromPrincipal(principal, isMsalAuth);
+        if (user == null) return null;
+        
+        // For MSAL users, try to find by ObjectId
+        if (isMsalAuth && !string.IsNullOrEmpty(user.ObjectId))
+        {
+            var existingUser = await _userRepository.GetByObjectIdAsync(user.ObjectId);
+            if (existingUser != null)
+            {
+                // Update properties if needed
+                existingUser.PreferredUsername = user.PreferredUsername;
+                existingUser.Email = user.Email;
+                await _userRepository.UpdateAsync(existingUser);
+                return existingUser;
+            }
+        }
+        
+        // Try to find by username/email for both auth types
+        var userByUsername = await _userRepository.GetByUsernameAsync(user.Username);
+        if (userByUsername != null)
+        {
+            // Update with MSAL info if needed
+            if (isMsalAuth && string.IsNullOrEmpty(userByUsername.ObjectId))
+            {
+                userByUsername.ObjectId = user.ObjectId;
+                userByUsername.TenantId = user.TenantId;
+                userByUsername.IsAuthenticatedWithMsal = true;
+                await _userRepository.UpdateAsync(userByUsername);
+            }
+            return userByUsername;
+        }
+        
+        // Create new user if not found
+        await _userRepository.CreateAsync(user);
+        return user;
+    }
+}
+```
+
+3. Register the service in Startup.cs:
+```csharp
+public void ConfigureServices(IServiceCollection services)
+{
+    // Existing configuration
+    
+    // Register user service
+    services.AddScoped<IUserService, UserService>();
+}
+```
+
+4. Update the AuthService to use the UserService:
+```csharp
+public class AuthService : IAuthService
+{
+    private readonly IUserService _userService;
+    // Other dependencies
+    
+    public AuthService(IUserService userService, /* other dependencies */)
+    {
+        _userService = userService;
+        // Initialize other dependencies
+    }
+    
+    public async Task ValidateTokenAsync(TokenValidatedContext context)
+    {
+        // Existing validation logic
+        
+        // After successful validation, get or create the user
+        bool isMsalToken = context.HttpContext.Items.TryGetValue("IsMsalToken", out var msalTokenObj) && 
+                          msalTokenObj is bool msalToken && msalToken;
+        
+        var user = await _userService.GetOrCreateUserAsync(context.Principal, isMsalToken);
+        if (user != null)
+        {
+            // Add user to HttpContext for later use
+            context.HttpContext.Items["CurrentUser"] = user;
+        }
+    }
+    
+    // Other methods
+}
+```
+
+# Test Strategy:
+1. Create unit tests for the User.FromClaimsPrincipal method
+2. Test with both MSAL and legacy claims
+3. Create unit tests for UserService methods
+4. Mock the IUserRepository for testing
+5. Test user creation, retrieval, and updating scenarios
+6. Verify that MSAL-specific properties are correctly extracted from claims
+7. Test the integration with AuthService
+8. Verify that users can be correctly identified regardless of authentication method

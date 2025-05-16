@@ -1,29 +1,93 @@
 # Task ID: 2
-# Title: Update ROLE entity class with navigation property
+# Title: Create Authentication Middleware for Token Type Detection
 # Status: done
 # Dependencies: 1
 # Priority: high
-# Description: Update the ROLE.cs class to include a navigation property for the relationship with ROLE_PERMISSION.
+# Description: Implement middleware to detect and handle different token types (MSAL vs legacy)
 # Details:
-Modify the existing ROLE.cs class to include a collection navigation property for ROLE_PERMISSION entities:
-
+1. Create a new middleware class:
 ```csharp
-public class ROLE
+public class AuthenticationTypeMiddleware
 {
-    // Existing properties
-    
-    // Add this new navigation property
-    public virtual ICollection<ROLE_PERMISSION> ROLE_PERMISSIONS { get; set; }
-    
-    // Constructor to initialize the collection
-    public ROLE()
+    private readonly RequestDelegate _next;
+
+    public AuthenticationTypeMiddleware(RequestDelegate next)
     {
-        ROLE_PERMISSIONS = new HashSet<ROLE_PERMISSION>();
+        _next = next;
+    }
+
+    public async Task InvokeAsync(HttpContext context)
+    {
+        // Check for Authorization header
+        if (context.Request.Headers.ContainsKey("Authorization"))
+        {
+            var authHeader = context.Request.Headers["Authorization"].ToString();
+            if (!string.IsNullOrEmpty(authHeader) && authHeader.StartsWith("Bearer "))
+            {
+                var token = authHeader.Substring("Bearer ".Length).Trim();
+                
+                // Determine token type (MSAL vs Legacy)
+                bool isMsalToken = IsMsalToken(token);
+                
+                // Add token type to HttpContext items for later use
+                context.Items["IsMsalToken"] = isMsalToken;
+            }
+        }
+
+        await _next(context);
+    }
+
+    private bool IsMsalToken(string token)
+    {
+        try
+        {
+            // Decode JWT token without validation
+            var handler = new JwtSecurityTokenHandler();
+            var jsonToken = handler.ReadToken(token) as JwtSecurityToken;
+
+            // MSAL tokens typically have specific claims or issuers
+            // Check for MSAL-specific indicators
+            return jsonToken?.Issuer?.Contains("login.microsoftonline.com") == true ||
+                   jsonToken?.Claims?.Any(c => c.Type == "aud" && 
+                                              c.Value == "c67bf91d-8b6a-494a-8b99-c7a4592e08c1") == true;
+        }
+        catch
+        {
+            // If token can't be parsed, assume it's not MSAL
+            return false;
+        }
+    }
+}
+
+// Extension method for easy middleware registration
+public static class AuthenticationTypeMiddlewareExtensions
+{
+    public static IApplicationBuilder UseAuthenticationTypeDetection(
+        this IApplicationBuilder builder)
+    {
+        return builder.UseMiddleware<AuthenticationTypeMiddleware>();
     }
 }
 ```
-
-If the constructor already exists, just add the initialization for the new collection.
+2. Register the middleware in Startup.cs Configure method:
+```csharp
+public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
+{
+    // Other middleware
+    
+    // Add our custom middleware before authentication
+    app.UseAuthenticationTypeDetection();
+    
+    app.UseAuthentication();
+    app.UseAuthorization();
+    
+    // Rest of the configuration
+}
+```
 
 # Test Strategy:
-Verify that the ROLE class now includes the ROLE_PERMISSIONS collection property and that it's properly initialized in the constructor.
+1. Create unit tests for the IsMsalToken method with sample tokens
+2. Test the middleware with mock HttpContext and various Authorization headers
+3. Verify that the middleware correctly identifies MSAL tokens
+4. Ensure the middleware adds the correct token type to HttpContext.Items
+5. Test with invalid tokens to ensure proper error handling

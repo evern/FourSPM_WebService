@@ -1,18 +1,60 @@
 # Task ID: 8
-# Title: Update service registration
-# Status: done
-# Dependencies: 6
+# Title: Update appsettings.json for MSAL Configuration
+# Status: pending
+# Dependencies: 1
 # Priority: medium
-# Description: Register the role permission repository in the dependency injection container.
+# Description: Add MSAL-specific configuration to the application settings file.
 # Details:
-Update the service registration code (typically in Startup.cs or a dedicated registration class) to register the repository:
+1. Update appsettings.json to include MSAL configuration
+2. Add Azure AD tenant ID, client ID, and other required settings
+3. Configure environment-specific settings if needed
 
-```csharp
-// Add this line to the existing service registration method
-services.AddScoped<IRolePermissionRepository, RolePermissionRepository>();
+Code example:
+```json
+{
+  "Logging": {
+    "LogLevel": {
+      "Default": "Information",
+      "Microsoft": "Warning",
+      "Microsoft.Hosting.Lifetime": "Information"
+    }
+  },
+  "AllowedHosts": "*",
+  
+  "AzureAd": {
+    "Instance": "https://login.microsoftonline.com/",
+    "Domain": "yourdomain.onmicrosoft.com",
+    "TenantId": "your-tenant-id",
+    "ClientId": "c67bf91d-8b6a-494a-8b99-c7a4592e08c1",
+    "CallbackPath": "/signin-oidc"
+  },
+  
+  // Existing configuration settings
+  "JwtSettings": {
+    // Existing JWT settings for legacy authentication
+  }
+}
 ```
 
-Ensure this follows the same pattern as other repository registrations in the project.
+For development environment (appsettings.Development.json):
+```json
+{
+  "Logging": {
+    "LogLevel": {
+      "Default": "Debug",
+      "Microsoft": "Information",
+      "Microsoft.Hosting.Lifetime": "Information"
+    }
+  },
+  
+  "AzureAd": {
+    // Development-specific settings if needed
+  }
+}
+```
 
 # Test Strategy:
-Verify that the repository is properly registered by inspecting the DI container configuration. Test that the repository can be injected into controllers and other services.
+1. Verify that the application can read the configuration values correctly
+2. Test with different environment configurations
+3. Verify that the MSAL authentication uses the correct configuration values
+4. Test with invalid configuration to ensure proper error handling

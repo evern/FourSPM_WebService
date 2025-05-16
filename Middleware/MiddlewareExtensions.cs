@@ -6,4 +6,9 @@ public static class MiddlewareExtensions
     {
         return builder.UseMiddleware<JwtMiddleware>();
     }
+    
+    public static IApplicationBuilder UseTokenTypeDetection(this IApplicationBuilder builder)
+    {
+        return builder.UseMiddleware<TokenTypeMiddleware>();
+    }
 }
