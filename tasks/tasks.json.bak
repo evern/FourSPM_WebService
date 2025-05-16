@@ -2,289 +2,158 @@
   "tasks": [
     {
       "id": 1,
-      "title": "Create Entity Framework Model for ROLE Table",
-      "description": "Create and configure the Entity Framework model class for the ROLE table and integrate it into the FourSPMContext.",
-      "details": "1. Create a new class named 'Role' in the Models directory\n2. Implement all properties according to the database schema:\n   - GUID (int, primary key)\n   - NAME (string, required, max length 50)\n   - DISPLAY_NAME (string, required, max length 100)\n   - DESCRIPTION (string, nullable, max length 500)\n   - IS_SYSTEM_ROLE (bool, required)\n   - CREATED (DateTime, required)\n   - CREATEDBY (string, required)\n   - UPDATED (DateTime, nullable)\n   - UPDATEDBY (string, nullable)\n   - DELETED (DateTime, nullable)\n   - DELETEDBY (string, nullable)\n3. Add appropriate data annotations for validation\n4. Update FourSPMContext class to include DbSet<Role> property\n5. Configure entity in OnModelCreating method if needed for any special mappings\n\nExample implementation:\n```csharp\npublic class Role\n{\n    [Key]\n    public int GUID { get; set; }\n    \n    [Required]\n    [StringLength(50)]\n    public string NAME { get; set; }\n    \n    [Required]\n    [StringLength(100)]\n    public string DISPLAY_NAME { get; set; }\n    \n    [StringLength(500)]\n    public string DESCRIPTION { get; set; }\n    \n    [Required]\n    public bool IS_SYSTEM_ROLE { get; set; }\n    \n    [Required]\n    public DateTime CREATED { get; set; }\n    \n    [Required]\n    public string CREATEDBY { get; set; }\n    \n    public DateTime? UPDATED { get; set; }\n    \n    public string UPDATEDBY { get; set; }\n    \n    public DateTime? DELETED { get; set; }\n    \n    public string DELETEDBY { get; set; }\n}\n```\n\nIn FourSPMContext:\n```csharp\npublic DbSet<Role> Roles { get; set; }\n```",
-      "testStrategy": "1. Verify that the Role class has all required properties with correct types and data annotations\n2. Ensure the FourSPMContext includes the DbSet<Role> property\n3. Test database migrations to confirm proper table mapping\n4. Verify that the entity can be queried through the context\n5. Validate that constraints (required fields, string lengths) are properly enforced",
+      "title": "Create Entity Framework model class for ROLE_PERMISSION",
+      "description": "Create the ROLE_PERMISSION.cs class that represents the ROLE_PERMISSION table in the database with all required properties.",
+      "details": "Create a new class file ROLE_PERMISSION.cs in the Models directory with the following properties:\n\n```csharp\npublic class ROLE_PERMISSION\n{\n    public int GUID { get; set; }\n    public int GUID_ROLE { get; set; }\n    public string PERMISSION { get; set; }\n    public DateTime CREATED { get; set; }\n    public string CREATEDBY { get; set; }\n    public DateTime? UPDATED { get; set; }\n    public string UPDATEDBY { get; set; }\n    public DateTime? DELETED { get; set; }\n    public string DELETEDBY { get; set; }\n    \n    // Navigation property\n    public virtual ROLE ROLE { get; set; }\n}\n```\n\nEnsure that the class follows the same naming conventions and structure as other entity models in the project.",
+      "testStrategy": "Verify that the class has all required properties with correct data types. Ensure navigation property is properly defined for the relationship with the ROLE table.",
       "priority": "high",
       "dependencies": [],
       "status": "pending",
-      "subtasks": [
-        {
-          "id": 1,
-          "title": "Create Role class with properties",
-          "description": "Create a new class named 'Role' in the Models directory with all required properties according to the database schema",
-          "dependencies": [],
-          "details": "Create a new class file named 'Role.cs' in the Models directory. Implement all properties according to the database schema including GUID (int, primary key), NAME (string), DISPLAY_NAME (string), DESCRIPTION (string), IS_SYSTEM_ROLE (bool), CREATED (DateTime), CREATEDBY (string), UPDATED (DateTime?), UPDATEDBY (string), DELETED (DateTime?), and DELETEDBY (string).",
-          "status": "pending",
-          "testStrategy": "Verify that the Role class contains all required properties with correct data types and nullability."
-        },
-        {
-          "id": 2,
-          "title": "Add data annotations for validation",
-          "description": "Add appropriate data annotations to the Role class properties for validation and database mapping",
-          "dependencies": [
-            1
-          ],
-          "details": "Add data annotations to the Role class properties including [Key] for GUID, [Required] and [StringLength] for NAME (max 50), DISPLAY_NAME (max 100), and DESCRIPTION (max 500, nullable). Also add [Required] for non-nullable properties like IS_SYSTEM_ROLE, CREATED, and CREATEDBY.",
-          "status": "pending",
-          "testStrategy": "Verify that all properties have appropriate data annotations for validation and database mapping."
-        },
-        {
-          "id": 3,
-          "title": "Update FourSPMContext with DbSet property",
-          "description": "Add a DbSet<Role> property to the FourSPMContext class to enable database operations for the Role entity",
-          "dependencies": [
-            1
-          ],
-          "details": "Open the FourSPMContext.cs file and add a new DbSet property: public DbSet<Role> Roles { get; set; }. This will allow Entity Framework to create and manage the Roles table in the database.",
-          "status": "pending",
-          "testStrategy": "Verify that the FourSPMContext class includes the DbSet<Role> property."
-        },
-        {
-          "id": 4,
-          "title": "Configure entity in OnModelCreating method",
-          "description": "Update the OnModelCreating method in FourSPMContext to configure any special mappings for the Role entity",
-          "dependencies": [
-            3
-          ],
-          "details": "In the FourSPMContext class, modify the OnModelCreating method to add any special configurations for the Role entity using Fluent API. This may include table name configuration, relationship configurations, or any other database-specific settings not covered by data annotations.",
-          "status": "pending",
-          "testStrategy": "Verify that the OnModelCreating method includes appropriate configurations for the Role entity."
-        },
-        {
-          "id": 5,
-          "title": "Test the Role entity with database operations",
-          "description": "Create unit tests to verify that the Role entity works correctly with Entity Framework database operations",
-          "dependencies": [
-            2,
-            3,
-            4
-          ],
-          "details": "Create unit tests that verify CRUD operations (Create, Read, Update, Delete) for the Role entity using the FourSPMContext. Test that validation rules are enforced and that the entity is correctly mapped to the database schema.",
-          "status": "pending",
-          "testStrategy": "Run unit tests that perform CRUD operations on the Role entity and verify that the operations succeed and that validation rules are enforced."
-        }
-      ]
+      "subtasks": []
     },
     {
       "id": 2,
-      "title": "Implement OData Entity Model for Role",
-      "description": "Create the RoleEntity class for OData representation and register it in the EDM model with proper property naming conventions.",
-      "details": "1. Create a new class named 'RoleEntity' in the OData/Entities directory\n2. Implement all properties using PascalCase naming convention:\n   - Guid (int)\n   - Name (string)\n   - DisplayName (string)\n   - Description (string)\n   - IsSystemRole (bool)\n   - Created (DateTime)\n   - CreatedBy (string)\n   - Updated (DateTime?)\n   - UpdatedBy (string)\n   - Deleted (DateTime?)\n   - DeletedBy (string)\n3. Create mapping between Role and RoleEntity in the appropriate mapper class\n4. Register the RoleEntity in the EDM model configuration\n\nExample implementation:\n```csharp\npublic class RoleEntity\n{\n    public int Guid { get; set; }\n    public string Name { get; set; }\n    public string DisplayName { get; set; }\n    public string Description { get; set; }\n    public bool IsSystemRole { get; set; }\n    public DateTime Created { get; set; }\n    public string CreatedBy { get; set; }\n    public DateTime? Updated { get; set; }\n    public string UpdatedBy { get; set; }\n    public DateTime? Deleted { get; set; }\n    public string DeletedBy { get; set; }\n}\n```\n\nMapper implementation:\n```csharp\npublic static class RoleMapper\n{\n    public static RoleEntity ToEntity(Role model)\n    {\n        if (model == null) return null;\n        \n        return new RoleEntity\n        {\n            Guid = model.GUID,\n            Name = model.NAME,\n            DisplayName = model.DISPLAY_NAME,\n            Description = model.DESCRIPTION,\n            IsSystemRole = model.IS_SYSTEM_ROLE,\n            Created = model.CREATED,\n            CreatedBy = model.CREATEDBY,\n            Updated = model.UPDATED,\n            UpdatedBy = model.UPDATEDBY,\n            Deleted = model.DELETED,\n            DeletedBy = model.DELETEDBY\n        };\n    }\n    \n    public static Role ToModel(RoleEntity entity)\n    {\n        if (entity == null) return null;\n        \n        return new Role\n        {\n            GUID = entity.Guid,\n            NAME = entity.Name,\n            DISPLAY_NAME = entity.DisplayName,\n            DESCRIPTION = entity.Description,\n            IS_SYSTEM_ROLE = entity.IsSystemRole,\n            CREATED = entity.Created,\n            CREATEDBY = entity.CreatedBy,\n            UPDATED = entity.Updated,\n            UPDATEDBY = entity.UpdatedBy,\n            DELETED = entity.Deleted,\n            DELETEDBY = entity.DeletedBy\n        };\n    }\n}\n```\n\nEDM Registration:\n```csharp\nbuilder.EntitySet<RoleEntity>(\"Roles\");\n```",
-      "testStrategy": "1. Verify that the RoleEntity class has all required properties with correct PascalCase naming\n2. Test the mapper functions to ensure proper conversion between Role and RoleEntity\n3. Confirm that the entity is properly registered in the EDM model\n4. Verify that OData metadata endpoint correctly exposes the Role entity\n5. Test basic OData queries against the entity to ensure it's properly configured",
+      "title": "Update ROLE entity class with navigation property",
+      "description": "Update the ROLE.cs class to include a navigation property for the relationship with ROLE_PERMISSION.",
+      "details": "Modify the existing ROLE.cs class to include a collection navigation property for ROLE_PERMISSION entities:\n\n```csharp\npublic class ROLE\n{\n    // Existing properties\n    \n    // Add this new navigation property\n    public virtual ICollection<ROLE_PERMISSION> ROLE_PERMISSIONS { get; set; }\n    \n    // Constructor to initialize the collection\n    public ROLE()\n    {\n        ROLE_PERMISSIONS = new HashSet<ROLE_PERMISSION>();\n    }\n}\n```\n\nIf the constructor already exists, just add the initialization for the new collection.",
+      "testStrategy": "Verify that the ROLE class now includes the ROLE_PERMISSIONS collection property and that it's properly initialized in the constructor.",
       "priority": "high",
       "dependencies": [
         1
       ],
       "status": "pending",
-      "subtasks": [
-        {
-          "id": 1,
-          "title": "Create RoleEntity class",
-          "description": "Create a new class named 'RoleEntity' in the OData/Entities directory with all required properties using PascalCase naming convention.",
-          "dependencies": [],
-          "details": "Create the RoleEntity class with the following properties: Guid (int), Name (string), DisplayName (string), Description (string), IsSystemRole (bool), Created (DateTime), CreatedBy (string), Updated (DateTime?), UpdatedBy (string), Deleted (DateTime?), and DeletedBy (string). Ensure all properties have proper getters and setters.",
-          "status": "pending",
-          "testStrategy": "Verify that the class exists in the correct directory and contains all required properties with correct types and naming conventions."
-        },
-        {
-          "id": 2,
-          "title": "Implement RoleMapper class",
-          "description": "Create or update the RoleMapper class to include mapping methods between Role and RoleEntity.",
-          "dependencies": [
-            1
-          ],
-          "details": "Implement two mapping methods: ToEntity(Role model) that converts from domain model to entity, and ToModel(RoleEntity entity) that converts from entity to domain model. Ensure all properties are correctly mapped between the snake_case domain model and PascalCase entity model.",
-          "status": "pending",
-          "testStrategy": "Test both mapping methods with sample data to ensure bidirectional conversion works correctly and preserves all property values."
-        },
-        {
-          "id": 3,
-          "title": "Register RoleEntity in EDM model",
-          "description": "Add RoleEntity to the OData Entity Data Model configuration.",
-          "dependencies": [
-            1
-          ],
-          "details": "Locate the OData configuration code (likely in Program.cs or a dedicated configuration class) and add the RoleEntity to the EDM model using builder.EntitySet<RoleEntity>(\"Roles\"). This registers the entity type and creates an entity set named 'Roles'.",
-          "status": "pending",
-          "testStrategy": "Verify that the entity is properly registered by checking if the Roles endpoint appears in the OData metadata document."
-        },
-        {
-          "id": 4,
-          "title": "Implement OData controller for Roles",
-          "description": "Create a controller to handle OData operations for the Roles entity set.",
-          "dependencies": [
-            1,
-            3
-          ],
-          "details": "Create a new controller class (e.g., RolesController) that inherits from ODataController. Implement at least the GET method to retrieve roles. The controller should use the RoleMapper to convert between domain models and entities.",
-          "status": "pending",
-          "testStrategy": "Test the controller by making HTTP requests to the Roles endpoint and verifying that the correct data is returned."
-        },
-        {
-          "id": 5,
-          "title": "Add OData query options for Roles",
-          "description": "Configure OData query options for the Roles entity set to enable filtering, sorting, and other operations.",
-          "dependencies": [
-            3,
-            4
-          ],
-          "details": "Update the OData configuration to enable query options such as $select, $filter, $orderby, and $expand for the Roles entity set. This allows clients to perform more complex queries on the Roles data.",
-          "status": "pending",
-          "testStrategy": "Test various OData query options against the Roles endpoint to ensure they work correctly, such as filtering by name or sorting by creation date."
-        }
-      ]
+      "subtasks": []
     },
     {
       "id": 3,
-      "title": "Create Repository Layer for Role Management",
-      "description": "Implement the repository layer for Role management including the interface, implementation class, and DI registration.",
-      "details": "1. Create IRoleRepository interface in the Repositories directory\n2. Implement RoleRepository class that implements the interface\n3. Include methods for CRUD operations:\n   - GetAllRoles()\n   - GetRoleById(int guid)\n   - CreateRole(Role role)\n   - UpdateRole(Role role)\n   - DeleteRole(int guid)\n4. Register the repository in the DI container\n\nExample implementation:\n\n```csharp\npublic interface IRoleRepository\n{\n    Task<IEnumerable<Role>> GetAllRolesAsync();\n    Task<Role> GetRoleByIdAsync(int guid);\n    Task<Role> CreateRoleAsync(Role role);\n    Task<Role> UpdateRoleAsync(Role role);\n    Task<bool> DeleteRoleAsync(int guid);\n}\n\npublic class RoleRepository : IRoleRepository\n{\n    private readonly FourSPMContext _context;\n    \n    public RoleRepository(FourSPMContext context)\n    {\n        _context = context;\n    }\n    \n    public async Task<IEnumerable<Role>> GetAllRolesAsync()\n    {\n        return await _context.Roles\n            .Where(r => r.DELETED == null)\n            .ToListAsync();\n    }\n    \n    public async Task<Role> GetRoleByIdAsync(int guid)\n    {\n        return await _context.Roles\n            .FirstOrDefaultAsync(r => r.GUID == guid && r.DELETED == null);\n    }\n    \n    public async Task<Role> CreateRoleAsync(Role role)\n    {\n        role.CREATED = DateTime.UtcNow;\n        _context.Roles.Add(role);\n        await _context.SaveChangesAsync();\n        return role;\n    }\n    \n    public async Task<Role> UpdateRoleAsync(Role role)\n    {\n        var existingRole = await _context.Roles.FindAsync(role.GUID);\n        if (existingRole == null) return null;\n        \n        existingRole.NAME = role.NAME;\n        existingRole.DISPLAY_NAME = role.DISPLAY_NAME;\n        existingRole.DESCRIPTION = role.DESCRIPTION;\n        existingRole.IS_SYSTEM_ROLE = role.IS_SYSTEM_ROLE;\n        existingRole.UPDATED = DateTime.UtcNow;\n        existingRole.UPDATEDBY = role.UPDATEDBY;\n        \n        await _context.SaveChangesAsync();\n        return existingRole;\n    }\n    \n    public async Task<bool> DeleteRoleAsync(int guid)\n    {\n        var role = await _context.Roles.FindAsync(guid);\n        if (role == null) return false;\n        \n        role.DELETED = DateTime.UtcNow;\n        await _context.SaveChangesAsync();\n        return true;\n    }\n}\n```\n\nDI Registration in Startup.cs:\n```csharp\nservices.AddScoped<IRoleRepository, RoleRepository>();\n```",
-      "testStrategy": "1. Create unit tests for each repository method using a test database or mock context\n2. Verify that GetAllRoles only returns non-deleted roles\n3. Test that CreateRole properly sets the CREATED timestamp\n4. Confirm that UpdateRole updates the UPDATED timestamp\n5. Verify that DeleteRole performs a soft delete by setting the DELETED timestamp\n6. Test error handling for cases like updating or deleting non-existent roles",
+      "title": "Update DbContext configuration",
+      "description": "Update the FourSPMContext.cs file to include the ROLE_PERMISSION entity and configure the relationship with ROLE.",
+      "details": "Modify the FourSPMContext.cs file to include:\n\n1. Add DbSet property:\n```csharp\npublic DbSet<ROLE_PERMISSION> ROLE_PERMISSIONS { get; set; }\n```\n\n2. Configure the entity in OnModelCreating method:\n```csharp\nmodelBuilder.Entity<ROLE_PERMISSION>(entity =>\n{\n    entity.HasKey(e => e.GUID);\n    \n    entity.Property(e => e.PERMISSION)\n        .IsRequired()\n        .HasMaxLength(100);\n    \n    entity.Property(e => e.CREATED).IsRequired();\n    entity.Property(e => e.CREATEDBY).IsRequired();\n    \n    entity.HasOne(d => d.ROLE)\n        .WithMany(p => p.ROLE_PERMISSIONS)\n        .HasForeignKey(d => d.GUID_ROLE);\n});\n```\n\nEnsure that the configuration follows the same pattern as other entities in the context.",
+      "testStrategy": "Verify that the DbSet is properly added to the context. Test that the entity configuration in OnModelCreating correctly sets up the primary key, required properties, and the relationship with the ROLE entity.",
+      "priority": "high",
+      "dependencies": [
+        1,
+        2
+      ],
+      "status": "pending",
+      "subtasks": []
+    },
+    {
+      "id": 4,
+      "title": "Create OData entity model",
+      "description": "Create the RolePermissionEntity.cs class that will be used for OData operations.",
+      "details": "Create a new class file RolePermissionEntity.cs in the appropriate OData entities directory:\n\n```csharp\npublic class RolePermissionEntity\n{\n    public int Id { get; set; }\n    public int RoleId { get; set; }\n    public string Permission { get; set; }\n    public DateTime Created { get; set; }\n    public string CreatedBy { get; set; }\n    public DateTime? Updated { get; set; }\n    public string UpdatedBy { get; set; }\n    public DateTime? Deleted { get; set; }\n    public string DeletedBy { get; set; }\n    \n    // Navigation property\n    public RoleEntity Role { get; set; }\n}\n```\n\nEnsure the property names follow the OData naming conventions used in the project (typically PascalCase for OData entities).",
+      "testStrategy": "Verify that the OData entity class has all the required properties with appropriate data types and naming conventions. Ensure the navigation property is properly defined.",
       "priority": "medium",
       "dependencies": [
         1
       ],
       "status": "pending",
-      "subtasks": [
-        {
-          "id": 1,
-          "title": "Define IRoleRepository Interface",
-          "description": "Create the IRoleRepository interface in the Repositories directory, specifying all required CRUD method signatures for role management.",
-          "dependencies": [],
-          "details": "The interface should include asynchronous methods for getting all roles, getting a role by ID, creating, updating, and deleting roles.",
-          "status": "pending",
-          "testStrategy": "Verify that the interface compiles and contains all required method signatures matching the expected contract."
-        },
-        {
-          "id": 2,
-          "title": "Implement RoleRepository Class",
-          "description": "Develop the RoleRepository class that implements the IRoleRepository interface, providing concrete logic for each CRUD operation.",
-          "dependencies": [
-            1
-          ],
-          "details": "The implementation should interact with the data context (e.g., FourSPMContext) and handle entity persistence, updates, and soft deletes as needed.",
-          "status": "pending",
-          "testStrategy": "Write unit tests for each method to ensure correct data access and manipulation, using a mock or in-memory database."
-        },
-        {
-          "id": 3,
-          "title": "Integrate Entity Framework Context",
-          "description": "Ensure the RoleRepository class is properly wired to use the Entity Framework context for database operations.",
-          "dependencies": [
-            2
-          ],
-          "details": "Inject the context via constructor and use it for all data access, following best practices for repository patterns.",
-          "status": "pending",
-          "testStrategy": "Test repository methods to confirm they interact with the database context as expected and handle transactions correctly."
-        },
-        {
-          "id": 4,
-          "title": "Register Repository in Dependency Injection Container",
-          "description": "Configure the DI container to register IRoleRepository with its RoleRepository implementation for scoped lifetime.",
-          "dependencies": [
-            2,
-            3
-          ],
-          "details": "Add the registration code (e.g., services.AddScoped<IRoleRepository, RoleRepository>()) in the application's startup or DI configuration.",
-          "status": "pending",
-          "testStrategy": "Validate that the repository is correctly injected into dependent services or controllers during runtime."
-        },
-        {
-          "id": 5,
-          "title": "Document Repository Layer Usage",
-          "description": "Create documentation outlining how to use the repository layer, including interface methods, implementation details, and DI registration.",
-          "dependencies": [
-            1,
-            2,
-            3,
-            4
-          ],
-          "details": "Include code examples and usage scenarios to assist developers in integrating and testing the repository layer.",
-          "status": "pending",
-          "testStrategy": "Review documentation for completeness and clarity; have a developer follow the documentation to implement a sample use case."
-        }
-      ]
+      "subtasks": []
     },
     {
-      "id": 4,
-      "title": "Implement RolesController with OData Support",
-      "description": "Create the RolesController with OData support, implementing endpoints for all CRUD operations with proper error handling, validation, and authentication.",
-      "details": "1. Create a new RolesController class in the Controllers directory\n2. Implement OData endpoints for all CRUD operations\n3. Add authentication requirements\n4. Implement proper error handling and validation\n5. Use the repository for data access\n\nExample implementation:\n\n```csharp\n[Authorize]\n[ODataRoutePrefix(\"Roles\")]\npublic class RolesController : ODataController\n{\n    private readonly IRoleRepository _roleRepository;\n    private readonly ILogger<RolesController> _logger;\n    \n    public RolesController(IRoleRepository roleRepository, ILogger<RolesController> logger)\n    {\n        _roleRepository = roleRepository;\n        _logger = logger;\n    }\n    \n    [EnableQuery]\n    [ODataRoute]\n    public async Task<IActionResult> Get()\n    {\n        try\n        {\n            var roles = await _roleRepository.GetAllRolesAsync();\n            return Ok(roles.Select(r => RoleMapper.ToEntity(r)));\n        }\n        catch (Exception ex)\n        {\n            _logger.LogError(ex, \"Error retrieving roles\");\n            return StatusCode(500, \"Internal server error\");\n        }\n    }\n    \n    [EnableQuery]\n    [ODataRoute(\"({guid})\")]\n    public async Task<IActionResult> Get([FromODataUri] int guid)\n    {\n        try\n        {\n            var role = await _roleRepository.GetRoleByIdAsync(guid);\n            if (role == null) return NotFound();\n            \n            return Ok(RoleMapper.ToEntity(role));\n        }\n        catch (Exception ex)\n        {\n            _logger.LogError(ex, $\"Error retrieving role {guid}\");\n            return StatusCode(500, \"Internal server error\");\n        }\n    }\n    \n    [ODataRoute]\n    public async Task<IActionResult> Post([FromBody] RoleEntity roleEntity)\n    {\n        if (!ModelState.IsValid)\n        {\n            return BadRequest(ModelState);\n        }\n        \n        try\n        {\n            var role = RoleMapper.ToModel(roleEntity);\n            role.CREATEDBY = User.Identity.Name;\n            \n            var createdRole = await _roleRepository.CreateRoleAsync(role);\n            return Created(RoleMapper.ToEntity(createdRole));\n        }\n        catch (Exception ex)\n        {\n            _logger.LogError(ex, \"Error creating role\");\n            return StatusCode(500, \"Internal server error\");\n        }\n    }\n    \n    [ODataRoute(\"({guid})\")]\n    public async Task<IActionResult> Put([FromODataUri] int guid, [FromBody] RoleEntity roleEntity)\n    {\n        if (!ModelState.IsValid)\n        {\n            return BadRequest(ModelState);\n        }\n        \n        if (guid != roleEntity.Guid)\n        {\n            return BadRequest(\"ID mismatch\");\n        }\n        \n        try\n        {\n            var role = RoleMapper.ToModel(roleEntity);\n            role.UPDATEDBY = User.Identity.Name;\n            \n            var updatedRole = await _roleRepository.UpdateRoleAsync(role);\n            if (updatedRole == null) return NotFound();\n            \n            return Updated(RoleMapper.ToEntity(updatedRole));\n        }\n        catch (Exception ex)\n        {\n            _logger.LogError(ex, $\"Error updating role {guid}\");\n            return StatusCode(500, \"Internal server error\");\n        }\n    }\n    \n    [ODataRoute(\"({guid})\")]\n    public async Task<IActionResult> Delete([FromODataUri] int guid)\n    {\n        try\n        {\n            var success = await _roleRepository.DeleteRoleAsync(guid);\n            if (!success) return NotFound();\n            \n            return StatusCode(204);\n        }\n        catch (Exception ex)\n        {\n            _logger.LogError(ex, $\"Error deleting role {guid}\");\n            return StatusCode(500, \"Internal server error\");\n        }\n    }\n}\n```",
-      "testStrategy": "1. Test each endpoint with valid and invalid inputs\n2. Verify authentication requirements are enforced\n3. Test OData query capabilities ($filter, $select, $expand, etc.)\n4. Verify proper HTTP status codes are returned for different scenarios\n5. Test error handling for various exception cases\n6. Verify that user identity is properly captured for audit fields (CREATEDBY, UPDATEDBY, DELETEDBY)",
+      "id": 5,
+      "title": "Create repository interface",
+      "description": "Create the IRolePermissionRepository.cs interface that defines the contract for role permission operations.",
+      "details": "Create a new interface file IRolePermissionRepository.cs in the repository interfaces directory:\n\n```csharp\npublic interface IRolePermissionRepository\n{\n    Task<IEnumerable<ROLE_PERMISSION>> GetAllAsync();\n    Task<ROLE_PERMISSION> GetByIdAsync(int id);\n    Task<IEnumerable<ROLE_PERMISSION>> GetByRoleIdAsync(int roleId);\n    Task<ROLE_PERMISSION> CreateAsync(ROLE_PERMISSION rolePermission);\n    Task<ROLE_PERMISSION> UpdateAsync(ROLE_PERMISSION rolePermission);\n    Task<bool> DeleteAsync(int id);\n    Task<bool> ExistsAsync(int id);\n}\n```\n\nEnsure the interface follows the same pattern as other repository interfaces in the project.",
+      "testStrategy": "Review the interface to ensure it includes all necessary CRUD operations and follows the project's repository pattern. Verify method signatures match the expected usage patterns.",
       "priority": "medium",
       "dependencies": [
-        2,
-        3
+        1
+      ],
+      "status": "pending",
+      "subtasks": []
+    },
+    {
+      "id": 6,
+      "title": "Implement repository class",
+      "description": "Create the RolePermissionRepository.cs class that implements the IRolePermissionRepository interface.",
+      "details": "Create a new class file RolePermissionRepository.cs in the repository implementations directory:\n\n```csharp\npublic class RolePermissionRepository : IRolePermissionRepository\n{\n    private readonly FourSPMContext _context;\n    \n    public RolePermissionRepository(FourSPMContext context)\n    {\n        _context = context;\n    }\n    \n    public async Task<IEnumerable<ROLE_PERMISSION>> GetAllAsync()\n    {\n        return await _context.ROLE_PERMISSIONS\n            .Where(rp => rp.DELETED == null)\n            .ToListAsync();\n    }\n    \n    public async Task<ROLE_PERMISSION> GetByIdAsync(int id)\n    {\n        return await _context.ROLE_PERMISSIONS\n            .Where(rp => rp.GUID == id && rp.DELETED == null)\n            .FirstOrDefaultAsync();\n    }\n    \n    public async Task<IEnumerable<ROLE_PERMISSION>> GetByRoleIdAsync(int roleId)\n    {\n        return await _context.ROLE_PERMISSIONS\n            .Where(rp => rp.GUID_ROLE == roleId && rp.DELETED == null)\n            .ToListAsync();\n    }\n    \n    public async Task<ROLE_PERMISSION> CreateAsync(ROLE_PERMISSION rolePermission)\n    {\n        rolePermission.CREATED = DateTime.UtcNow;\n        _context.ROLE_PERMISSIONS.Add(rolePermission);\n        await _context.SaveChangesAsync();\n        return rolePermission;\n    }\n    \n    public async Task<ROLE_PERMISSION> UpdateAsync(ROLE_PERMISSION rolePermission)\n    {\n        var existingEntity = await GetByIdAsync(rolePermission.GUID);\n        if (existingEntity == null) return null;\n        \n        existingEntity.PERMISSION = rolePermission.PERMISSION;\n        existingEntity.UPDATED = DateTime.UtcNow;\n        existingEntity.UPDATEDBY = rolePermission.UPDATEDBY;\n        \n        await _context.SaveChangesAsync();\n        return existingEntity;\n    }\n    \n    public async Task<bool> DeleteAsync(int id)\n    {\n        var entity = await GetByIdAsync(id);\n        if (entity == null) return false;\n        \n        entity.DELETED = DateTime.UtcNow;\n        await _context.SaveChangesAsync();\n        return true;\n    }\n    \n    public async Task<bool> ExistsAsync(int id)\n    {\n        return await _context.ROLE_PERMISSIONS\n            .AnyAsync(rp => rp.GUID == id && rp.DELETED == null);\n    }\n}\n```\n\nEnsure the implementation follows the soft delete pattern used in the project (setting DELETED timestamp rather than removing records).",
+      "testStrategy": "Unit test each method to verify correct behavior:\n1. GetAllAsync should return only non-deleted records\n2. GetByIdAsync should return the correct record if it exists and is not deleted\n3. GetByRoleIdAsync should return all permissions for a specific role\n4. CreateAsync should add a new record with the current timestamp\n5. UpdateAsync should update only the allowed fields and set the UPDATED timestamp\n6. DeleteAsync should set the DELETED timestamp rather than removing the record\n7. ExistsAsync should return true only for existing non-deleted records",
+      "priority": "medium",
+      "dependencies": [
+        3,
+        5
       ],
       "status": "pending",
       "subtasks": [
         {
           "id": 1,
-          "title": "Set Up OData Infrastructure and Configure Routing",
-          "description": "Install the Microsoft.AspNetCore.OData package, configure OData services in Program.cs, and set up the EDM model and OData routing for the Roles entity.",
+          "title": "Implement Query Methods (GetAll, GetById, GetByRoleId)",
+          "description": "Develop repository methods to retrieve all records, a single record by its ID, and records filtered by role ID. Ensure these methods respect the soft delete pattern by excluding soft-deleted records from standard queries.",
           "dependencies": [],
-          "details": "Ensure the OData package is installed. In Program.cs, add OData services and configure the EDM model to expose the Roles entity. Set up OData routing to map requests to the RolesController.",
-          "status": "pending",
-          "testStrategy": "Verify that the OData metadata endpoint exposes the Roles entity and that OData routes are correctly registered."
+          "details": "Use appropriate query filters or annotations (such as @Filter or global query filters) to automatically exclude soft-deleted entities from results. Ensure efficient database access and proper error handling for cases where records are not found.",
+          "status": "pending"
         },
         {
           "id": 2,
-          "title": "Implement RolesController with OData Endpoints",
-          "description": "Create the RolesController class in the Controllers directory, inheriting from ODataController, and implement endpoints for all CRUD operations (GET, POST, PUT, DELETE) using OData conventions.",
+          "title": "Implement Create Method",
+          "description": "Develop the repository method to create new records in the database, ensuring all required fields are validated and the soft delete flag is set to false by default.",
           "dependencies": [
             1
           ],
-          "details": "Define methods for retrieving all roles, retrieving a role by ID, creating, updating, and deleting roles. Use [EnableQuery] and OData routing attributes as appropriate.",
-          "status": "pending",
-          "testStrategy": "Use OData query options (e.g., $filter, $orderby) in requests and verify correct responses for all CRUD endpoints."
+          "details": "Implement input validation and handle any database exceptions. Ensure that the created entity is not marked as deleted and that all business logic for creation is respected.",
+          "status": "pending"
         },
         {
           "id": 3,
-          "title": "Integrate Repository for Data Access",
-          "description": "Inject the IRoleRepository into the RolesController and use it for all data access operations within the controller methods.",
+          "title": "Implement Update and Delete Methods (with Soft Delete)",
+          "description": "Implement methods to update existing records and to perform soft deletes. The delete method should set the soft delete flag (e.g., IsDeleted or deleted) instead of physically removing the record.",
           "dependencies": [
             2
           ],
-          "details": "Ensure all CRUD operations interact with the repository for data persistence and retrieval, abstracting away direct data access from the controller.",
-          "status": "pending",
-          "testStrategy": "Mock the repository in unit tests to verify that controller methods call the correct repository methods with expected parameters."
+          "details": "For updates, ensure only non-deleted records can be updated. For deletes, update the soft delete flag and optionally set a deletion timestamp. Use interceptors or SQL update statements as appropriate for the technology stack.",
+          "status": "pending"
         },
         {
           "id": 4,
-          "title": "Add Authentication and Authorization",
-          "description": "Apply authentication and authorization requirements to the RolesController to restrict access to authorized users only.",
+          "title": "Implement Utility Methods (e.g., Exists) and Complexity Analysis",
+          "description": "Develop utility methods such as checking if a record exists (Exists) and analyze the complexity of the repository implementation, considering error handling, business logic, and the impact of the soft delete pattern.",
           "dependencies": [
-            2
+            3
           ],
-          "details": "Use the [Authorize] attribute on the controller or specific actions. Configure authentication middleware as needed in the application startup.",
-          "status": "pending",
-          "testStrategy": "Attempt to access endpoints without authentication and verify access is denied; verify access is granted with valid credentials."
-        },
-        {
-          "id": 5,
-          "title": "Implement Validation and Error Handling",
-          "description": "Add model validation and comprehensive error handling to all controller actions, ensuring proper HTTP status codes and error messages are returned.",
-          "dependencies": [
-            3,
-            4
-          ],
-          "details": "Validate incoming models using ModelState. Handle exceptions and return appropriate error responses. Log errors for diagnostics.",
-          "status": "pending",
-          "testStrategy": "Send invalid data and simulate errors to verify that the controller returns correct status codes and error messages, and that errors are logged."
+          "details": "Ensure utility methods respect the soft delete state. Document the complexity added by soft delete, such as query filtering and update logic, and highlight any potential performance considerations.",
+          "status": "pending"
         }
       ]
     },
     {
-      "id": 5,
-      "title": "Test and Validate Role Management API",
-      "description": "Perform comprehensive testing of the Role Management API endpoints, verify OData query parameters, and document any special considerations.",
-      "details": "1. Create a test plan covering all API endpoints\n2. Test basic CRUD operations\n3. Test OData query capabilities\n4. Document any special considerations or limitations\n5. Create Postman collection for API testing\n\nTest Plan:\n\n1. GET /odata/Roles\n   - Verify returns all non-deleted roles\n   - Test with $filter, $select, $orderby, $top, $skip parameters\n   - Verify authentication requirement\n\n2. GET /odata/Roles({guid})\n   - Test with valid and invalid GUIDs\n   - Verify 404 for non-existent roles\n   - Verify authentication requirement\n\n3. POST /odata/Roles\n   - Test with valid role data\n   - Test with invalid/missing required fields\n   - Verify CREATED and CREATEDBY are set correctly\n   - Verify authentication requirement\n\n4. PUT /odata/Roles({guid})\n   - Test with valid role data\n   - Test with invalid/missing required fields\n   - Test with non-existent GUID\n   - Verify UPDATED and UPDATEDBY are set correctly\n   - Verify authentication requirement\n\n5. DELETE /odata/Roles({guid})\n   - Test with valid GUID\n   - Test with non-existent GUID\n   - Verify soft delete (DELETED field set)\n   - Verify authentication requirement\n\nExample Postman Collection:\n```json\n{\n  \"info\": {\n    \"name\": \"FourSPM Role Management API Tests\",\n    \"schema\": \"https://schema.getpostman.com/json/collection/v2.1.0/collection.json\"\n  },\n  \"item\": [\n    {\n      \"name\": \"Get All Roles\",\n      \"request\": {\n        \"method\": \"GET\",\n        \"url\": \"{{baseUrl}}/odata/Roles\",\n        \"auth\": { \"type\": \"bearer\", \"bearer\": [{ \"key\": \"token\", \"value\": \"{{authToken}}\", \"type\": \"string\" }] }\n      }\n    },\n    {\n      \"name\": \"Get Role By ID\",\n      \"request\": {\n        \"method\": \"GET\",\n        \"url\": \"{{baseUrl}}/odata/Roles(1)\",\n        \"auth\": { \"type\": \"bearer\", \"bearer\": [{ \"key\": \"token\", \"value\": \"{{authToken}}\", \"type\": \"string\" }] }\n      }\n    },\n    {\n      \"name\": \"Create Role\",\n      \"request\": {\n        \"method\": \"POST\",\n        \"url\": \"{{baseUrl}}/odata/Roles\",\n        \"auth\": { \"type\": \"bearer\", \"bearer\": [{ \"key\": \"token\", \"value\": \"{{authToken}}\", \"type\": \"string\" }] },\n        \"header\": [{ \"key\": \"Content-Type\", \"value\": \"application/json\" }],\n        \"body\": {\n          \"mode\": \"raw\",\n          \"raw\": \"{\\n  \\\"Guid\\\": 0,\\n  \\\"Name\\\": \\\"TestRole\\\",\\n  \\\"DisplayName\\\": \\\"Test Role\\\",\\n  \\\"Description\\\": \\\"Role created for testing\\\",\\n  \\\"IsSystemRole\\\": false\\n}\"\n        }\n      }\n    },\n    {\n      \"name\": \"Update Role\",\n      \"request\": {\n        \"method\": \"PUT\",\n        \"url\": \"{{baseUrl}}/odata/Roles(1)\",\n        \"auth\": { \"type\": \"bearer\", \"bearer\": [{ \"key\": \"token\", \"value\": \"{{authToken}}\", \"type\": \"string\" }] },\n        \"header\": [{ \"key\": \"Content-Type\", \"value\": \"application/json\" }],\n        \"body\": {\n          \"mode\": \"raw\",\n          \"raw\": \"{\\n  \\\"Guid\\\": 1,\\n  \\\"Name\\\": \\\"UpdatedRole\\\",\\n  \\\"DisplayName\\\": \\\"Updated Role\\\",\\n  \\\"Description\\\": \\\"Updated role description\\\",\\n  \\\"IsSystemRole\\\": false\\n}\"\n        }\n      }\n    },\n    {\n      \"name\": \"Delete Role\",\n      \"request\": {\n        \"method\": \"DELETE\",\n        \"url\": \"{{baseUrl}}/odata/Roles(1)\",\n        \"auth\": { \"type\": \"bearer\", \"bearer\": [{ \"key\": \"token\", \"value\": \"{{authToken}}\", \"type\": \"string\" }] }\n      }\n    }\n  ]\n}\n```\n\nSpecial Considerations Documentation:\n1. System roles (IS_SYSTEM_ROLE = true) should not be deletable\n2. Role names should be unique (add validation)\n3. Consider adding pagination for large result sets\n4. Document OData query capabilities in API documentation",
-      "testStrategy": "1. Execute the test plan manually to verify all endpoints\n2. Run the Postman collection against development environment\n3. Verify that all CRUD operations work as expected\n4. Test OData query parameters to ensure they function correctly\n5. Document any issues or limitations discovered during testing\n6. Verify that authentication and authorization are properly enforced",
-      "priority": "low",
+      "id": 7,
+      "title": "Create controller with CRUD operations",
+      "description": "Create the RolePermissionsController.cs class that provides OData endpoints for role permission operations.",
+      "details": "Create a new controller file RolePermissionsController.cs in the controllers directory:\n\n```csharp\n[ODataRoutePrefix(\"RolePermissions\")]\npublic class RolePermissionsController : ODataController\n{\n    private readonly IRolePermissionRepository _repository;\n    private readonly IMapper _mapper;\n    \n    public RolePermissionsController(IRolePermissionRepository repository, IMapper mapper)\n    {\n        _repository = repository;\n        _mapper = mapper;\n    }\n    \n    [EnableQuery]\n    [ODataRoute]\n    public async Task<IHttpActionResult> Get()\n    {\n        var rolePermissions = await _repository.GetAllAsync();\n        var entities = _mapper.Map<IEnumerable<RolePermissionEntity>>(rolePermissions);\n        return Ok(entities);\n    }\n    \n    [EnableQuery]\n    [ODataRoute(\"({id})\")]\n    public async Task<IHttpActionResult> Get([FromODataUri] int id)\n    {\n        var rolePermission = await _repository.GetByIdAsync(id);\n        if (rolePermission == null) return NotFound();\n        \n        var entity = _mapper.Map<RolePermissionEntity>(rolePermission);\n        return Ok(entity);\n    }\n    \n    [EnableQuery]\n    [ODataRoute(\"GetByRoleId(roleId={roleId})\")]\n    [HttpGet]\n    public async Task<IHttpActionResult> GetByRoleId([FromODataUri] int roleId)\n    {\n        var rolePermissions = await _repository.GetByRoleIdAsync(roleId);\n        var entities = _mapper.Map<IEnumerable<RolePermissionEntity>>(rolePermissions);\n        return Ok(entities);\n    }\n    \n    [ODataRoute]\n    public async Task<IHttpActionResult> Post(RolePermissionEntity entity)\n    {\n        if (!ModelState.IsValid) return BadRequest(ModelState);\n        \n        var rolePermission = _mapper.Map<ROLE_PERMISSION>(entity);\n        var result = await _repository.CreateAsync(rolePermission);\n        \n        var newEntity = _mapper.Map<RolePermissionEntity>(result);\n        return Created(newEntity);\n    }\n    \n    [ODataRoute(\"({id})\")]\n    public async Task<IHttpActionResult> Put([FromODataUri] int id, RolePermissionEntity entity)\n    {\n        if (!ModelState.IsValid) return BadRequest(ModelState);\n        if (id != entity.Id) return BadRequest(\"ID mismatch\");\n        \n        var exists = await _repository.ExistsAsync(id);\n        if (!exists) return NotFound();\n        \n        var rolePermission = _mapper.Map<ROLE_PERMISSION>(entity);\n        var result = await _repository.UpdateAsync(rolePermission);\n        \n        return Updated(_mapper.Map<RolePermissionEntity>(result));\n    }\n    \n    [ODataRoute(\"({id})\")]\n    public async Task<IHttpActionResult> Delete([FromODataUri] int id)\n    {\n        var success = await _repository.DeleteAsync(id);\n        if (!success) return NotFound();\n        \n        return StatusCode(HttpStatusCode.NoContent);\n    }\n}\n```\n\nEnsure the controller follows the OData conventions used in the project and includes appropriate attribute routing.",
+      "testStrategy": "Test each endpoint to verify:\n1. GET returns all non-deleted role permissions\n2. GET(id) returns the correct role permission or 404\n3. GetByRoleId returns all permissions for a specific role\n4. POST creates a new role permission and returns 201 Created\n5. PUT updates an existing role permission and returns 200 OK\n6. DELETE soft-deletes a role permission and returns 204 No Content",
+      "priority": "medium",
       "dependencies": [
-        4
+        4,
+        6
+      ],
+      "status": "pending",
+      "subtasks": []
+    },
+    {
+      "id": 8,
+      "title": "Update service registration",
+      "description": "Register the role permission repository in the dependency injection container.",
+      "details": "Update the service registration code (typically in Startup.cs or a dedicated registration class) to register the repository:\n\n```csharp\n// Add this line to the existing service registration method\nservices.AddScoped<IRolePermissionRepository, RolePermissionRepository>();\n```\n\nEnsure this follows the same pattern as other repository registrations in the project.",
+      "testStrategy": "Verify that the repository is properly registered by inspecting the DI container configuration. Test that the repository can be injected into controllers and other services.",
+      "priority": "medium",
+      "dependencies": [
+        6
+      ],
+      "status": "pending",
+      "subtasks": []
+    },
+    {
+      "id": 9,
+      "title": "Update EDM model registration",
+      "description": "Register the RolePermissionEntity in the OData Entity Data Model (EDM).",
+      "details": "Update the OData EDM configuration (typically in a method like ConfigureOData in Startup.cs or a dedicated configuration class):\n\n```csharp\n// Add this to the existing EDM builder configuration\nbuilder.EntitySet<RolePermissionEntity>(\"RolePermissions\");\n\n// If you have the custom function for GetByRoleId, add this as well\nvar getRolePermissionsByRoleIdFunction = builder.Function(\"GetByRoleId\");\ngetRolePermissionsByRoleIdFunction.Parameter<int>(\"roleId\");\ngetRolePermissionsByRoleIdFunction.ReturnsCollectionFromEntitySet<RolePermissionEntity>(\"RolePermissions\");\n```\n\nEnsure this follows the same pattern as other entity registrations in the project.",
+      "testStrategy": "Verify that the RolePermissionEntity is properly registered in the EDM by inspecting the OData metadata document ($metadata endpoint). Test that OData queries work correctly for the new entity type.",
+      "priority": "medium",
+      "dependencies": [
+        4,
+        7
       ],
       "status": "pending",
       "subtasks": []

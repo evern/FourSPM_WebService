@@ -1,104 +1,37 @@
 # Task ID: 3
-# Title: Create Role Repository Layer
-# Status: pending
-# Dependencies: 1
-# Priority: medium
-# Description: Develop the repository layer for Role management including interface definition, implementation class with CRUD operations, and DI registration.
+# Title: Update DbContext configuration
+# Status: done
+# Dependencies: 1, 2
+# Priority: high
+# Description: Update the FourSPMContext.cs file to include the ROLE_PERMISSION entity and configure the relationship with ROLE.
 # Details:
-1. Create IRoleRepository interface:
+Modify the FourSPMContext.cs file to include:
+
+1. Add DbSet property:
 ```csharp
-public interface IRoleRepository
-{
-    Task<IEnumerable<Role>> GetAllAsync();
-    Task<Role> GetByIdAsync(int guid);
-    Task<Role> CreateAsync(Role role);
-    Task<Role> UpdateAsync(Role role);
-    Task<bool> DeleteAsync(int guid);
-    Task<bool> ExistsAsync(int guid);
-}
+public DbSet<ROLE_PERMISSION> ROLE_PERMISSIONS { get; set; }
 ```
 
-2. Implement RoleRepository class:
+2. Configure the entity in OnModelCreating method:
 ```csharp
-public class RoleRepository : IRoleRepository
+modelBuilder.Entity<ROLE_PERMISSION>(entity =>
 {
-    private readonly FourSPMContext _context;
+    entity.HasKey(e => e.GUID);
     
-    public RoleRepository(FourSPMContext context)
-    {
-        _context = context;
-    }
+    entity.Property(e => e.PERMISSION)
+        .IsRequired()
+        .HasMaxLength(100);
     
-    public async Task<IEnumerable<Role>> GetAllAsync()
-    {
-        return await _context.Roles
-            .Where(r => r.DELETED == null)
-            .ToListAsync();
-    }
+    entity.Property(e => e.CREATED).IsRequired();
+    entity.Property(e => e.CREATEDBY).IsRequired();
     
-    public async Task<Role> GetByIdAsync(int guid)
-    {
-        return await _context.Roles
-            .FirstOrDefaultAsync(r => r.GUID == guid && r.DELETED == null);
-    }
-    
-    public async Task<Role> CreateAsync(Role role)
-    {
-        role.CREATED = DateTime.UtcNow;
-        _context.Roles.Add(role);
-        await _context.SaveChangesAsync();
-        return role;
-    }
-    
-    public async Task<Role> UpdateAsync(Role role)
-    {
-        var existingRole = await _context.Roles.FindAsync(role.GUID);
-        if (existingRole == null) return null;
-        
-        existingRole.NAME = role.NAME;
-        existingRole.DISPLAY_NAME = role.DISPLAY_NAME;
-        existingRole.DESCRIPTION = role.DESCRIPTION;
-        existingRole.IS_SYSTEM_ROLE = role.IS_SYSTEM_ROLE;
-        existingRole.UPDATED = DateTime.UtcNow;
-        existingRole.UPDATEDBY = role.UPDATEDBY;
-        
-        await _context.SaveChangesAsync();
-        return existingRole;
-    }
-    
-    public async Task<bool> DeleteAsync(int guid)
-    {
-        var role = await _context.Roles.FindAsync(guid);
-        if (role == null) return false;
-        
-        role.DELETED = DateTime.UtcNow;
-        await _context.SaveChangesAsync();
-        return true;
-    }
-    
-    public async Task<bool> ExistsAsync(int guid)
-    {
-        return await _context.Roles
-            .AnyAsync(r => r.GUID == guid && r.DELETED == null);
-    }
-}
+    entity.HasOne(d => d.ROLE)
+        .WithMany(p => p.ROLE_PERMISSIONS)
+        .HasForeignKey(d => d.GUID_ROLE);
+});
 ```
 
-3. Register the repository in the DI container (Startup.cs):
-```csharp
-public void ConfigureServices(IServiceCollection services)
-{
-    // Existing service registrations
-    
-    services.AddScoped<IRoleRepository, RoleRepository>();
-}
-```
+Ensure that the configuration follows the same pattern as other entities in the context.
 
 # Test Strategy:
-1. Create unit tests for each repository method using a test database or mock context
-2. Verify GetAllAsync returns only non-deleted roles
-3. Test CreateAsync sets the correct CREATED timestamp
-4. Confirm UpdateAsync properly updates only the allowed fields
-5. Verify DeleteAsync performs a soft delete by setting the DELETED timestamp
-6. Test ExistsAsync returns the correct boolean value
-7. Verify proper DI registration by resolving the repository in a test controller
+Verify that the DbSet is properly added to the context. Test that the entity configuration in OnModelCreating correctly sets up the primary key, required properties, and the relationship with the ROLE entity.

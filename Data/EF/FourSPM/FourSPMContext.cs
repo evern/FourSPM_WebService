@@ -20,6 +20,7 @@ public partial class FourSPMContext : DbContext
         DELIVERABLE_GATEs = Set<DELIVERABLE_GATE>();
         VARIATIONs = Set<VARIATION>();
         ROLEs = Set<ROLE>();
+        ROLE_PERMISSIONs = Set<ROLE_PERMISSION>();
     }
 
     public FourSPMContext(DbContextOptions<FourSPMContext> options)
@@ -36,6 +37,7 @@ public partial class FourSPMContext : DbContext
         DELIVERABLE_GATEs = Set<DELIVERABLE_GATE>();
         VARIATIONs = Set<VARIATION>();
         ROLEs = Set<ROLE>();
+        ROLE_PERMISSIONs = Set<ROLE_PERMISSION>();
     }
 
     public virtual DbSet<PROJECT> PROJECTs { get; set; }
@@ -49,6 +51,7 @@ public partial class FourSPMContext : DbContext
     public virtual DbSet<DELIVERABLE_GATE> DELIVERABLE_GATEs { get; set; }
     public virtual DbSet<VARIATION> VARIATIONs { get; set; }
     public virtual DbSet<ROLE> ROLEs { get; set; }
+    public virtual DbSet<ROLE_PERMISSION> ROLE_PERMISSIONs { get; set; }
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
 #warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see https://go.microsoft.com/fwlink/?LinkId=723263.
@@ -344,6 +347,31 @@ public partial class FourSPMContext : DbContext
             entity.Property(e => e.UPDATEDBY);
             entity.Property(e => e.DELETED).HasColumnType("datetime");
             entity.Property(e => e.DELETEDBY);
+        });
+
+        modelBuilder.Entity<ROLE_PERMISSION>(entity =>
+        {
+            entity.HasKey(e => e.GUID);
+            entity.ToTable("ROLE_PERMISSION");
+
+            entity.HasIndex(e => e.GUID_ROLE).HasDatabaseName("IX_ROLE_PERMISSION_ROLE_ID");
+            entity.HasIndex(e => e.DELETED).HasDatabaseName("IX_ROLE_PERMISSION_DELETED");
+
+            entity.Property(e => e.GUID).ValueGeneratedNever();
+            entity.Property(e => e.GUID_ROLE).IsRequired();
+            entity.Property(e => e.PERMISSION).HasMaxLength(100).IsRequired();
+            entity.Property(e => e.CREATED).HasColumnType("datetime").IsRequired();
+            entity.Property(e => e.CREATEDBY).IsRequired();
+            entity.Property(e => e.UPDATED).HasColumnType("datetime");
+            entity.Property(e => e.UPDATEDBY);
+            entity.Property(e => e.DELETED).HasColumnType("datetime");
+            entity.Property(e => e.DELETEDBY);
+
+            // Configure the foreign key relationship
+            entity.HasOne(d => d.ROLE)
+                .WithMany(r => r.ROLE_PERMISSIONS)
+                .HasForeignKey(d => d.GUID_ROLE)
+                .OnDelete(DeleteBehavior.Cascade);
         });
 
         OnModelCreatingPartial(modelBuilder);

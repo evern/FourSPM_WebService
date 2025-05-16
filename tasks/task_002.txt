@@ -1,83 +1,29 @@
 # Task ID: 2
-# Title: Implement OData Entity Model for Role
-# Status: pending
+# Title: Update ROLE entity class with navigation property
+# Status: done
 # Dependencies: 1
-# Priority: medium
-# Description: Create the RoleEntity class for OData representation and register it in the EDM model with proper property naming conventions.
+# Priority: high
+# Description: Update the ROLE.cs class to include a navigation property for the relationship with ROLE_PERMISSION.
 # Details:
-1. Create a new class named 'RoleEntity.cs' in the appropriate OData entities directory
-2. Implement the class with PascalCase property naming:
-```csharp
-public class RoleEntity
-{
-    public int Guid { get; set; }
-    public string Name { get; set; }
-    public string DisplayName { get; set; }
-    public string Description { get; set; }
-    public bool IsSystemRole { get; set; }
-    public DateTime Created { get; set; }
-    public string CreatedBy { get; set; }
-    public DateTime? Updated { get; set; }
-    public string UpdatedBy { get; set; }
-    public DateTime? Deleted { get; set; }
-    public string DeletedBy { get; set; }
-}
-```
-3. Create mapping methods between Role and RoleEntity:
-```csharp
-public static RoleEntity ToEntity(this Role model)
-{
-    return new RoleEntity
-    {
-        Guid = model.GUID,
-        Name = model.NAME,
-        DisplayName = model.DISPLAY_NAME,
-        Description = model.DESCRIPTION,
-        IsSystemRole = model.IS_SYSTEM_ROLE,
-        Created = model.CREATED,
-        CreatedBy = model.CREATEDBY,
-        Updated = model.UPDATED,
-        UpdatedBy = model.UPDATEDBY,
-        Deleted = model.DELETED,
-        DeletedBy = model.DELETEDBY
-    };
-}
+Modify the existing ROLE.cs class to include a collection navigation property for ROLE_PERMISSION entities:
 
-public static Role ToModel(this RoleEntity entity)
-{
-    return new Role
-    {
-        GUID = entity.Guid,
-        NAME = entity.Name,
-        DISPLAY_NAME = entity.DisplayName,
-        DESCRIPTION = entity.Description,
-        IS_SYSTEM_ROLE = entity.IsSystemRole,
-        CREATED = entity.Created,
-        CREATEDBY = entity.CreatedBy,
-        UPDATED = entity.Updated,
-        UPDATEDBY = entity.UpdatedBy,
-        DELETED = entity.Deleted,
-        DELETEDBY = entity.DeletedBy
-    };
-}
-```
-4. Register the entity in the EDM model builder:
 ```csharp
-public static IEdmModel GetEdmModel()
+public class ROLE
 {
-    var builder = new ODataConventionModelBuilder();
-    // Add existing entity sets
+    // Existing properties
     
-    // Add Role entity set
-    builder.EntitySet<RoleEntity>("Roles");
+    // Add this new navigation property
+    public virtual ICollection<ROLE_PERMISSION> ROLE_PERMISSIONS { get; set; }
     
-    return builder.GetEdmModel();
+    // Constructor to initialize the collection
+    public ROLE()
+    {
+        ROLE_PERMISSIONS = new HashSet<ROLE_PERMISSION>();
+    }
 }
 ```
+
+If the constructor already exists, just add the initialization for the new collection.
 
 # Test Strategy:
-1. Verify the RoleEntity class has all properties with correct PascalCase naming
-2. Test the mapping methods (ToEntity and ToModel) with sample data
-3. Confirm the entity is properly registered in the EDM model
-4. Verify OData metadata endpoint returns the Role entity definition
-5. Test basic OData queries against the entity to ensure proper serialization
+Verify that the ROLE class now includes the ROLE_PERMISSIONS collection property and that it's properly initialized in the constructor.

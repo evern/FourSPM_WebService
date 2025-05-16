@@ -1,27 +1,21 @@
 using System;
-using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace FourSPM_WebService.Data.EF.FourSPM
 {
-    public class ROLE
+    public class ROLE_PERMISSION
     {
         [Key]
         public int GUID { get; set; }
         
         [Required]
-        [StringLength(50)]
-        public required string NAME { get; set; }
+        [ForeignKey("ROLE")]
+        public int GUID_ROLE { get; set; }
         
         [Required]
         [StringLength(100)]
-        public required string DISPLAY_NAME { get; set; }
-        
-        [StringLength(500)]
-        public string? DESCRIPTION { get; set; }
-        
-        [Required]
-        public bool IS_SYSTEM_ROLE { get; set; }
+        public required string PERMISSION { get; set; }
         
         [Required]
         public DateTime CREATED { get; set; }
@@ -37,7 +31,7 @@ namespace FourSPM_WebService.Data.EF.FourSPM
         
         public string? DELETEDBY { get; set; }
         
-        // Navigation property for role permissions
-        public virtual ICollection<ROLE_PERMISSION> ROLE_PERMISSIONS { get; set; } = new List<ROLE_PERMISSION>();
+        // Navigation property
+        public virtual ROLE? ROLE { get; set; }
     }
 }

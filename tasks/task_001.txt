@@ -1,61 +1,31 @@
 # Task ID: 1
-# Title: Create Entity Framework Model for ROLE Table
-# Status: pending
+# Title: Create Entity Framework model class for ROLE_PERMISSION
+# Status: done
 # Dependencies: None
 # Priority: high
-# Description: Create and configure the Entity Framework model class for the ROLE table and integrate it into the FourSPMContext.
+# Description: Create the ROLE_PERMISSION.cs class that represents the ROLE_PERMISSION table in the database with all required properties.
 # Details:
-1. Create a new class named 'Role.cs' in the Models directory
-2. Implement the class with properties matching the database schema:
+Create a new class file ROLE_PERMISSION.cs in the Models directory with the following properties:
+
 ```csharp
-public class Role
+public class ROLE_PERMISSION
 {
-    [Key]
     public int GUID { get; set; }
-    
-    [Required]
-    [StringLength(50)]
-    public string NAME { get; set; }
-    
-    [Required]
-    [StringLength(100)]
-    public string DISPLAY_NAME { get; set; }
-    
-    [StringLength(500)]
-    public string DESCRIPTION { get; set; }
-    
-    [Required]
-    public bool IS_SYSTEM_ROLE { get; set; }
-    
-    [Required]
+    public int GUID_ROLE { get; set; }
+    public string PERMISSION { get; set; }
     public DateTime CREATED { get; set; }
-    
-    [Required]
     public string CREATEDBY { get; set; }
-    
     public DateTime? UPDATED { get; set; }
-    
     public string UPDATEDBY { get; set; }
-    
     public DateTime? DELETED { get; set; }
-    
     public string DELETEDBY { get; set; }
+    
+    // Navigation property
+    public virtual ROLE ROLE { get; set; }
 }
 ```
-3. Add DbSet to FourSPMContext:
-```csharp
-public DbSet<Role> Roles { get; set; }
-```
-4. Configure entity in OnModelCreating method if needed:
-```csharp
-modelBuilder.Entity<Role>()
-    .ToTable("ROLE");
-```
-5. Ensure proper mapping of all properties with appropriate data annotations
+
+Ensure that the class follows the same naming conventions and structure as other entity models in the project.
 
 # Test Strategy:
-1. Verify the Role class has all properties defined in the database schema
-2. Ensure proper data annotations are applied
-3. Confirm the DbSet is correctly added to FourSPMContext
-4. Run a database migration or update to verify the model maps correctly to the existing table
-5. Test basic CRUD operations through the DbContext to ensure the entity is properly configured
+Verify that the class has all required properties with correct data types. Ensure navigation property is properly defined for the relationship with the ROLE table.

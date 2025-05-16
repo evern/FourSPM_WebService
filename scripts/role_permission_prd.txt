@@ -1,0 +1,38 @@
+# FourSPM Role Permission Implementation
+
+## Overview
+This PRD outlines the steps required to scaffold the ROLE_PERMISSION table in the FourSPM_WebService application. This table will store permissions associated with roles in the system, allowing for role-based access control.
+
+## Requirements
+
+### Database Schema
+The ROLE_PERMISSION table has the following structure:
+- GUID (int, primary key)
+- GUID_ROLE (int, foreign key to ROLE table)
+- PERMISSION (nvarchar(100))
+- CREATED (datetime)
+- CREATEDBY (nvarchar(max))
+- UPDATED (datetime, nullable)
+- UPDATEDBY (nvarchar(max), nullable)
+- DELETED (datetime, nullable)
+- DELETEDBY (nvarchar(max), nullable)
+
+### Implementation Requirements
+1. Create Entity Framework model class
+2. Update related entity classes
+3. Update DbContext configuration
+4. Create OData entity model
+5. Create repository interface and implementation
+6. Create controller with CRUD operations
+7. Add appropriate unit tests
+
+### Deliverables
+1. EF Model class (ROLE_PERMISSION.cs)
+2. Updated related entity classes (ROLE.cs)
+3. Updated DbContext class (FourSPMContext.cs)
+4. OData entity class (RolePermissionEntity.cs)
+5. Repository interface (IRolePermissionRepository.cs)
+6. Repository implementation (RolePermissionRepository.cs)
+7. Controller class (RolePermissionsController.cs)
+8. Updated service registration
+9. Updated EDM model registration

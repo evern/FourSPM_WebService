@@ -1,92 +1,23 @@
 # Task ID: 9
-# Title: Update OData Controllers with Authentication
+# Title: Update EDM model registration
 # Status: done
-# Dependencies: 3, 5
-# Priority: high
-# Description: Update existing OData controllers to use Azure AD authentication and authorization.
+# Dependencies: 4, 7
+# Priority: medium
+# Description: Register the RolePermissionEntity in the OData Entity Data Model (EDM).
 # Details:
-Apply authentication and authorization attributes to OData controllers:
+Update the OData EDM configuration (typically in a method like ConfigureOData in Startup.cs or a dedicated configuration class):
 
 ```csharp
-[Authorize]
-[Route("api/[controller]")]
-public class ProductsController : ODataController
-{
-    private readonly TokenValidationService _tokenService;
-    
-    public ProductsController(TokenValidationService tokenService)
-    {
-        _tokenService = tokenService;
-    }
-    
-    [HttpGet]
-    [Authorize(Roles = "Reader,Admin")]
-    public IActionResult Get()
-    {
-        var userId = _tokenService.GetUserObjectId();
-        // Implementation
-    }
-    
-    [HttpPost]
-    [Authorize(Roles = "Admin")]
-    [RequireScope("api.write")]
-    public IActionResult Post([FromBody] Product product)
-    {
-        // Implementation
-    }
-}
+// Add this to the existing EDM builder configuration
+builder.EntitySet<RolePermissionEntity>("RolePermissions");
+
+// If you have the custom function for GetByRoleId, add this as well
+var getRolePermissionsByRoleIdFunction = builder.Function("GetByRoleId");
+getRolePermissionsByRoleIdFunction.Parameter<int>("roleId");
+getRolePermissionsByRoleIdFunction.ReturnsCollectionFromEntitySet<RolePermissionEntity>("RolePermissions");
 ```
 
-Update OData configuration to respect authorization:
-
-```csharp
-builder.Services.AddControllers()
-    .AddOData(options =>
-    {
-        options.Select().Filter().OrderBy().Expand().Count().SetMaxTop(100);
-        options.AddRouteComponents("api", GetEdmModel());
-    });
-```
-
-Ensure OData routes are protected:
-
-```csharp
-app.MapControllers();
-app.MapODataRoute("odata", "api", GetEdmModel())
-   .RequireAuthorization();
-```
+Ensure this follows the same pattern as other entity registrations in the project.
 
 # Test Strategy:
-Test OData endpoints with authenticated and unauthenticated requests. Verify that endpoints enforce role and scope requirements. Create integration tests that simulate different user roles accessing OData endpoints.
-
-# Subtasks:
-## 1. Update OData Controllers with Authentication/Authorization Attributes [done]
-### Dependencies: None
-### Description: Decorate all OData controllers with appropriate authentication and authorization attributes (e.g., [Authorize], custom attributes for roles or scopes) to ensure only authenticated and authorized users can access endpoints.
-### Details:
-Apply attributes such as [Authorize] or custom authorization attributes to each OData controller and, if needed, to specific actions. Ensure attributes reflect required roles or policies for each endpoint.
-
-## 2. Integrate TokenValidationService [done]
-### Dependencies: 9.1
-### Description: Integrate a TokenValidationService into the authentication pipeline to validate incoming tokens and extract claims for authorization decisions.
-### Details:
-Configure the TokenValidationService in the DI container and ensure it is used by the authentication middleware to validate tokens and populate the user principal with claims.
-
-## 3. Update OData Configuration to Enforce Authorization [done]
-### Dependencies: 9.2
-### Description: Modify the OData configuration to ensure authorization is enforced at the middleware and routing level, including adding OData authorization services and policies.
-### Details:
-Update OData route registration to include authorization middleware and configure OData-specific authorization options, such as scopes or policies, as needed.
-
-## 4. Protect OData Routes [done]
-### Dependencies: 9.3
-### Description: Ensure all OData routes are protected by the configured authentication and authorization mechanisms, preventing unauthorized access to any OData endpoint.
-### Details:
-Verify that all OData endpoints, including metadata and entity sets, require authentication and authorization, and that no route is left unprotected.
-
-## 5. Create Integration Tests for OData Endpoints [done]
-### Dependencies: 9.4
-### Description: Develop integration tests to verify that OData endpoints enforce authentication and authorization correctly, including tests for both authorized and unauthorized access.
-### Details:
-Write tests that attempt to access OData endpoints with and without valid tokens, and with different roles/scopes, to ensure security is enforced as expected.
-
+Verify that the RolePermissionEntity is properly registered in the EDM by inspecting the OData metadata document ($metadata endpoint). Test that OData queries work correctly for the new entity type.

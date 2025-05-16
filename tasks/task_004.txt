@@ -1,152 +1,31 @@
 # Task ID: 4
-# Title: Implement Roles OData Controller
-# Status: pending
-# Dependencies: 2, 3
+# Title: Create OData entity model
+# Status: done
+# Dependencies: 1
 # Priority: medium
-# Description: Create the RolesController with OData support, implementing all CRUD operations with proper error handling, validation, and authentication requirements.
+# Description: Create the RolePermissionEntity.cs class that will be used for OData operations.
 # Details:
-1. Create RolesController class:
+Create a new class file RolePermissionEntity.cs in the appropriate OData entities directory:
+
 ```csharp
-[Authorize]
-[ApiController]
-[Route("api/[controller]")]
-[EnableQuery]
-public class RolesController : ODataController
+public class RolePermissionEntity
 {
-    private readonly IRoleRepository _repository;
-    private readonly ILogger<RolesController> _logger;
+    public int Id { get; set; }
+    public int RoleId { get; set; }
+    public string Permission { get; set; }
+    public DateTime Created { get; set; }
+    public string CreatedBy { get; set; }
+    public DateTime? Updated { get; set; }
+    public string UpdatedBy { get; set; }
+    public DateTime? Deleted { get; set; }
+    public string DeletedBy { get; set; }
     
-    public RolesController(IRoleRepository repository, ILogger<RolesController> logger)
-    {
-        _repository = repository;
-        _logger = logger;
-    }
-    
-    [HttpGet]
-    public async Task<IActionResult> Get()
-    {
-        try
-        {
-            var roles = await _repository.GetAllAsync();
-            return Ok(roles.Select(r => r.ToEntity()));
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error retrieving roles");
-            return StatusCode(500, "Internal server error");
-        }
-    }
-    
-    [HttpGet("{guid}")]
-    public async Task<IActionResult> Get(int guid)
-    {
-        try
-        {
-            var role = await _repository.GetByIdAsync(guid);
-            if (role == null) return NotFound();
-            
-            return Ok(role.ToEntity());
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, $"Error retrieving role {guid}");
-            return StatusCode(500, "Internal server error");
-        }
-    }
-    
-    [HttpPost]
-    public async Task<IActionResult> Post([FromBody] RoleEntity roleEntity)
-    {
-        if (!ModelState.IsValid)
-            return BadRequest(ModelState);
-            
-        try
-        {
-            var role = roleEntity.ToModel();
-            role.CREATEDBY = User.Identity.Name;
-            
-            var result = await _repository.CreateAsync(role);
-            return Created($"api/roles/{result.GUID}", result.ToEntity());
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error creating role");
-            return StatusCode(500, "Internal server error");
-        }
-    }
-    
-    [HttpPut("{guid}")]
-    public async Task<IActionResult> Put(int guid, [FromBody] RoleEntity roleEntity)
-    {
-        if (guid != roleEntity.Guid)
-            return BadRequest("GUID mismatch");
-            
-        if (!ModelState.IsValid)
-            return BadRequest(ModelState);
-            
-        try
-        {
-            var exists = await _repository.ExistsAsync(guid);
-            if (!exists) return NotFound();
-            
-            var role = roleEntity.ToModel();
-            role.UPDATEDBY = User.Identity.Name;
-            
-            var result = await _repository.UpdateAsync(role);
-            return Ok(result.ToEntity());
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, $"Error updating role {guid}");
-            return StatusCode(500, "Internal server error");
-        }
-    }
-    
-    [HttpDelete("{guid}")]
-    public async Task<IActionResult> Delete(int guid)
-    {
-        try
-        {
-            var exists = await _repository.ExistsAsync(guid);
-            if (!exists) return NotFound();
-            
-            var role = await _repository.GetByIdAsync(guid);
-            role.DELETEDBY = User.Identity.Name;
-            
-            var result = await _repository.DeleteAsync(guid);
-            return Ok(result);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, $"Error deleting role {guid}");
-            return StatusCode(500, "Internal server error");
-        }
-    }
+    // Navigation property
+    public RoleEntity Role { get; set; }
 }
 ```
 
-2. Add OData route configuration in Startup.cs:
-```csharp
-public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
-{
-    // Existing configuration
-    
-    app.UseEndpoints(endpoints =>
-    {
-        // Existing endpoints
-        
-        endpoints.MapODataRoute("odata", "odata", GetEdmModel());
-        endpoints.EnableDependencyInjection();
-    });
-}
-```
+Ensure the property names follow the OData naming conventions used in the project (typically PascalCase for OData entities).
 
 # Test Strategy:
-1. Test each endpoint (GET, POST, PUT, DELETE) with valid inputs
-2. Verify authentication is required for all endpoints
-3. Test error handling with invalid inputs
-4. Verify OData query parameters work correctly (e.g., $filter, $select, $expand)
-5. Test validation logic for required fields
-6. Verify proper HTTP status codes are returned for different scenarios
-7. Test that user information is correctly captured in CREATEDBY, UPDATEDBY, and DELETEDBY fields
-8. Verify soft delete functionality works as expected
+Verify that the OData entity class has all the required properties with appropriate data types and naming conventions. Ensure the navigation property is properly defined.

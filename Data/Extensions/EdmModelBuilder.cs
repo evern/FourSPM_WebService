@@ -59,6 +59,18 @@ namespace FourSPM_WebService.Data.Extensions
             builder.EntitySet<VariationEntity>("Variations").EntityType.HasKey(v => v.Guid);
             builder.EntitySet<RoleEntity>("Roles").EntityType.HasKey(r => r.Guid);
             
+            // Configure RolePermission entity and define a function to get permissions by role ID
+            var rolePermissionEntityType = builder.EntitySet<RolePermissionEntity>("RolePermissions").EntityType;
+            rolePermissionEntityType.HasKey(rp => rp.Guid);
+            
+            // Define the GetByRoleId function as a bound OData function on the RolePermissions collection
+            var getByRoleIdFunction = rolePermissionEntityType.Collection
+                .Function("GetByRoleId")
+                .ReturnsCollectionFromEntitySet<RolePermissionEntity>("RolePermissions");
+            
+            // Add parameter to the function
+            getByRoleIdFunction.Parameter<int>("roleId");
+            
             // Register VariationDeliverables - using DeliverableEntity type but different endpoint
             // This ensures that variation deliverables can be separately queried while maintaining the same model
             var variationDeliverableEntityType = builder.EntitySet<DeliverableEntity>("VariationDeliverables").EntityType;

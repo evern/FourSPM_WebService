@@ -1,64 +1,18 @@
 # Task ID: 8
-# Title: Create Authentication Middleware
+# Title: Update service registration
 # Status: done
-# Dependencies: 3, 4
+# Dependencies: 6
 # Priority: medium
-# Description: Implement custom authentication middleware to handle token validation and error responses.
+# Description: Register the role permission repository in the dependency injection container.
 # Details:
-Create a custom authentication middleware class:
+Update the service registration code (typically in Startup.cs or a dedicated registration class) to register the repository:
 
 ```csharp
-public class AuthenticationMiddleware
-{
-    private readonly RequestDelegate _next;
-    private readonly ILogger<AuthenticationMiddleware> _logger;
-
-    public AuthenticationMiddleware(RequestDelegate next, ILogger<AuthenticationMiddleware> logger)
-    {
-        _next = next;
-        _logger = logger;
-    }
-
-    public async Task InvokeAsync(HttpContext context)
-    {
-        try
-        {
-            await _next(context);
-        }
-        catch (SecurityTokenExpiredException ex)
-        {
-            _logger.LogWarning(ex, "Token expired");
-            context.Response.StatusCode = 401;
-            context.Response.ContentType = "application/json";
-            await context.Response.WriteAsJsonAsync(new { error = "Token expired", message = "Authentication token has expired" });
-        }
-        catch (SecurityTokenValidationException ex)
-        {
-            _logger.LogWarning(ex, "Token validation failed");
-            context.Response.StatusCode = 401;
-            context.Response.ContentType = "application/json";
-            await context.Response.WriteAsJsonAsync(new { error = "Invalid token", message = "Authentication token validation failed" });
-        }
-    }
-}
-
-// Extension method for easy registration
-public static class AuthenticationMiddlewareExtensions
-{
-    public static IApplicationBuilder UseCustomAuthentication(this IApplicationBuilder builder)
-    {
-        return builder.UseMiddleware<AuthenticationMiddleware>();
-    }
-}
+// Add this line to the existing service registration method
+services.AddScoped<IRolePermissionRepository, RolePermissionRepository>();
 ```
 
-Register the middleware in Program.cs:
-
-```csharp
-app.UseAuthentication();
-app.UseCustomAuthentication();
-app.UseAuthorization();
-```
+Ensure this follows the same pattern as other repository registrations in the project.
 
 # Test Strategy:
-Create unit tests for the middleware with mocked HttpContext and various exception scenarios. Test the middleware's error handling by simulating different token validation exceptions. Verify appropriate status codes and response formats are returned.
+Verify that the repository is properly registered by inspecting the DI container configuration. Test that the repository can be injected into controllers and other services.
