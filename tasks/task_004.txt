@@ -1,0 +1,49 @@
+# Task ID: 4
+# Title: Implement Token Validation Helpers
+# Status: done
+# Dependencies: 3
+# Priority: medium
+# Description: Create helper methods to validate and extract claims from Azure AD tokens.
+# Details:
+Create a TokenValidationService class to handle token validation and claims extraction:
+
+```csharp
+public class TokenValidationService
+{
+    private readonly IHttpContextAccessor _httpContextAccessor;
+
+    public TokenValidationService(IHttpContextAccessor httpContextAccessor)
+    {
+        _httpContextAccessor = httpContextAccessor;
+    }
+
+    public ClaimsPrincipal GetCurrentUser()
+    {
+        return _httpContextAccessor.HttpContext?.User;
+    }
+
+    public string GetUserObjectId()
+    {
+        var objectIdClaim = _httpContextAccessor.HttpContext?.User.FindFirst("http://schemas.microsoft.com/identity/claims/objectidentifier");
+        return objectIdClaim?.Value;
+    }
+
+    public IEnumerable<string> GetUserRoles()
+    {
+        var roles = _httpContextAccessor.HttpContext?.User.Claims
+            .Where(c => c.Type == ClaimTypes.Role)
+            .Select(c => c.Value);
+        return roles ?? Enumerable.Empty<string>();
+    }
+}
+```
+
+Register the service in Program.cs:
+
+```csharp
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<TokenValidationService>();
+```
+
+# Test Strategy:
+Write unit tests for the TokenValidationService using mocked HttpContext with various claims configurations. Test each method with valid and invalid/missing claims scenarios.

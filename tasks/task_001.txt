@@ -1,0 +1,22 @@
+# Task ID: 1
+# Title: Install Authentication Packages
+# Status: done
+# Dependencies: None
+# Priority: high
+# Description: Add Microsoft.Identity.Web and related NuGet packages to the ASP.NET Core project to enable Azure AD authentication.
+# Details:
+Install the following NuGet packages:
+1. Microsoft.Identity.Web
+2. Microsoft.Identity.Web.UI (if UI components are needed)
+3. Microsoft.AspNetCore.Authentication.JwtBearer
+
+Command line installation:
+```
+dotnet add package Microsoft.Identity.Web
+dotnet add package Microsoft.AspNetCore.Authentication.JwtBearer
+```
+
+Ensure package versions are compatible with the current ASP.NET Core version used in the project.
+
+# Test Strategy:
+Verify successful package installation by checking the project's .csproj file for the added package references. Ensure there are no version conflicts with existing packages.

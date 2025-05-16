@@ -1,0 +1,35 @@
+# Task ID: 3
+# Title: Configure JWT Bearer Authentication
+# Status: done
+# Dependencies: 1, 2
+# Priority: high
+# Description: Configure JWT Bearer authentication in the application to validate tokens issued by Azure AD.
+# Details:
+Update Program.cs to configure JWT Bearer authentication:
+
+```csharp
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddMicrosoftIdentityWebApi(builder.Configuration.GetSection("AzureAd"));
+
+// Add authorization services
+builder.Services.AddAuthorization();
+
+// In the app configuration section
+app.UseAuthentication();
+app.UseAuthorization();
+```
+
+Configure token validation parameters to validate issuer, audience, lifetime, and signature:
+
+```csharp
+builder.Services.Configure<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme, options =>
+{
+    options.TokenValidationParameters.ValidateIssuer = true;
+    options.TokenValidationParameters.ValidateAudience = true;
+    options.TokenValidationParameters.ValidateLifetime = true;
+    options.TokenValidationParameters.ValidateIssuerSigningKey = true;
+});
+```
+
+# Test Strategy:
+Create unit tests to verify authentication configuration. Test with valid and invalid tokens to ensure proper validation. Verify that unauthenticated requests to protected endpoints return 401 Unauthorized responses.

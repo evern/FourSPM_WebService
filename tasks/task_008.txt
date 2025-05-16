@@ -1,0 +1,64 @@
+# Task ID: 8
+# Title: Create Authentication Middleware
+# Status: done
+# Dependencies: 3, 4
+# Priority: medium
+# Description: Implement custom authentication middleware to handle token validation and error responses.
+# Details:
+Create a custom authentication middleware class:
+
+```csharp
+public class AuthenticationMiddleware
+{
+    private readonly RequestDelegate _next;
+    private readonly ILogger<AuthenticationMiddleware> _logger;
+
+    public AuthenticationMiddleware(RequestDelegate next, ILogger<AuthenticationMiddleware> logger)
+    {
+        _next = next;
+        _logger = logger;
+    }
+
+    public async Task InvokeAsync(HttpContext context)
+    {
+        try
+        {
+            await _next(context);
+        }
+        catch (SecurityTokenExpiredException ex)
+        {
+            _logger.LogWarning(ex, "Token expired");
+            context.Response.StatusCode = 401;
+            context.Response.ContentType = "application/json";
+            await context.Response.WriteAsJsonAsync(new { error = "Token expired", message = "Authentication token has expired" });
+        }
+        catch (SecurityTokenValidationException ex)
+        {
+            _logger.LogWarning(ex, "Token validation failed");
+            context.Response.StatusCode = 401;
+            context.Response.ContentType = "application/json";
+            await context.Response.WriteAsJsonAsync(new { error = "Invalid token", message = "Authentication token validation failed" });
+        }
+    }
+}
+
+// Extension method for easy registration
+public static class AuthenticationMiddlewareExtensions
+{
+    public static IApplicationBuilder UseCustomAuthentication(this IApplicationBuilder builder)
+    {
+        return builder.UseMiddleware<AuthenticationMiddleware>();
+    }
+}
+```
+
+Register the middleware in Program.cs:
+
+```csharp
+app.UseAuthentication();
+app.UseCustomAuthentication();
+app.UseAuthorization();
+```
+
+# Test Strategy:
+Create unit tests for the middleware with mocked HttpContext and various exception scenarios. Test the middleware's error handling by simulating different token validation exceptions. Verify appropriate status codes and response formats are returned.

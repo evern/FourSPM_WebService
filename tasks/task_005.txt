@@ -1,0 +1,38 @@
+# Task ID: 5
+# Title: Implement Role-Based Access Control
+# Status: done
+# Dependencies: 3, 4
+# Priority: high
+# Description: Configure role-based access control to restrict API access based on user roles defined in Azure AD.
+# Details:
+Configure role claim mapping in Program.cs:
+
+```csharp
+builder.Services.Configure<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme, options =>
+{
+    options.TokenValidationParameters.RoleClaimType = "roles";
+});
+```
+
+Implement role-based authorization in controllers:
+
+```csharp
+// Controller or action level
+[Authorize(Roles = "Admin,Manager")]
+public class AdminController : ControllerBase
+{
+    // Controller actions
+}
+
+// Or at the action level
+[Authorize(Roles = "User")]
+public IActionResult GetUserData()
+{
+    // Action implementation
+}
+```
+
+Ensure Azure AD app registration has the appropriate app roles defined and assigned to users/groups.
+
+# Test Strategy:
+Test authorization with users having different roles. Verify users with appropriate roles can access endpoints while those without required roles receive 403 Forbidden responses. Create integration tests that use test tokens with different role claims.

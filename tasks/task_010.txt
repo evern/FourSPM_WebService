@@ -1,0 +1,129 @@
+# Task ID: 10
+# Title: Implement End-to-End Testing
+# Status: pending
+# Dependencies: 1, 2, 3, 4, 5, 8, 9
+# Priority: medium
+# Description: Create comprehensive end-to-end tests to validate the Azure AD authentication integration.
+# Details:
+Create an integration test project:
+
+```csharp
+public class AuthenticationIntegrationTests : IClassFixture<WebApplicationFactory<Program>>
+{
+    private readonly WebApplicationFactory<Program> _factory;
+    private readonly HttpClient _client;
+
+    public AuthenticationIntegrationTests(WebApplicationFactory<Program> factory)
+    {
+        _factory = factory.WithWebHostBuilder(builder =>
+        {
+            builder.ConfigureAppConfiguration((context, config) =>
+            {
+                // Use test configuration
+                config.AddInMemoryCollection(new Dictionary<string, string>
+                {
+                    ["AzureAd:TenantId"] = "test-tenant-id",
+                    ["AzureAd:ClientId"] = "test-client-id"
+                });
+            });
+            
+            builder.ConfigureTestServices(services =>
+            {
+                // Mock authentication services for testing
+                services.AddAuthentication("Test")
+                    .AddScheme<AuthenticationSchemeOptions, TestAuthHandler>("Test", options => { });
+            });
+        });
+        
+        _client = _factory.CreateClient();
+    }
+
+    [Fact]
+    public async Task Unauthenticated_Request_Returns_401()
+    {
+        // Arrange
+        _client.DefaultRequestHeaders.Authorization = null;
+        
+        // Act
+        var response = await _client.GetAsync("/api/products");
+        
+        // Assert
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Authenticated_Admin_Can_Access_Protected_Endpoint()
+    {
+        // Arrange
+        _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", GenerateTestToken("admin"));
+        
+        // Act
+        var response = await _client.GetAsync("/api/products");
+        
+        // Assert
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+    }
+
+    private string GenerateTestToken(string role)
+    {
+        // Generate a test token with appropriate claims
+        // Implementation details
+    }
+}
+
+// Test authentication handler
+public class TestAuthHandler : AuthenticationHandler<AuthenticationSchemeOptions>
+{
+    public TestAuthHandler(IOptionsMonitor<AuthenticationSchemeOptions> options, ILoggerFactory logger, UrlEncoder encoder, ISystemClock clock)
+        : base(options, logger, encoder, clock)
+    {
+    }
+
+    protected override Task<AuthenticateResult> HandleAuthenticateAsync()
+    {
+        // Parse the token from Authorization header and create claims principal
+        // Implementation details
+    }
+}
+```
+
+# Test Strategy:
+Run integration tests against a test instance of the application. Test various authentication and authorization scenarios including valid/invalid tokens, different roles, and scopes. Verify that all endpoints enforce the expected security requirements.
+
+# Subtasks:
+## 1. Set up the integration test project [pending]
+### Dependencies: None
+### Description: Create and configure the test project structure with necessary dependencies and frameworks for API integration testing
+### Details:
+Install required testing libraries and mocking frameworks. Configure the test environment with appropriate settings for API endpoints. Set up the project structure with separate folders for test cases, utilities, and configuration files. Include network request mocking libraries as recommended for efficient API testing.
+
+## 2. Configure test authentication handlers [pending]
+### Dependencies: 10.1
+### Description: Implement authentication handlers and middleware for simulating various authentication scenarios
+### Details:
+Create mock authentication services that can simulate different authentication states. Implement middleware to intercept and modify authentication headers. Set up handlers for different authentication methods (Basic, OAuth, JWT, etc.). Configure the test environment to use these authentication handlers.
+
+## 3. Write tests for unauthenticated requests [pending]
+### Dependencies: 10.1
+### Description: Develop test cases for API endpoints that don't require authentication
+### Details:
+Create test cases for public API endpoints. Test various HTTP methods (GET, POST, PUT, DELETE). Include boundary value tests and error scenario tests. Verify correct response codes and payload structures for unauthenticated requests. Implement tests for rate limiting and error handling.
+
+## 4. Write tests for authenticated requests with various roles/scopes [pending]
+### Dependencies: 10.2
+### Description: Develop test cases for API endpoints that require different authentication levels and user permissions
+### Details:
+Create test cases for endpoints requiring authentication. Test access with different user roles (admin, regular user, etc.). Verify proper authorization enforcement for protected resources. Test boundary conditions where permissions might overlap. Include negative tests where authentication should fail.
+
+## 5. Generate and manage test tokens [pending]
+### Dependencies: 10.2
+### Description: Implement utilities for creating, validating, and managing authentication tokens for testing
+### Details:
+Create utilities to generate valid and invalid tokens for testing. Implement token management for different user roles and permissions. Set up token expiration testing scenarios. Create helpers for injecting tokens into requests. Develop utilities for validating token usage in API responses.
+
+## 6. Run and validate test results [pending]
+### Dependencies: 10.3, 10.4, 10.5
+### Description: Execute the integration tests and analyze the results for API functionality and authentication
+### Details:
+Set up continuous integration for automated test execution. Implement reporting mechanisms for test results. Create dashboards for visualizing test coverage and success rates. Develop procedures for investigating and documenting test failures. Establish criteria for determining when tests pass or fail.
+

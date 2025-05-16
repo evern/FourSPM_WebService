@@ -1,0 +1,26 @@
+# Task ID: 2
+# Title: Configure Azure AD Settings in appsettings.json
+# Status: done
+# Dependencies: 1
+# Priority: high
+# Description: Set up Azure AD configuration settings in appsettings.json with environment-specific configurations.
+# Details:
+Create an 'AzureAd' section in appsettings.json with the following structure:
+
+```json
+{
+  "AzureAd": {
+    "Instance": "https://login.microsoftonline.com/",
+    "Domain": "yourdomain.onmicrosoft.com",
+    "TenantId": "your-tenant-id",
+    "ClientId": "your-client-id",
+    "CallbackPath": "/signin-oidc",
+    "SignedOutCallbackPath": "/signout-callback-oidc"
+  }
+}
+```
+
+Create environment-specific settings in appsettings.Development.json and appsettings.Production.json with appropriate values. Use user secrets or Azure Key Vault for storing sensitive information in development and production environments respectively.
+
+# Test Strategy:
+Validate configuration file structure. Ensure sensitive information is not committed to source control. Verify environment-specific configurations load correctly by running the application in different environments.
