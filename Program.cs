@@ -15,6 +15,7 @@ using System.Text.Json;
 using Azure.Core;
 using Microsoft.Identity.Web;
 using System.Security.Claims;
+using System.IdentityModel.Tokens.Jwt;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -143,52 +144,80 @@ builder.Services.AddScoped<MsalTokenValidator>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 
 // Add Authentication with support for both JWT and MSAL
+// Configure authentication with multiple schemes
 builder.Services
     .AddAuthentication(options =>
     {
-        options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-        options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+        // Default schemes - these will be used if no specific scheme is specified
+        options.DefaultAuthenticateScheme = "Bearer"; // A custom scheme that combines both
+        options.DefaultChallengeScheme = "Bearer";
+        options.DefaultScheme = "Bearer";
     })
-    .AddMicrosoftIdentityWebApi(builder.Configuration.GetSection("AzureAd"));
-
-// Configure JWT bearer options to support legacy authentication
-builder.Services.Configure<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme, options =>
-{
-    // Keep existing JWT validation for backward compatibility
-    options.TokenValidationParameters = new TokenValidationParameters
+    // Add JWT Bearer handler for legacy authentication with a specific scheme name "Legacy"
+    .AddJwtBearer("Legacy", options =>
     {
-        ValidateIssuer = true,
-        ValidateAudience = true,
-        ValidateLifetime = true,
-        ValidateIssuerSigningKey = true,
-        ValidIssuer = jwtConfig.Issuer,
-        ValidAudience = jwtConfig.Audience,
-        IssuerSigningKey = new SymmetricSecurityKey(
-            Encoding.UTF8.GetBytes(jwtConfig.Secret))
-    };
-    
-    // Add event handlers for token validation
-    options.Events = new JwtBearerEvents
-    {
-        OnTokenValidated = async context => 
+        options.TokenValidationParameters = new TokenValidationParameters
         {
-            // Token validation logic will be implemented in AuthService
-            var authService = context.HttpContext.RequestServices.GetRequiredService<IAuthService>();
-            await authService.ValidateTokenAsync(context);
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+            ValidIssuer = jwtConfig.Issuer,
+            ValidAudience = jwtConfig.Audience,
+            IssuerSigningKey = new SymmetricSecurityKey(
+                Encoding.UTF8.GetBytes(jwtConfig.Secret))
+        };
+    })
+    // Add Microsoft Identity Web API handler with scheme name "AzureAd"
+    .AddMicrosoftIdentityWebApi(builder.Configuration.GetSection("AzureAd"), "AzureAd", "AzureAd");
+
+// Add a combined authentication handler that can select between schemes based on the token
+builder.Services.AddAuthentication()
+    .AddPolicyScheme("Bearer", "Bearer or AzureAd", options =>
+    {
+        // This is the key part - dynamically select which scheme to use based on the token
+        options.ForwardDefaultSelector = context =>
+        {
+            // Get the token from the Authorization header
+            var authorization = context.Request.Headers["Authorization"].FirstOrDefault();
             
-            // Store flag in HttpContext to indicate token type
-            var securityToken = context.SecurityToken as System.IdentityModel.Tokens.Jwt.JwtSecurityToken;
-            if (securityToken != null)
+            // If no authorization header is provided, use the default scheme
+            if (string.IsNullOrEmpty(authorization))
             {
-                // Check if this is an MSAL token based on issuer pattern
-                var isMsalToken = securityToken.Issuer.Contains("login.microsoftonline.com") || 
-                                 securityToken.Issuer.Contains("sts.windows.net");
-                                 
-                context.HttpContext.Items["IsMsalToken"] = isMsalToken;
+                return "Legacy";
             }
-        }
-    };
-});
+            
+            // If we have a Bearer token, try to determine if it's a legacy or MSAL token
+            if (authorization.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
+            {
+                var token = authorization.Substring("Bearer ".Length).Trim();
+                try
+                {
+                    // Try to read the token without validation to check its issuer
+                    var handler = new JwtSecurityTokenHandler();
+                    if (handler.CanReadToken(token))
+                    {
+                        var jwtToken = handler.ReadJwtToken(token);
+                        
+                        // Check the issuer to determine which scheme to use
+                        if (jwtToken.Issuer.Contains("login.microsoftonline.com") || 
+                            jwtToken.Issuer.Contains("sts.windows.net"))
+                        {
+                            return "AzureAd"; // Use Azure AD scheme for MSAL tokens
+                        }
+                    }
+                }
+                catch
+                {
+                    // If there's an error reading the token, default to legacy
+                }
+            }
+            
+            // Default to legacy authentication
+            return "Legacy";
+        };
+    });
+
 
 builder.ConfigureInstallers();
 var app = builder.Build();
@@ -252,9 +281,8 @@ app.Use(async (context, next) =>
 app.UseAuthentication();
 app.UseAuthorization();
 
-// Add token type detection middleware before JWT validation
-app.UseTokenTypeDetection();
-app.UseJwtValidation();
+// The token type detection now happens in the policy scheme selector
+// No need for separate middleware as we've implemented this in the authentication configuration
 app.MapControllers();
 
 app.Run();
