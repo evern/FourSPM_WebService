@@ -1,539 +1,155 @@
 # Task ID: 11
-# Title: Implement Role Permission Scaffolding
-# Status: done
+# Title: Implement Login Page
+# Status: pending
 # Dependencies: 5
 # Priority: high
-# Description: Create Entity Framework models, OData entities, repositories, and controllers for the new ROLE_PERMISSION table to support role-based access control.
+# Description: Create a login page with Microsoft-branded login button that redirects to Azure AD for authentication.
 # Details:
-This task involves creating all necessary components to scaffold the ROLE_PERMISSION table:
+1. Create Login page component:
+```tsx
+// src/pages/LoginPage.tsx
+import React from 'react';
+import { useHistory, useLocation } from 'react-router-dom';
+import { Button } from 'devextreme-react/button';
+import { useAuth } from '../auth/AuthContext';
+import './LoginPage.css';
 
-1. Create the ROLE_PERMISSION Entity Framework model class that maps to the database table
-2. Update FourSPMContext with DbSet and entity configuration
-3. Create the RolePermissionEntity OData model
-4. Register the entity in EdmModelBuilder
-5. Create the IRolePermissionRepository interface with methods to:
-   - Get all role permissions
-   - Get permissions by role name
-   - Check if a role has a specific permission
-   - CRUD operations
-6. Implement RolePermissionRepository
-7. Register the repository in the DI container
-8. Create RolePermissionsController for OData access
-9. Update any existing authorization logic to use these role permissions
+const LoginPage: React.FC = () => {
+  const { login, isAuthenticated } = useAuth();
+  const history = useHistory();
+  const location = useLocation<{ from: string }>();
+  
+  // Redirect if already authenticated
+  React.useEffect(() => {
+    if (isAuthenticated) {
+      const from = location.state?.from || '/';
+      history.replace(from);
+    }
+  }, [isAuthenticated, history, location]);
+  
+  const handleLogin = async () => {
+    try {
+      await login();
+      // Redirect will happen automatically in the useEffect above
+    } catch (error) {
+      console.error('Login failed', error);
+    }
+  };
+  
+  return (
+    <div className="login-container">
+      <div className="login-box">
+        <h2>FourSPM Application</h2>
+        <p>Please sign in with your organizational account</p>
+        
+        <Button
+          text="Sign in with Microsoft"
+          icon="fab fa-microsoft"
+          type="default"
+          stylingMode="contained"
+          onClick={handleLogin}
+          className="ms-login-button"
+        />
+      </div>
+    </div>
+  );
+};
 
-Once implemented, this will enable the system to:
-- Store role-permission mappings in the database
-- Provide API endpoints to manage these mappings
-- Support the planned role management UI
+export default LoginPage;
+```
+
+2. Add styles for the login page:
+```css
+/* src/pages/LoginPage.css */
+.login-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  background-color: #f5f5f5;
+}
+
+.login-box {
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  padding: 40px;
+  text-align: center;
+  width: 400px;
+}
+
+.login-box h2 {
+  margin-top: 0;
+  color: #333;
+}
+
+.login-box p {
+  color: #666;
+  margin-bottom: 30px;
+}
+
+.ms-login-button {
+  width: 100%;
+  margin-top: 20px;
+  background-color: #0078d4 !important;
+  border-color: #0078d4 !important;
+}
+
+.ms-login-button:hover {
+  background-color: #106ebe !important;
+  border-color: #106ebe !important;
+}
+```
+
+3. Update the ProtectedRoute component to redirect to login:
+```tsx
+// src/auth/ProtectedRoute.tsx
+import React from 'react';
+import { Route, Redirect, RouteProps } from 'react-router-dom';
+import { useAuth } from './AuthContext';
+
+interface ProtectedRouteProps extends RouteProps {
+  requiredPermission?: string;
+}
+
+export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ 
+  requiredPermission,
+  ...routeProps 
+}) => {
+  const { isAuthenticated, userRoles } = useAuth();
+  
+  if (!isAuthenticated) {
+    return (
+      <Redirect 
+        to={{
+          pathname: '/login',
+          state: { from: routeProps.location?.pathname }
+        }} 
+      />
+    );
+  }
+  
+  // If no specific permission is required, just check authentication
+  if (!requiredPermission) {
+    return <Route {...routeProps} />;
+  }
+  
+  // For system administrators, allow access to everything
+  if (userRoles.includes('Application.Admin')) {
+    return <Route {...routeProps} />;
+  }
+  
+  // For permission-based access, check if user has the required permission
+  // This is a simplified check - in a real app, you'd check against the permissions from the backend
+  return <Route {...routeProps} />;
+};
+```
 
 # Test Strategy:
-
-
-# Subtasks:
-## 1. Create ROLE_PERMISSION Entity Framework Model [done]
-### Dependencies: None
-### Description: Define the Entity Framework model class that maps to the ROLE_PERMISSION database table
-### Details:
-Create a new file at `Data/EF/FourSPM/ROLE_PERMISSION.cs` with:
-
-1. Class definition matching database table schema
-2. Required properties and data annotations:
-   - GUID as primary key
-   - ROLE_NAME (required, max length 100)
-   - PERMISSION_NAME (required, max length 200)
-   - IS_GRANTED (boolean with default true)
-   - DESCRIPTION (optional, max length 500)
-   - Standard audit fields (CREATED, CREATEDBY, etc.)
-3. Proper using statements for data annotations
-
-Follow the pattern used in other entity models like DELIVERABLE.cs
-
-## 2. Update DbContext Configuration [done]
-### Dependencies: None
-### Description: Add DbSet property and entity configuration for ROLE_PERMISSION in FourSPMContext
-### Details:
-Update FourSPMContext.cs with:
-
-1. Add DbSet property for ROLE_PERMISSION:
-   ```csharp
-   public virtual DbSet<ROLE_PERMISSION> ROLE_PERMISSIONs { get; set; }
-   ```
-
-2. In the OnModelCreating method, add entity configuration:
-   ```csharp
-   modelBuilder.Entity<ROLE_PERMISSION>(entity =>
-   {
-       entity.HasKey(e => e.GUID);
-       
-       entity.Property(e => e.ROLE_NAME)
-           .IsRequired()
-           .HasMaxLength(100);
-       
-       entity.Property(e => e.PERMISSION_NAME)
-           .IsRequired()
-           .HasMaxLength(200);
-       
-       entity.Property(e => e.IS_GRANTED)
-           .IsRequired()
-           .HasDefaultValue(true);
-           
-       entity.Property(e => e.DESCRIPTION)
-           .HasMaxLength(500);
-           
-       // Create a unique index for non-deleted records
-       entity.HasIndex(e => new { e.ROLE_NAME, e.PERMISSION_NAME })
-           .HasFilter("DELETED IS NULL")
-           .IsUnique();
-   });
-   ```
-
-Follow the same pattern used for other entities in the DbContext.
-
-## 3. Create OData Entity Model [done]
-### Dependencies: None
-### Description: Create the OData entity class for ROLE_PERMISSION
-### Details:
-Create a new file at `Data/OData/FourSPM/RolePermissionEntity.cs` with:
-
-1. Class definition with PascalCase property names following the project convention
-2. Properties mapping to the database entity:
-   ```csharp
-   namespace FourSPM_WebService.Data.OData.FourSPM
-   {
-       public class RolePermissionEntity
-       {
-           public Guid Guid { get; set; }
-           public required string RoleName { get; set; }
-           public required string PermissionName { get; set; }
-           public bool IsGranted { get; set; }
-           public string? Description { get; set; }
-           
-           // Audit fields
-           public DateTime Created { get; set; }
-           public Guid CreatedBy { get; set; }
-           public DateTime? Updated { get; set; }
-           public Guid? UpdatedBy { get; set; }
-           public DateTime? Deleted { get; set; }
-           public Guid? DeletedBy { get; set; }
-       }
-   }
-   ```
-
-3. Follow the established naming pattern from other OData entities in the project
-
-## 4. Register OData Entity in EdmModelBuilder [done]
-### Dependencies: None
-### Description: Register the RolePermissionEntity in the OData EDM model
-### Details:
-Update `Data/Extensions/EdmModelBuilder.cs` to register the RolePermissionEntity in the OData model:
-
-```csharp
-builder.EntitySet<RolePermissionEntity>("RolePermissions").EntityType.HasKey(r => r.Guid);
-```
-
-This makes the entity available through OData endpoints with the plural name "RolePermissions".
-
-Ensure you've added any necessary using statements at the top of the file:
-```csharp
-using FourSPM_WebService.Data.OData.FourSPM;
-```
-
-## 5. Create Repository Interface [done]
-### Dependencies: None
-### Description: Define the interface for the role permission repository with CRUD operations
-### Details:
-Create a new file at `Data/Repositories/IRolePermissionRepository.cs`:
-
-```csharp
-using FourSPM_WebService.Data.EF.FourSPM;
-
-namespace FourSPM_WebService.Data.Repositories
-{
-    public interface IRolePermissionRepository
-    {
-        /// <summary>
-        /// Gets all non-deleted role permissions
-        /// </summary>
-        Task<IEnumerable<ROLE_PERMISSION>> GetAllAsync();
-        
-        /// <summary>
-        /// Gets a specific role permission by ID
-        /// </summary>
-        Task<ROLE_PERMISSION?> GetByIdAsync(Guid id);
-        
-        /// <summary>
-        /// Gets all permissions for a specific role
-        /// </summary>
-        Task<IEnumerable<ROLE_PERMISSION>> GetByRoleNameAsync(string roleName);
-        
-        /// <summary>
-        /// Gets all permission names for a specific role
-        /// </summary>
-        Task<IEnumerable<string>> GetPermissionsByRoleNameAsync(string roleName);
-        
-        /// <summary>
-        /// Checks if a role has a specific permission
-        /// </summary>
-        Task<bool> CheckPermissionAsync(string roleName, string permissionName);
-        
-        /// <summary>
-        /// Creates a new role permission
-        /// </summary>
-        Task<ROLE_PERMISSION> CreateAsync(ROLE_PERMISSION rolePermission);
-        
-        /// <summary>
-        /// Updates an existing role permission
-        /// </summary>
-        Task<ROLE_PERMISSION> UpdateAsync(ROLE_PERMISSION rolePermission);
-        
-        /// <summary>
-        /// Soft deletes a role permission
-        /// </summary>
-        Task<bool> DeleteAsync(Guid id, Guid deletedBy);
-        
-        /// <summary>
-        /// Checks if a role permission exists and is not deleted
-        /// </summary>
-        Task<bool> ExistsAsync(Guid id);
-    }
-}
-```
-
-Follow the pattern established in other repository interfaces in the project.
-
-## 6. Implement Repository Class [done]
-### Dependencies: None
-### Description: Implement the RolePermissionRepository class that provides data access for role permissions
-### Details:
-Create a new file at `Data/Repositories/RolePermissionRepository.cs` that implements the IRolePermissionRepository interface:
-
-```csharp
-using FourSPM_WebService.Data.EF;
-using FourSPM_WebService.Data.EF.FourSPM;
-using Microsoft.EntityFrameworkCore;
-
-namespace FourSPM_WebService.Data.Repositories
-{
-    public class RolePermissionRepository : IRolePermissionRepository
-    {
-        private readonly FourSPMContext _context;
-        private readonly ILogger<RolePermissionRepository> _logger;
-
-        public RolePermissionRepository(FourSPMContext context, ILogger<RolePermissionRepository> logger)
-        {
-            _context = context;
-            _logger = logger;
-        }
-
-        public async Task<IEnumerable<ROLE_PERMISSION>> GetAllAsync()
-        {
-            return await _context.ROLE_PERMISSIONs
-                .Where(rp => rp.DELETED == null)
-                .OrderBy(rp => rp.ROLE_NAME)
-                .ThenBy(rp => rp.PERMISSION_NAME)
-                .ToListAsync();
-        }
-
-        public async Task<ROLE_PERMISSION?> GetByIdAsync(Guid id)
-        {
-            return await _context.ROLE_PERMISSIONs
-                .FirstOrDefaultAsync(rp => rp.GUID == id && rp.DELETED == null);
-        }
-
-        public async Task<IEnumerable<ROLE_PERMISSION>> GetByRoleNameAsync(string roleName)
-        {
-            return await _context.ROLE_PERMISSIONs
-                .Where(rp => rp.ROLE_NAME == roleName && rp.DELETED == null && rp.IS_GRANTED)
-                .OrderBy(rp => rp.PERMISSION_NAME)
-                .ToListAsync();
-        }
-
-        public async Task<IEnumerable<string>> GetPermissionsByRoleNameAsync(string roleName)
-        {
-            return await _context.ROLE_PERMISSIONs
-                .Where(rp => rp.ROLE_NAME == roleName && rp.DELETED == null && rp.IS_GRANTED)
-                .Select(rp => rp.PERMISSION_NAME)
-                .ToListAsync();
-        }
-
-        public async Task<bool> CheckPermissionAsync(string roleName, string permissionName)
-        {
-            return await _context.ROLE_PERMISSIONs
-                .AnyAsync(rp => rp.ROLE_NAME == roleName 
-                              && rp.PERMISSION_NAME == permissionName 
-                              && rp.DELETED == null 
-                              && rp.IS_GRANTED);
-        }
-
-        public async Task<ROLE_PERMISSION> CreateAsync(ROLE_PERMISSION rolePermission)
-        {
-            _context.ROLE_PERMISSIONs.Add(rolePermission);
-            await _context.SaveChangesAsync();
-            return rolePermission;
-        }
-
-        public async Task<ROLE_PERMISSION> UpdateAsync(ROLE_PERMISSION rolePermission)
-        {
-            var existingPermission = await _context.ROLE_PERMISSIONs
-                .FirstOrDefaultAsync(rp => rp.GUID == rolePermission.GUID && rp.DELETED == null);
-
-            if (existingPermission == null)
-            {
-                _logger.LogWarning("Attempted to update non-existent role permission: {Id}", rolePermission.GUID);
-                throw new KeyNotFoundException($"Role permission with ID {rolePermission.GUID} not found");
-            }
-
-            // Update properties
-            existingPermission.ROLE_NAME = rolePermission.ROLE_NAME;
-            existingPermission.PERMISSION_NAME = rolePermission.PERMISSION_NAME;
-            existingPermission.IS_GRANTED = rolePermission.IS_GRANTED;
-            existingPermission.DESCRIPTION = rolePermission.DESCRIPTION;
-            existingPermission.UPDATED = rolePermission.UPDATED;
-            existingPermission.UPDATEDBY = rolePermission.UPDATEDBY;
-
-            await _context.SaveChangesAsync();
-            return existingPermission;
-        }
-
-        public async Task<bool> DeleteAsync(Guid id, Guid deletedBy)
-        {
-            var rolePermission = await _context.ROLE_PERMISSIONs
-                .FirstOrDefaultAsync(rp => rp.GUID == id && rp.DELETED == null);
-
-            if (rolePermission == null)
-            {
-                _logger.LogWarning("Attempted to delete non-existent role permission: {Id}", id);
-                return false;
-            }
-
-            rolePermission.DELETED = DateTime.UtcNow;
-            rolePermission.DELETEDBY = deletedBy;
-
-            await _context.SaveChangesAsync();
-            return true;
-        }
-
-        public async Task<bool> ExistsAsync(Guid id)
-        {
-            return await _context.ROLE_PERMISSIONs
-                .AnyAsync(rp => rp.GUID == id && rp.DELETED == null);
-        }
-    }
-}
-```
-
-Follow the established patterns for repositories in the project, with proper error handling, logging, and entity tracking.
-
-## 7. Register Repository in DI Container [done]
-### Dependencies: None
-### Description: Register the role permission repository in the dependency injection container
-### Details:
-Update `Extensions/ServiceExtensions.cs` to register the role permission repository in the dependency injection container:
-
-```csharp
-// Add this line with other repository registrations
-services.AddScoped<IRolePermissionRepository, RolePermissionRepository>();
-```
-
-This makes the repository available for injection in controllers and services that need to access role permissions.
-
-## 8. Create OData Controller [done]
-### Dependencies: None
-### Description: Create a controller for OData access to role permissions
-### Details:
-Create a new file at `Controllers/RolePermissionsController.cs`:
-
-```csharp
-using FourSPM_WebService.Data.EF.FourSPM;
-using FourSPM_WebService.Data.OData.FourSPM;
-using FourSPM_WebService.Data.Repositories;
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.OData.Query;
-using Microsoft.AspNetCore.OData.Routing.Attributes;
-using Microsoft.AspNetCore.Mvc;
-
-namespace FourSPM_WebService.Controllers
-{
-    [Authorize]
-    [ODataRouteComponent("odata/v1")]
-    public class RolePermissionsController : FourSPMODataController
-    {
-        private readonly IRolePermissionRepository _repository;
-        private readonly ApplicationUser _applicationUser;
-        private readonly ILogger<RolePermissionsController> _logger;
-
-        public RolePermissionsController(
-            IRolePermissionRepository repository,
-            ApplicationUser applicationUser,
-            ILogger<RolePermissionsController> logger)
-        {
-            _repository = repository;
-            _applicationUser = applicationUser;
-            _logger = logger;
-        }
-
-        [EnableQuery]
-        public async Task<IActionResult> Get()
-        {
-            var rolePermissions = await _repository.GetAllAsync();
-            var entities = rolePermissions.Select(rp => MapToEntity(rp));
-            return Ok(entities);
-        }
-
-        [EnableQuery]
-        public async Task<IActionResult> Get([FromRoute] Guid key)
-        {
-            var rolePermission = await _repository.GetByIdAsync(key);
-            if (rolePermission == null)
-                return NotFound();
-
-            return Ok(MapToEntity(rolePermission));
-        }
-
-        public async Task<IActionResult> Post([FromBody] RolePermissionEntity entity)
-        {
-            if (!ModelState.IsValid)
-                return BadRequest(ModelState);
-
-            var rolePermission = new ROLE_PERMISSION
-            {
-                GUID = Guid.NewGuid(),
-                ROLE_NAME = entity.RoleName,
-                PERMISSION_NAME = entity.PermissionName,
-                IS_GRANTED = entity.IsGranted,
-                DESCRIPTION = entity.Description,
-                CREATED = DateTime.UtcNow,
-                CREATEDBY = _applicationUser.Id
-            };
-
-            try
-            {
-                var created = await _repository.CreateAsync(rolePermission);
-                return Created($"odata/v1/RolePermissions({created.GUID})", MapToEntity(created));
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error creating role permission");
-                return StatusCode(500, "An error occurred while creating the role permission");
-            }
-        }
-
-        public async Task<IActionResult> Put([FromRoute] Guid key, [FromBody] RolePermissionEntity entity)
-        {
-            if (!ModelState.IsValid)
-                return BadRequest(ModelState);
-
-            if (key != entity.Guid)
-                return BadRequest("ID mismatch");
-
-            var existingRolePermission = await _repository.GetByIdAsync(key);
-            if (existingRolePermission == null)
-                return NotFound();
-
-            existingRolePermission.ROLE_NAME = entity.RoleName;
-            existingRolePermission.PERMISSION_NAME = entity.PermissionName;
-            existingRolePermission.IS_GRANTED = entity.IsGranted;
-            existingRolePermission.DESCRIPTION = entity.Description;
-            existingRolePermission.UPDATED = DateTime.UtcNow;
-            existingRolePermission.UPDATEDBY = _applicationUser.Id;
-
-            try
-            {
-                var updated = await _repository.UpdateAsync(existingRolePermission);
-                return Updated(MapToEntity(updated));
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error updating role permission");
-                return StatusCode(500, "An error occurred while updating the role permission");
-            }
-        }
-
-        public async Task<IActionResult> Delete([FromRoute] Guid key)
-        {
-            var existingRolePermission = await _repository.GetByIdAsync(key);
-            if (existingRolePermission == null)
-                return NotFound();
-
-            try
-            {
-                var deleted = await _repository.DeleteAsync(key, _applicationUser.Id);
-                return deleted ? NoContent() : StatusCode(500, "Failed to delete role permission");
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error deleting role permission");
-                return StatusCode(500, "An error occurred while deleting the role permission");
-            }
-        }
-
-        private static RolePermissionEntity MapToEntity(ROLE_PERMISSION rolePermission)
-        {
-            return new RolePermissionEntity
-            {
-                Guid = rolePermission.GUID,
-                RoleName = rolePermission.ROLE_NAME,
-                PermissionName = rolePermission.PERMISSION_NAME,
-                IsGranted = rolePermission.IS_GRANTED,
-                Description = rolePermission.DESCRIPTION,
-                Created = rolePermission.CREATED,
-                CreatedBy = rolePermission.CREATEDBY,
-                Updated = rolePermission.UPDATED,
-                UpdatedBy = rolePermission.UPDATEDBY,
-                Deleted = rolePermission.DELETED,
-                DeletedBy = rolePermission.DELETEDBY
-            };
-        }
-    }
-}
-```
-
-Follow the established patterns for controllers in the project, with proper authentication, error handling, and entity mapping.
-
-## 9. Define Permission Constants [done]
-### Dependencies: None
-### Description: Create a constants class for permission names to ensure consistency between frontend and backend
-### Details:
-Update the existing `Config/AuthConstants.cs` file to add permission constants:
-
-```csharp
-namespace FourSPM_WebService.Config
-{
-    public static partial class AuthConstants
-    {
-        // Existing Roles class...
-
-        // Existing Policies class...
-
-        /// <summary>
-        /// Permission constants used for role-based authorization in the application
-        /// These names are stored in the ROLE_PERMISSION table
-        /// </summary>
-        public static class Permissions
-        {
-            // Project permissions
-            public const string ViewProjects = "Permissions.Projects.View";
-            public const string EditProjects = "Permissions.Projects.Edit";
-            public const string ManageProjects = "Permissions.Projects.Manage";
-            
-            // Task permissions
-            public const string ViewTasks = "Permissions.Tasks.View";
-            public const string EditTasks = "Permissions.Tasks.Edit";
-            public const string AssignTasks = "Permissions.Tasks.Assign";
-            
-            // User management permissions
-            public const string ViewUsers = "Permissions.Users.View";
-            public const string EditUsers = "Permissions.Users.Edit";
-            
-            // Role management permissions
-            public const string ManageRoles = "Permissions.Roles.Manage";
-            
-            // System permissions
-            public const string AdminAccess = "Permissions.System.Admin";
-        }
-    }
-}
-```
-
-This ensures permission names are consistent throughout the application and can be referenced in both backend and frontend code.
-
+1. Test login button triggers MSAL authentication
+2. Verify redirect to Microsoft login page
+3. Test successful login redirects to the intended page
+4. Verify already authenticated users are automatically redirected
+5. Test error handling during authentication failures
+6. Verify the login page styling and responsiveness
+7. Test that protected routes redirect to login when not authenticated

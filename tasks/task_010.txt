@@ -1,129 +1,240 @@
 # Task ID: 10
-# Title: Implement End-to-End Testing
+# Title: Implement Permission Management UI
 # Status: pending
-# Dependencies: 1, 2, 3, 4, 5, 8, 9
+# Dependencies: 5, 6, 8, 9
 # Priority: medium
-# Description: Create comprehensive end-to-end tests to validate the Azure AD authentication integration.
+# Description: Create a UI for managing permissions assigned to roles, with permissions grouped by category and support for system roles.
 # Details:
-Create an integration test project:
+1. Create Permission management page:
+```tsx
+// src/pages/PermissionManagement.tsx
+import React, { useEffect, useState } from 'react';
+import { useParams, useHistory } from 'react-router-dom';
+import { Button } from 'devextreme-react/button';
+import { CheckBox } from 'devextreme-react/check-box';
+import { getRolePermissions, updateRolePermissions } from '../api/roleService';
+import { Permission, RolePermissions } from '../types';
+import { toast } from 'react-toastify';
 
-```csharp
-public class AuthenticationIntegrationTests : IClassFixture<WebApplicationFactory<Program>>
-{
-    private readonly WebApplicationFactory<Program> _factory;
-    private readonly HttpClient _client;
-
-    public AuthenticationIntegrationTests(WebApplicationFactory<Program> factory)
-    {
-        _factory = factory.WithWebHostBuilder(builder =>
-        {
-            builder.ConfigureAppConfiguration((context, config) =>
-            {
-                // Use test configuration
-                config.AddInMemoryCollection(new Dictionary<string, string>
-                {
-                    ["AzureAd:TenantId"] = "test-tenant-id",
-                    ["AzureAd:ClientId"] = "test-client-id"
-                });
-            });
-            
-            builder.ConfigureTestServices(services =>
-            {
-                // Mock authentication services for testing
-                services.AddAuthentication("Test")
-                    .AddScheme<AuthenticationSchemeOptions, TestAuthHandler>("Test", options => { });
-            });
-        });
-        
-        _client = _factory.CreateClient();
-    }
-
-    [Fact]
-    public async Task Unauthenticated_Request_Returns_401()
-    {
-        // Arrange
-        _client.DefaultRequestHeaders.Authorization = null;
-        
-        // Act
-        var response = await _client.GetAsync("/api/products");
-        
-        // Assert
-        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
-    }
-
-    [Fact]
-    public async Task Authenticated_Admin_Can_Access_Protected_Endpoint()
-    {
-        // Arrange
-        _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", GenerateTestToken("admin"));
-        
-        // Act
-        var response = await _client.GetAsync("/api/products");
-        
-        // Assert
-        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-    }
-
-    private string GenerateTestToken(string role)
-    {
-        // Generate a test token with appropriate claims
-        // Implementation details
-    }
+interface PermissionGrouped {
+  category: string;
+  permissions: Permission[];
 }
 
-// Test authentication handler
-public class TestAuthHandler : AuthenticationHandler<AuthenticationSchemeOptions>
-{
-    public TestAuthHandler(IOptionsMonitor<AuthenticationSchemeOptions> options, ILoggerFactory logger, UrlEncoder encoder, ISystemClock clock)
-        : base(options, logger, encoder, clock)
-    {
+const PermissionManagement: React.FC = () => {
+  const { id } = useParams<{ id: string }>();
+  const history = useHistory();
+  const [rolePermissions, setRolePermissions] = useState<RolePermissions | null>(null);
+  const [groupedPermissions, setGroupedPermissions] = useState<PermissionGrouped[]>([]);
+  const [loading, setLoading] = useState(true);
+  
+  useEffect(() => {
+    loadPermissions();
+  }, [id]);
+  
+  const loadPermissions = async () => {
+    try {
+      setLoading(true);
+      const data = await getRolePermissions(parseInt(id));
+      setRolePermissions(data);
+      
+      // Group permissions by category
+      const grouped = data.permissions.reduce((groups: PermissionGrouped[], permission) => {
+        const category = permission.category;
+        const group = groups.find(g => g.category === category);
+        
+        if (group) {
+          group.permissions.push(permission);
+        } else {
+          groups.push({
+            category,
+            permissions: [permission]
+          });
+        }
+        
+        return groups;
+      }, []);
+      
+      setGroupedPermissions(grouped);
+    } catch (error) {
+      toast.error('Failed to load permissions');
+      console.error(error);
+    } finally {
+      setLoading(false);
     }
+  };
+  
+  const handlePermissionChange = (permission: Permission, value: boolean) => {
+    if (!rolePermissions) return;
+    
+    const updatedPermissions = rolePermissions.permissions.map(p => {
+      if (p.name === permission.name) {
+        return { ...p, isGranted: value };
+      }
+      
+      // If granting an edit permission, automatically grant the corresponding view permission
+      if (value && permission.name.endsWith('.Edit') && 
+          p.name === permission.name.replace('.Edit', '.View')) {
+        return { ...p, isGranted: true };
+      }
+      
+      return p;
+    });
+    
+    setRolePermissions({
+      ...rolePermissions,
+      permissions: updatedPermissions
+    });
+    
+    // Update grouped permissions
+    const updatedGroups = groupedPermissions.map(group => ({
+      ...group,
+      permissions: group.permissions.map(p => {
+        const updatedPerm = updatedPermissions.find(up => up.name === p.name);
+        return updatedPerm || p;
+      })
+    }));
+    
+    setGroupedPermissions(updatedGroups);
+  };
+  
+  const handleSave = async () => {
+    if (!rolePermissions) return;
+    
+    try {
+      const permissionsToSave = rolePermissions.permissions
+        .filter(p => p.isGranted)
+        .map(p => p.name);
+      
+      await updateRolePermissions(rolePermissions.roleId, permissionsToSave);
+      toast.success('Permissions updated successfully');
+      history.push('/roles');
+    } catch (error) {
+      toast.error('Failed to update permissions');
+      console.error(error);
+    }
+  };
+  
+  const handleCancel = () => {
+    history.push('/roles');
+  };
+  
+  if (loading) {
+    return <div>Loading...</div>;
+  }
+  
+  if (!rolePermissions) {
+    return <div>Role not found</div>;
+  }
+  
+  return (
+    <div className="content-block">
+      <h2>Permissions for {rolePermissions.roleName}</h2>
+      
+      {rolePermissions.isSystemRole && (
+        <div className="system-role-notice">
+          This is a system role. System roles automatically have all permissions.
+        </div>
+      )}
+      
+      <div className="permissions-container">
+        {groupedPermissions.map(group => (
+          <div key={group.category} className="permission-group">
+            <h3>{group.category}</h3>
+            <div className="permission-list">
+              {group.permissions.map(permission => (
+                <div key={permission.name} className="permission-item">
+                  <CheckBox
+                    value={permission.isGranted || rolePermissions.isSystemRole}
+                    onValueChanged={e => handlePermissionChange(permission, e.value)}
+                    disabled={rolePermissions.isSystemRole}
+                    text={permission.name.split('.')[1]}
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+      
+      <div className="button-container">
+        <Button
+          text="Save"
+          type="success"
+          onClick={handleSave}
+          disabled={rolePermissions.isSystemRole}
+        />
+        <Button
+          text="Cancel"
+          onClick={handleCancel}
+        />
+      </div>
+    </div>
+  );
+};
 
-    protected override Task<AuthenticateResult> HandleAuthenticateAsync()
-    {
-        // Parse the token from Authorization header and create claims principal
-        // Implementation details
-    }
+export default PermissionManagement;
+```
+
+2. Add styles for permission management:
+```css
+/* src/styles/PermissionManagement.css */
+.permissions-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+  margin-top: 20px;
+}
+
+.permission-group {
+  flex: 1 1 300px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  padding: 15px;
+  background-color: #f9f9f9;
+}
+
+.permission-group h3 {
+  margin-top: 0;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #eee;
+}
+
+.permission-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.permission-item {
+  display: flex;
+  align-items: center;
+}
+
+.system-role-notice {
+  background-color: #fff3cd;
+  color: #856404;
+  padding: 10px 15px;
+  border-radius: 4px;
+  margin-bottom: 20px;
+  border: 1px solid #ffeeba;
+}
+
+.button-container {
+  display: flex;
+  gap: 10px;
+  margin-top: 20px;
+  justify-content: flex-end;
 }
 ```
 
 # Test Strategy:
-Run integration tests against a test instance of the application. Test various authentication and authorization scenarios including valid/invalid tokens, different roles, and scopes. Verify that all endpoints enforce the expected security requirements.
-
-# Subtasks:
-## 1. Set up the integration test project [pending]
-### Dependencies: None
-### Description: Create and configure the test project structure with necessary dependencies and frameworks for API integration testing
-### Details:
-Install required testing libraries and mocking frameworks. Configure the test environment with appropriate settings for API endpoints. Set up the project structure with separate folders for test cases, utilities, and configuration files. Include network request mocking libraries as recommended for efficient API testing.
-
-## 2. Configure test authentication handlers [pending]
-### Dependencies: 10.1
-### Description: Implement authentication handlers and middleware for simulating various authentication scenarios
-### Details:
-Create mock authentication services that can simulate different authentication states. Implement middleware to intercept and modify authentication headers. Set up handlers for different authentication methods (Basic, OAuth, JWT, etc.). Configure the test environment to use these authentication handlers.
-
-## 3. Write tests for unauthenticated requests [pending]
-### Dependencies: 10.1
-### Description: Develop test cases for API endpoints that don't require authentication
-### Details:
-Create test cases for public API endpoints. Test various HTTP methods (GET, POST, PUT, DELETE). Include boundary value tests and error scenario tests. Verify correct response codes and payload structures for unauthenticated requests. Implement tests for rate limiting and error handling.
-
-## 4. Write tests for authenticated requests with various roles/scopes [pending]
-### Dependencies: 10.2
-### Description: Develop test cases for API endpoints that require different authentication levels and user permissions
-### Details:
-Create test cases for endpoints requiring authentication. Test access with different user roles (admin, regular user, etc.). Verify proper authorization enforcement for protected resources. Test boundary conditions where permissions might overlap. Include negative tests where authentication should fail.
-
-## 5. Generate and manage test tokens [pending]
-### Dependencies: 10.2
-### Description: Implement utilities for creating, validating, and managing authentication tokens for testing
-### Details:
-Create utilities to generate valid and invalid tokens for testing. Implement token management for different user roles and permissions. Set up token expiration testing scenarios. Create helpers for injecting tokens into requests. Develop utilities for validating token usage in API responses.
-
-## 6. Run and validate test results [pending]
-### Dependencies: 10.3, 10.4, 10.5
-### Description: Execute the integration tests and analyze the results for API functionality and authentication
-### Details:
-Set up continuous integration for automated test execution. Implement reporting mechanisms for test results. Create dashboards for visualizing test coverage and success rates. Develop procedures for investigating and documenting test failures. Establish criteria for determining when tests pass or fail.
-
+1. Test loading permissions for a role
+2. Verify permissions are correctly grouped by category
+3. Test toggling permissions on and off
+4. Verify view permission is automatically granted when edit permission is selected
+5. Test saving permission changes
+6. Verify system roles show all permissions as granted and disabled
+7. Test navigation back to roles page
+8. Verify error handling and notifications

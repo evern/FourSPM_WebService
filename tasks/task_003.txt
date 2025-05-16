@@ -1,35 +1,94 @@
 # Task ID: 3
-# Title: Configure JWT Bearer Authentication
+# Title: Implement Backend MSAL Authentication
 # Status: done
-# Dependencies: 1, 2
+# Dependencies: 1
 # Priority: high
-# Description: Configure JWT Bearer authentication in the application to validate tokens issued by Azure AD.
+# Description: Integrate Microsoft Identity Web for MSAL authentication in the ASP.NET Core backend, including JWT Bearer authentication for token validation.
 # Details:
-Update Program.cs to configure JWT Bearer authentication:
+1. Install required NuGet packages:
+   - Microsoft.Identity.Web
+   - Microsoft.Identity.Web.UI
+   - Microsoft.AspNetCore.Authentication.JwtBearer
 
+2. Configure services in Startup.cs:
 ```csharp
-builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-    .AddMicrosoftIdentityWebApi(builder.Configuration.GetSection("AzureAd"));
+public void ConfigureServices(IServiceCollection services)
+{
+    services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+            .AddMicrosoftIdentityWebApi(Configuration.GetSection("AzureAd"));
+            
+    // Configure accepted token audience
+    services.Configure<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme, options =>
+    {
+        options.TokenValidationParameters.ValidAudiences = new[]
+        {
+            $"api://{Configuration["AzureAd:ClientId"]}"
+        };
+    });
+    
+    // Other service configurations...
+}
 
-// Add authorization services
-builder.Services.AddAuthorization();
-
-// In the app configuration section
-app.UseAuthentication();
-app.UseAuthorization();
+public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
+{
+    // Other middleware...
+    
+    app.UseAuthentication();
+    app.UseAuthorization();
+    
+    // Other middleware...
+}
 ```
 
-Configure token validation parameters to validate issuer, audience, lifetime, and signature:
-
+3. Create a base API controller with authentication:
 ```csharp
-builder.Services.Configure<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme, options =>
+[ApiController]
+[Authorize]
+[Route("api/[controller]")]
+public abstract class AuthenticatedControllerBase : ControllerBase
 {
-    options.TokenValidationParameters.ValidateIssuer = true;
-    options.TokenValidationParameters.ValidateAudience = true;
-    options.TokenValidationParameters.ValidateLifetime = true;
-    options.TokenValidationParameters.ValidateIssuerSigningKey = true;
-});
+    protected string GetUserObjectId()
+    {
+        return User.FindFirst("http://schemas.microsoft.com/identity/claims/objectidentifier")?.Value;
+    }
+    
+    protected string GetUserEmail()
+    {
+        return User.FindFirst("preferred_username")?.Value;
+    }
+}
 ```
 
 # Test Strategy:
-Create unit tests to verify authentication configuration. Test with valid and invalid tokens to ensure proper validation. Verify that unauthenticated requests to protected endpoints return 401 Unauthorized responses.
+1. Test authentication with valid Azure AD tokens
+2. Verify token validation with invalid tokens fails appropriately
+3. Test token audience validation
+4. Verify claims are correctly extracted from tokens
+5. Test authentication middleware in the request pipeline
+6. Ensure unauthenticated requests to protected endpoints are rejected
+
+# Subtasks:
+## 1. Install and Configure Required NuGet Packages [done]
+### Dependencies: None
+### Description: Add the necessary NuGet packages for MSAL.NET and Microsoft Identity integration to the backend project. Ensure the correct versions are installed and reference official documentation for compatibility.
+### Details:
+Install packages such as Microsoft.Identity.Client and Microsoft.Identity.Web using NuGet Package Manager or CLI. Verify installation and resolve any dependency issues.
+
+## 2. Set Up Authentication Services and Middleware in Startup.cs [done]
+### Dependencies: 3.1
+### Description: Configure authentication services and middleware in the Startup.cs file to enable MSAL-based authentication for the backend application.
+### Details:
+In the ConfigureServices method, add authentication services using Microsoft Identity. In the Configure method, add authentication and authorization middleware to the request pipeline.
+
+## 3. Implement Token Validation and Audience Configuration [done]
+### Dependencies: 3.2
+### Description: Configure token validation parameters and specify the expected audience to ensure only valid tokens are accepted by the backend.
+### Details:
+Set up token validation options, including issuer, audience, and signing keys. Ensure the backend only accepts tokens issued for the correct audience and validates claims as required.
+
+## 4. Create Base Authenticated Controller with User Claim Extraction Methods [done]
+### Dependencies: 3.3
+### Description: Develop a base controller class that enforces authentication and provides utility methods for extracting user claims from the authenticated context.
+### Details:
+Implement a controller base class that checks for authentication and exposes methods to retrieve user claims (e.g., user ID, roles, email) from the JWT token.
+

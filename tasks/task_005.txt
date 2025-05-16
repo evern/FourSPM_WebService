@@ -1,38 +1,226 @@
 # Task ID: 5
-# Title: Implement Role-Based Access Control
-# Status: done
-# Dependencies: 3, 4
+# Title: Implement Frontend MSAL Authentication
+# Status: pending
+# Dependencies: 1
 # Priority: high
-# Description: Configure role-based access control to restrict API access based on user roles defined in Azure AD.
+# Description: Integrate MSAL authentication in the React frontend using @azure/msal-browser and @azure/msal-react libraries.
 # Details:
-Configure role claim mapping in Program.cs:
-
-```csharp
-builder.Services.Configure<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme, options =>
-{
-    options.TokenValidationParameters.RoleClaimType = "roles";
-});
+1. Install required npm packages:
+```bash
+npm install @azure/msal-browser @azure/msal-react
 ```
 
-Implement role-based authorization in controllers:
+2. Create MSAL configuration:
+```typescript
+// src/auth/msalConfig.ts
+import { Configuration, LogLevel } from '@azure/msal-browser';
 
-```csharp
-// Controller or action level
-[Authorize(Roles = "Admin,Manager")]
-public class AdminController : ControllerBase
-{
-    // Controller actions
-}
+export const msalConfig: Configuration = {
+  auth: {
+    clientId: 'c67bf91d-8b6a-494a-8b99-c7a4592e08c1',
+    authority: 'https://login.microsoftonline.com/3c7fa9e9-64e7-443c-905a-d9134ca00da9',
+    redirectUri: window.location.origin,
+    postLogoutRedirectUri: window.location.origin,
+  },
+  cache: {
+    cacheLocation: 'sessionStorage',
+    storeAuthStateInCookie: false,
+  },
+  system: {
+    loggerOptions: {
+      loggerCallback: (level, message, containsPii) => {
+        if (containsPii) {
+          return;
+        }
+        switch (level) {
+          case LogLevel.Error:
+            console.error(message);
+            return;
+          case LogLevel.Info:
+            console.info(message);
+            return;
+          case LogLevel.Verbose:
+            console.debug(message);
+            return;
+          case LogLevel.Warning:
+            console.warn(message);
+            return;
+        }
+      },
+      logLevel: LogLevel.Warning
+    }
+  }
+};
 
-// Or at the action level
-[Authorize(Roles = "User")]
-public IActionResult GetUserData()
-{
-    // Action implementation
-}
+export const loginRequest = {
+  scopes: [
+    'api://c67bf91d-8b6a-494a-8b99-c7a4592e08c1/Application.User',
+    'api://c67bf91d-8b6a-494a-8b99-c7a4592e08c1/Application.Admin'
+  ]
+};
 ```
 
-Ensure Azure AD app registration has the appropriate app roles defined and assigned to users/groups.
+3. Set up MSAL Provider in the application:
+```typescript
+// src/index.tsx
+import React from 'react';
+import ReactDOM from 'react-dom';
+import { PublicClientApplication } from '@azure/msal-browser';
+import { MsalProvider } from '@azure/msal-react';
+import { msalConfig } from './auth/msalConfig';
+import App from './App';
+
+const msalInstance = new PublicClientApplication(msalConfig);
+
+ReactDOM.render(
+  <React.StrictMode>
+    <MsalProvider instance={msalInstance}>
+      <App />
+    </MsalProvider>
+  </React.StrictMode>,
+  document.getElementById('root')
+);
+```
+
+4. Create authentication context:
+```typescript
+// src/auth/AuthContext.tsx
+import React, { createContext, useContext, useEffect, useState } from 'react';
+import { useMsal, useAccount } from '@azure/msal-react';
+import { loginRequest } from './msalConfig';
+
+interface AuthContextType {
+  isAuthenticated: boolean;
+  login: () => void;
+  logout: () => void;
+  getToken: () => Promise<string | null>;
+  userRoles: string[];
+}
+
+const AuthContext = createContext<AuthContextType>(null!);
+
+export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }) => {
+  const { instance, accounts, inProgress } = useMsal();
+  const account = useAccount(accounts[0] || {});
+  const [userRoles, setUserRoles] = useState<string[]>([]);
+  
+  useEffect(() => {
+    if (account && account.idTokenClaims) {
+      // Extract roles from token claims
+      const roles = account.idTokenClaims.roles || [];
+      setUserRoles(roles);
+    }
+  }, [account]);
+  
+  const login = async () => {
+    try {
+      await instance.loginPopup(loginRequest);
+    } catch (error) {
+      console.error('Login failed', error);
+    }
+  };
+  
+  const logout = () => {
+    instance.logout();
+  };
+  
+  const getToken = async (): Promise<string | null> => {
+    if (!account) return null;
+    
+    try {
+      const response = await instance.acquireTokenSilent({
+        ...loginRequest,
+        account: account
+      });
+      return response.accessToken;
+    } catch (error) {
+      console.error('Token acquisition failed', error);
+      return null;
+    }
+  };
+  
+  const value = {
+    isAuthenticated: !!account,
+    login,
+    logout,
+    getToken,
+    userRoles
+  };
+  
+  return (
+    <AuthContext.Provider value={value}>
+      {children}
+    </AuthContext.Provider>
+  );
+};
+
+export const useAuth = () => useContext(AuthContext);
+```
+
+5. Create protected route component:
+```typescript
+// src/auth/ProtectedRoute.tsx
+import React from 'react';
+import { Route, Redirect, RouteProps } from 'react-router-dom';
+import { useAuth } from './AuthContext';
+
+interface ProtectedRouteProps extends RouteProps {
+  requiredPermission?: string;
+}
+
+export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ 
+  requiredPermission,
+  ...routeProps 
+}) => {
+  const { isAuthenticated, userRoles } = useAuth();
+  
+  if (!isAuthenticated) {
+    return <Redirect to="/login" />;
+  }
+  
+  // If no specific permission is required, just check authentication
+  if (!requiredPermission) {
+    return <Route {...routeProps} />;
+  }
+  
+  // For permission-based access, we'll implement this in the next task
+  // For now, just allow access if authenticated
+  
+  return <Route {...routeProps} />;
+};
+```
 
 # Test Strategy:
-Test authorization with users having different roles. Verify users with appropriate roles can access endpoints while those without required roles receive 403 Forbidden responses. Create integration tests that use test tokens with different role claims.
+1. Test login functionality with valid Azure AD credentials
+2. Verify token acquisition and storage
+3. Test silent authentication for returning users
+4. Verify logout functionality properly clears tokens
+5. Test protected routes redirect unauthenticated users
+6. Verify role extraction from token claims
+7. Test error handling during authentication failures
+
+# Subtasks:
+## 1. Set up MSAL configuration [pending]
+### Dependencies: None
+### Description: Configure MSAL with proper client ID, authority, and scopes for authentication
+### Details:
+Create an authConfig.js file that defines the MSAL configuration parameters including clientId, authority, redirectUri, and necessary API scopes. Reference Microsoft's sample code for the correct structure and required parameters. This configuration will be the foundation for all authentication operations.
+
+## 2. Implement AuthProvider context [pending]
+### Dependencies: 5.1
+### Description: Create a React context provider with login/logout functionality using MSAL
+### Details:
+Develop an AuthProvider component that initializes the MSAL instance using the configuration from subtask 1. Implement login, logout, and token acquisition methods. Manage authentication state (isAuthenticated, user data, etc.) and provide it through context. Handle token caching and silent token renewal.
+
+## 3. Create useAuth custom hook [pending]
+### Dependencies: 5.2
+### Description: Develop a custom React hook for accessing authentication state and methods
+### Details:
+Create a useAuth hook that consumes the AuthProvider context and exposes authentication state and methods in a clean, reusable way. Include functions to check authentication status, get user information, acquire tokens, and handle login/logout. Ensure proper error handling and loading states are included.
+
+## 4. Implement ProtectedRoute component [pending]
+### Dependencies: 5.3
+### Description: Create a component to protect routes based on authentication status
+### Details:
+Develop a ProtectedRoute component that uses the useAuth hook to check authentication status. Implement logic to redirect unauthenticated users to the login page. Add support for role-based access control if needed. Ensure the component properly handles loading states during authentication checks.
+

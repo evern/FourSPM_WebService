@@ -1,6 +1,8 @@
 using FourSPM_WebService.Models.Session;
 using FourSPM_WebService.Services;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Options;
+using Microsoft.Identity.Web;
 using System.Net;
 
 namespace FourSPM_WebService.Middleware;
@@ -34,6 +36,24 @@ public class JwtMiddleware
             return;
         }
 
+        // If the user is already authenticated via Azure AD, skip JWT validation
+        if (context.User.Identity?.IsAuthenticated == true && 
+            context.User.HasClaim(c => c.Type == "http://schemas.microsoft.com/identity/claims/objectidentifier"))
+        {
+            // User is authenticated via Azure AD
+            var appUser = context.RequestServices.GetRequiredService<ApplicationUser>();
+            var userIdValue = context.User.FindFirst("http://schemas.microsoft.com/identity/claims/objectidentifier")?.Value;
+            appUser.UserId = !string.IsNullOrEmpty(userIdValue) && Guid.TryParse(userIdValue, out var userId) ? userId : null;
+            appUser.UserName = context.User.FindFirst("preferred_username")?.Value ?? string.Empty;
+            appUser.Upn = appUser.UserName;
+            // Note: You'll need to implement getting permissions based on roles
+            // appUser.Permissions = await GetUserPermissionsFromRoles(context.User.FindAll(ClaimTypes.Role).Select(c => c.Value));
+            
+            await _next(context);
+            return;
+        }
+        
+        // Legacy JWT token validation
         var token = context.Request.Headers["Authorization"].FirstOrDefault()?.Split(" ").Last();
 
         if (token != null)

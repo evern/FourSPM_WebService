@@ -1,92 +1,214 @@
 # Task ID: 9
-# Title: Update OData Controllers with Authentication
-# Status: done
-# Dependencies: 3, 5
-# Priority: high
-# Description: Update existing OData controllers to use Azure AD authentication and authorization.
+# Title: Implement Role Management UI
+# Status: in-progress
+# Dependencies: 5, 6, 7
+# Priority: medium
+# Description: Create a grid-based interface for managing roles, including creation, editing, and deletion of roles.
 # Details:
-Apply authentication and authorization attributes to OData controllers:
+1. Create Role management page:
+```tsx
+// src/pages/RoleManagement.tsx
+import React, { useEffect, useState } from 'react';
+import { DataGrid, Column, Editing, Popup, Form, Button } from 'devextreme-react/data-grid';
+import { Item } from 'devextreme-react/form';
+import { confirm } from 'devextreme/ui/dialog';
+import { useHistory } from 'react-router-dom';
+import { getRoles, createRole, updateRole, deleteRole } from '../api/roleService';
+import { Role } from '../types';
+import { useAuth } from '../auth/AuthContext';
+import { toast } from 'react-toastify';
 
-```csharp
-[Authorize]
-[Route("api/[controller]")]
-public class ProductsController : ODataController
-{
-    private readonly TokenValidationService _tokenService;
-    
-    public ProductsController(TokenValidationService tokenService)
-    {
-        _tokenService = tokenService;
+const RoleManagement: React.FC = () => {
+  const [roles, setRoles] = useState<Role[]>([]);
+  const [loading, setLoading] = useState(true);
+  const history = useHistory();
+  const { userRoles } = useAuth();
+  
+  // Check if user has permission to edit roles
+  const canEditRoles = userRoles.includes('Application.Admin');
+  
+  useEffect(() => {
+    loadRoles();
+  }, []);
+  
+  const loadRoles = async () => {
+    try {
+      setLoading(true);
+      const data = await getRoles();
+      setRoles(data);
+    } catch (error) {
+      toast.error('Failed to load roles');
+      console.error(error);
+    } finally {
+      setLoading(false);
     }
-    
-    [HttpGet]
-    [Authorize(Roles = "Reader,Admin")]
-    public IActionResult Get()
-    {
-        var userId = _tokenService.GetUserObjectId();
-        // Implementation
+  };
+  
+  const handleRoleCreated = async (e: any) => {
+    try {
+      const role = e.data;
+      await createRole(role);
+      toast.success('Role created successfully');
+      await loadRoles();
+    } catch (error) {
+      toast.error('Failed to create role');
+      console.error(error);
+      e.cancel = true;
     }
-    
-    [HttpPost]
-    [Authorize(Roles = "Admin")]
-    [RequireScope("api.write")]
-    public IActionResult Post([FromBody] Product product)
-    {
-        // Implementation
+  };
+  
+  const handleRoleUpdated = async (e: any) => {
+    try {
+      const role = e.data;
+      await updateRole(role.id, role);
+      toast.success('Role updated successfully');
+      await loadRoles();
+    } catch (error) {
+      toast.error('Failed to update role');
+      console.error(error);
+      e.cancel = true;
     }
+  };
+  
+  const handleRoleDeleted = async (e: any) => {
+    try {
+      const result = await confirm('Are you sure you want to delete this role?', 'Confirm deletion');
+      if (result) {
+        await deleteRole(e.data.id);
+        toast.success('Role deleted successfully');
+        await loadRoles();
+      } else {
+        e.cancel = true;
+      }
+    } catch (error) {
+      toast.error('Failed to delete role');
+      console.error(error);
+      e.cancel = true;
+    }
+  };
+  
+  const navigateToPermissions = (e: any) => {
+    const roleId = e.row.data.id;
+    history.push(`/roles/${roleId}/permissions`);
+  };
+  
+  return (
+    <div className="content-block">
+      <h2>Role Management</h2>
+      
+      <DataGrid
+        dataSource={roles}
+        keyExpr="id"
+        showBorders={true}
+        loadPanel={{ enabled: loading }}
+        onRowInserted={handleRoleCreated}
+        onRowUpdated={handleRoleUpdated}
+        onRowRemoved={handleRoleDeleted}
+      >
+        <Editing
+          mode="popup"
+          allowAdding={canEditRoles}
+          allowUpdating={canEditRoles}
+          allowDeleting={canEditRoles}
+          useIcons={true}
+        >
+          <Popup title="Role Details" showTitle={true} width={700} height={525} />
+          <Form>
+            <Item dataField="name" editorOptions={{ disabled: e => e.row?.data?.id > 0 }} />
+            <Item dataField="displayName" />
+            <Item dataField="description" editorType="dxTextArea" editorOptions={{ height: 100 }} />
+            <Item dataField="isSystemRole" editorType="dxCheckBox" />
+          </Form>
+        </Editing>
+        
+        <Column dataField="name" caption="Name" />
+        <Column dataField="displayName" caption="Display Name" />
+        <Column dataField="description" caption="Description" />
+        <Column dataField="isSystemRole" caption="System Role" dataType="boolean" />
+        <Column type="buttons">
+          <Button name="edit" />
+          <Button name="delete" />
+          <Button
+            hint="Manage Permissions"
+            icon="key"
+            visible={true}
+            onClick={navigateToPermissions}
+          />
+        </Column>
+      </DataGrid>
+    </div>
+  );
+};
+
+export default RoleManagement;
+```
+
+2. Add types for roles:
+```typescript
+// src/types/index.ts
+export interface Role {
+  id: number;
+  name: string;
+  displayName: string;
+  description: string;
+  isSystemRole: boolean;
+}
+
+export interface Permission {
+  name: string;
+  category: string;
+  isGranted: boolean;
+}
+
+export interface RolePermissions {
+  roleId: number;
+  roleName: string;
+  isSystemRole: boolean;
+  permissions: Permission[];
 }
 ```
 
-Update OData configuration to respect authorization:
+3. Add the role management page to routes:
+```typescript
+// src/Routes.tsx
+import React from 'react';
+import { Switch, Route, Redirect } from 'react-router-dom';
+import { ProtectedRoute } from './auth/ProtectedRoute';
+import LoginPage from './pages/LoginPage';
+import HomePage from './pages/HomePage';
+import RoleManagement from './pages/RoleManagement';
+import PermissionManagement from './pages/PermissionManagement';
 
-```csharp
-builder.Services.AddControllers()
-    .AddOData(options =>
-    {
-        options.Select().Filter().OrderBy().Expand().Count().SetMaxTop(100);
-        options.AddRouteComponents("api", GetEdmModel());
-    });
-```
+const Routes: React.FC = () => {
+  return (
+    <Switch>
+      <Route path="/login" component={LoginPage} />
+      <ProtectedRoute exact path="/" component={HomePage} />
+      <ProtectedRoute 
+        path="/roles" 
+        exact 
+        component={RoleManagement} 
+        requiredPermission="Roles.View" 
+      />
+      <ProtectedRoute 
+        path="/roles/:id/permissions" 
+        component={PermissionManagement} 
+        requiredPermission="Roles.Edit" 
+      />
+      <Redirect to="/" />
+    </Switch>
+  );
+};
 
-Ensure OData routes are protected:
-
-```csharp
-app.MapControllers();
-app.MapODataRoute("odata", "api", GetEdmModel())
-   .RequireAuthorization();
+export default Routes;
 ```
 
 # Test Strategy:
-Test OData endpoints with authenticated and unauthenticated requests. Verify that endpoints enforce role and scope requirements. Create integration tests that simulate different user roles accessing OData endpoints.
-
-# Subtasks:
-## 1. Update OData Controllers with Authentication/Authorization Attributes [done]
-### Dependencies: None
-### Description: Decorate all OData controllers with appropriate authentication and authorization attributes (e.g., [Authorize], custom attributes for roles or scopes) to ensure only authenticated and authorized users can access endpoints.
-### Details:
-Apply attributes such as [Authorize] or custom authorization attributes to each OData controller and, if needed, to specific actions. Ensure attributes reflect required roles or policies for each endpoint.
-
-## 2. Integrate TokenValidationService [done]
-### Dependencies: 9.1
-### Description: Integrate a TokenValidationService into the authentication pipeline to validate incoming tokens and extract claims for authorization decisions.
-### Details:
-Configure the TokenValidationService in the DI container and ensure it is used by the authentication middleware to validate tokens and populate the user principal with claims.
-
-## 3. Update OData Configuration to Enforce Authorization [done]
-### Dependencies: 9.2
-### Description: Modify the OData configuration to ensure authorization is enforced at the middleware and routing level, including adding OData authorization services and policies.
-### Details:
-Update OData route registration to include authorization middleware and configure OData-specific authorization options, such as scopes or policies, as needed.
-
-## 4. Protect OData Routes [done]
-### Dependencies: 9.3
-### Description: Ensure all OData routes are protected by the configured authentication and authorization mechanisms, preventing unauthorized access to any OData endpoint.
-### Details:
-Verify that all OData endpoints, including metadata and entity sets, require authentication and authorization, and that no route is left unprotected.
-
-## 5. Create Integration Tests for OData Endpoints [done]
-### Dependencies: 9.4
-### Description: Develop integration tests to verify that OData endpoints enforce authentication and authorization correctly, including tests for both authorized and unauthorized access.
-### Details:
-Write tests that attempt to access OData endpoints with and without valid tokens, and with different roles/scopes, to ensure security is enforced as expected.
-
+1. Test role listing functionality
+2. Verify role creation with validation
+3. Test role editing, ensuring name cannot be changed
+4. Verify role deletion with confirmation
+5. Test navigation to permission management
+6. Verify system role flag can be set/unset
+7. Test authorization controls for edit operations
+8. Verify error handling and notifications

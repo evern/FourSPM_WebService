@@ -19,6 +19,8 @@ public partial class FourSPMContext : DbContext
         AREAs = Set<AREA>();
         DELIVERABLE_GATEs = Set<DELIVERABLE_GATE>();
         VARIATIONs = Set<VARIATION>();
+        ROLEs = Set<ROLE>();
+        ROLE_PERMISSIONs = Set<ROLE_PERMISSION>();
     }
 
     public FourSPMContext(DbContextOptions<FourSPMContext> options)
@@ -34,6 +36,8 @@ public partial class FourSPMContext : DbContext
         AREAs = Set<AREA>();
         DELIVERABLE_GATEs = Set<DELIVERABLE_GATE>();
         VARIATIONs = Set<VARIATION>();
+        ROLEs = Set<ROLE>();
+        ROLE_PERMISSIONs = Set<ROLE_PERMISSION>();
     }
 
     public virtual DbSet<PROJECT> PROJECTs { get; set; }
@@ -46,6 +50,8 @@ public partial class FourSPMContext : DbContext
     public virtual DbSet<AREA> AREAs { get; set; }
     public virtual DbSet<DELIVERABLE_GATE> DELIVERABLE_GATEs { get; set; }
     public virtual DbSet<VARIATION> VARIATIONs { get; set; }
+    public virtual DbSet<ROLE> ROLEs { get; set; }
+    public virtual DbSet<ROLE_PERMISSION> ROLE_PERMISSIONs { get; set; }
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
 #warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see https://go.microsoft.com/fwlink/?LinkId=723263.
@@ -323,6 +329,53 @@ public partial class FourSPMContext : DbContext
                 .WithMany(p => p.Variations)
                 .HasForeignKey(d => d.GUID_PROJECT)
                 .OnDelete(DeleteBehavior.NoAction);
+        });
+
+        modelBuilder.Entity<ROLE>(entity =>
+        {
+            entity.HasKey(e => e.GUID);
+            entity.ToTable("ROLE");
+
+            entity.HasIndex(e => e.NAME).HasDatabaseName("IX_ROLE_NAME");
+            entity.HasIndex(e => e.DELETED).HasDatabaseName("IX_ROLE_DELETED");
+
+            entity.Property(e => e.GUID).ValueGeneratedOnAdd();
+            entity.Property(e => e.NAME).HasMaxLength(50).IsRequired();
+            entity.Property(e => e.DISPLAY_NAME).HasMaxLength(100).IsRequired();
+            entity.Property(e => e.DESCRIPTION).HasMaxLength(500);
+            entity.Property(e => e.IS_SYSTEM_ROLE).HasDefaultValue(false);
+            entity.Property(e => e.CREATED).HasColumnType("datetime").IsRequired();
+            entity.Property(e => e.CREATEDBY).IsRequired();
+            entity.Property(e => e.UPDATED).HasColumnType("datetime");
+            entity.Property(e => e.UPDATEDBY);
+            entity.Property(e => e.DELETED).HasColumnType("datetime");
+            entity.Property(e => e.DELETEDBY);
+        });
+
+        modelBuilder.Entity<ROLE_PERMISSION>(entity =>
+        {
+            entity.HasKey(e => e.GUID);
+            entity.ToTable("ROLE_PERMISSION");
+
+            entity.HasIndex(e => e.GUID_ROLE).HasDatabaseName("IX_ROLE_PERMISSION_ROLE_ID");
+            entity.HasIndex(e => e.PERMISSION).HasDatabaseName("IX_ROLE_PERMISSION_PERMISSION");
+            entity.HasIndex(e => e.DELETED).HasDatabaseName("IX_ROLE_PERMISSION_DELETED");
+
+            entity.Property(e => e.GUID).ValueGeneratedOnAdd();
+            entity.Property(e => e.GUID_ROLE).IsRequired();
+            entity.Property(e => e.PERMISSION).HasMaxLength(100).IsRequired();
+            entity.Property(e => e.CREATED).HasColumnType("datetime").IsRequired();
+            entity.Property(e => e.CREATEDBY).IsRequired();
+            entity.Property(e => e.UPDATED).HasColumnType("datetime");
+            entity.Property(e => e.UPDATEDBY);
+            entity.Property(e => e.DELETED).HasColumnType("datetime");
+            entity.Property(e => e.DELETEDBY);
+
+            // Configure the foreign key relationship
+            entity.HasOne(d => d.ROLE)
+                .WithMany(p => p.ROLE_PERMISSIONs)
+                .HasForeignKey(d => d.GUID_ROLE)
+                .OnDelete(DeleteBehavior.Cascade);
         });
 
         OnModelCreatingPartial(modelBuilder);

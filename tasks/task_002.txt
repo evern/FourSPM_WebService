@@ -1,26 +1,80 @@
 # Task ID: 2
-# Title: Configure Azure AD Settings in appsettings.json
+# Title: Implement Entity Framework Models for Role and Permission
 # Status: done
-# Dependencies: 1
+# Dependencies: None
 # Priority: high
-# Description: Set up Azure AD configuration settings in appsettings.json with environment-specific configurations.
+# Description: Create Entity Framework models for the ROLE and ROLE_PERMISSION tables with appropriate relationships and configurations.
 # Details:
-Create an 'AzureAd' section in appsettings.json with the following structure:
-
-```json
+1. Create Role entity class:
+```csharp
+public class Role
 {
-  "AzureAd": {
-    "Instance": "https://login.microsoftonline.com/",
-    "Domain": "yourdomain.onmicrosoft.com",
-    "TenantId": "your-tenant-id",
-    "ClientId": "your-client-id",
-    "CallbackPath": "/signin-oidc",
-    "SignedOutCallbackPath": "/signout-callback-oidc"
-  }
+    public int Id { get; set; }
+    public string Name { get; set; }
+    public string DisplayName { get; set; }
+    public string Description { get; set; }
+    public bool IsSystemRole { get; set; }
+    
+    // Navigation property
+    public virtual ICollection<RolePermission> RolePermissions { get; set; }
 }
 ```
 
-Create environment-specific settings in appsettings.Development.json and appsettings.Production.json with appropriate values. Use user secrets or Azure Key Vault for storing sensitive information in development and production environments respectively.
+2. Create RolePermission entity class:
+```csharp
+public class RolePermission
+{
+    public int Id { get; set; }
+    public int RoleId { get; set; }
+    public string Permission { get; set; }
+    
+    // Navigation property
+    public virtual Role Role { get; set; }
+}
+```
+
+3. Configure entities in DbContext:
+```csharp
+public class ApplicationDbContext : DbContext
+{
+    public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
+        : base(options)
+    { }
+    
+    public DbSet<Role> Roles { get; set; }
+    public DbSet<RolePermission> RolePermissions { get; set; }
+    
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        base.OnModelCreating(modelBuilder);
+        
+        modelBuilder.Entity<Role>(entity =>
+        {
+            entity.ToTable("ROLE");
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Name).IsRequired().HasMaxLength(50);
+            entity.Property(e => e.DisplayName).IsRequired().HasMaxLength(100);
+            entity.Property(e => e.Description).HasMaxLength(500);
+            entity.Property(e => e.IsSystemRole).HasDefaultValue(false);
+        });
+        
+        modelBuilder.Entity<RolePermission>(entity =>
+        {
+            entity.ToTable("ROLE_PERMISSION");
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Permission).IsRequired().HasMaxLength(100);
+            
+            entity.HasOne(d => d.Role)
+                  .WithMany(p => p.RolePermissions)
+                  .HasForeignKey(d => d.RoleId);
+        });
+    }
+}
+```
 
 # Test Strategy:
-Validate configuration file structure. Ensure sensitive information is not committed to source control. Verify environment-specific configurations load correctly by running the application in different environments.
+1. Verify entity models map correctly to database tables
+2. Test navigation properties work as expected
+3. Validate constraints and relationships
+4. Create unit tests for CRUD operations using in-memory database
+5. Ensure proper mapping between C# properties and database columns

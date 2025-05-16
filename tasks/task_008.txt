@@ -1,64 +1,154 @@
 # Task ID: 8
-# Title: Create Authentication Middleware
+# Title: Implement Permission Management API Endpoints
 # Status: done
-# Dependencies: 3, 4
+# Dependencies: 2, 3, 4, 7
 # Priority: medium
-# Description: Implement custom authentication middleware to handle token validation and error responses.
+# Description: Create backend API endpoints for managing permissions, including retrieving available permissions and updating role permissions.
 # Details:
-Create a custom authentication middleware class:
-
+1. Add permission endpoints to RolesController:
 ```csharp
-public class AuthenticationMiddleware
+[HttpGet("permissions")]
+[RequirePermission(Permissions.ViewRoles)]
+public ActionResult<IEnumerable<PermissionDto>> GetAllPermissions()
 {
-    private readonly RequestDelegate _next;
-    private readonly ILogger<AuthenticationMiddleware> _logger;
-
-    public AuthenticationMiddleware(RequestDelegate next, ILogger<AuthenticationMiddleware> logger)
-    {
-        _next = next;
-        _logger = logger;
-    }
-
-    public async Task InvokeAsync(HttpContext context)
-    {
-        try
+    var permissions = Permissions.GetPermissionsWithCategories()
+        .Select(p => new PermissionDto
         {
-            await _next(context);
-        }
-        catch (SecurityTokenExpiredException ex)
-        {
-            _logger.LogWarning(ex, "Token expired");
-            context.Response.StatusCode = 401;
-            context.Response.ContentType = "application/json";
-            await context.Response.WriteAsJsonAsync(new { error = "Token expired", message = "Authentication token has expired" });
-        }
-        catch (SecurityTokenValidationException ex)
-        {
-            _logger.LogWarning(ex, "Token validation failed");
-            context.Response.StatusCode = 401;
-            context.Response.ContentType = "application/json";
-            await context.Response.WriteAsJsonAsync(new { error = "Invalid token", message = "Authentication token validation failed" });
-        }
-    }
+            Name = p.Permission,
+            Category = p.Category
+        })
+        .ToList();
+        
+    return Ok(permissions);
 }
 
-// Extension method for easy registration
-public static class AuthenticationMiddlewareExtensions
+[HttpGet("{id}/permissions")]
+[RequirePermission(Permissions.ViewRoles)]
+public async Task<ActionResult<RolePermissionsDto>> GetRolePermissions(int id)
 {
-    public static IApplicationBuilder UseCustomAuthentication(this IApplicationBuilder builder)
+    var role = await _context.Roles
+        .Include(r => r.RolePermissions)
+        .FirstOrDefaultAsync(r => r.Id == id);
+        
+    if (role == null)
     {
-        return builder.UseMiddleware<AuthenticationMiddleware>();
+        return NotFound();
     }
+    
+    var allPermissions = Permissions.GetAllPermissions().ToList();
+    var rolePermissions = role.RolePermissions.Select(rp => rp.Permission).ToList();
+    
+    var permissionDtos = allPermissions
+        .Select(p => new PermissionDto
+        {
+            Name = p,
+            Category = p.Split('.')[0],
+            IsGranted = rolePermissions.Contains(p) || role.IsSystemRole
+        })
+        .ToList();
+        
+    var result = new RolePermissionsDto
+    {
+        RoleId = role.Id,
+        RoleName = role.Name,
+        IsSystemRole = role.IsSystemRole,
+        Permissions = permissionDtos
+    };
+    
+    return Ok(result);
+}
+
+[HttpPut("{id}/permissions")]
+[RequirePermission(Permissions.EditRoles)]
+public async Task<IActionResult> UpdateRolePermissions(int id, UpdateRolePermissionsDto updateDto)
+{
+    var role = await _context.Roles
+        .Include(r => r.RolePermissions)
+        .FirstOrDefaultAsync(r => r.Id == id);
+        
+    if (role == null)
+    {
+        return NotFound();
+    }
+    
+    // If it's a system role, we don't need to update permissions
+    // as system roles automatically have all permissions
+    if (role.IsSystemRole)
+    {
+        return NoContent();
+    }
+    
+    // Validate permissions
+    var allPermissions = Permissions.GetAllPermissions().ToList();
+    var invalidPermissions = updateDto.Permissions
+        .Where(p => !allPermissions.Contains(p))
+        .ToList();
+        
+    if (invalidPermissions.Any())
+    {
+        return BadRequest(new { message = "Invalid permissions", permissions = invalidPermissions });
+    }
+    
+    // Auto-grant view permissions when edit permissions are granted
+    var permissionsToGrant = new HashSet<string>(updateDto.Permissions);
+    foreach (var permission in updateDto.Permissions.Where(p => p.EndsWith(".Edit")))
+    {
+        var viewPermission = permission.Replace(".Edit", ".View");
+        if (allPermissions.Contains(viewPermission))
+        {
+            permissionsToGrant.Add(viewPermission);
+        }
+    }
+    
+    // Remove existing permissions
+    _context.RolePermissions.RemoveRange(role.RolePermissions);
+    
+    // Add new permissions
+    foreach (var permission in permissionsToGrant)
+    {
+        role.RolePermissions.Add(new RolePermission
+        {
+            RoleId = role.Id,
+            Permission = permission
+        });
+    }
+    
+    await _context.SaveChangesAsync();
+    
+    return NoContent();
 }
 ```
 
-Register the middleware in Program.cs:
-
+2. Create DTOs for permission operations:
 ```csharp
-app.UseAuthentication();
-app.UseCustomAuthentication();
-app.UseAuthorization();
+public class PermissionDto
+{
+    public string Name { get; set; }
+    public string Category { get; set; }
+    public bool IsGranted { get; set; }
+}
+
+public class RolePermissionsDto
+{
+    public int RoleId { get; set; }
+    public string RoleName { get; set; }
+    public bool IsSystemRole { get; set; }
+    public List<PermissionDto> Permissions { get; set; }
+}
+
+public class UpdateRolePermissionsDto
+{
+    [Required]
+    public List<string> Permissions { get; set; }
+}
 ```
 
 # Test Strategy:
-Create unit tests for the middleware with mocked HttpContext and various exception scenarios. Test the middleware's error handling by simulating different token validation exceptions. Verify appropriate status codes and response formats are returned.
+1. Test retrieving all available permissions
+2. Verify permissions are correctly grouped by category
+3. Test retrieving permissions for a specific role
+4. Verify system roles show all permissions as granted
+5. Test updating role permissions
+6. Verify view permissions are automatically granted when edit permissions are assigned
+7. Test validation of permission names
+8. Verify authorization requirements are enforced

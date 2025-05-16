@@ -1,49 +1,191 @@
 # Task ID: 4
-# Title: Implement Token Validation Helpers
+# Title: Implement Permission-Based Authorization System
 # Status: done
-# Dependencies: 3
-# Priority: medium
-# Description: Create helper methods to validate and extract claims from Azure AD tokens.
+# Dependencies: 2, 3
+# Priority: high
+# Description: Create a custom authorization system that validates user permissions based on their roles, with support for system roles that bypass permission checks.
 # Details:
-Create a TokenValidationService class to handle token validation and claims extraction:
-
+1. Create a Permission class to define static permissions:
 ```csharp
-public class TokenValidationService
+public static class Permissions
 {
-    private readonly IHttpContextAccessor _httpContextAccessor;
-
-    public TokenValidationService(IHttpContextAccessor httpContextAccessor)
+    // Projects
+    public const string ViewProjects = "Projects.View";
+    public const string EditProjects = "Projects.Edit";
+    
+    // Deliverables
+    public const string ViewDeliverables = "Deliverables.View";
+    public const string EditDeliverables = "Deliverables.Edit";
+    
+    // Add other permissions as needed
+    
+    public static IEnumerable<string> GetAllPermissions()
     {
-        _httpContextAccessor = httpContextAccessor;
+        return typeof(Permissions)
+            .GetFields(BindingFlags.Public | BindingFlags.Static | BindingFlags.FlattenHierarchy)
+            .Where(fi => fi.IsLiteral && !fi.IsInitOnly && fi.FieldType == typeof(string))
+            .Select(x => (string)x.GetRawConstantValue())
+            .ToList();
     }
-
-    public ClaimsPrincipal GetCurrentUser()
+    
+    public static IEnumerable<(string Permission, string Category)> GetPermissionsWithCategories()
     {
-        return _httpContextAccessor.HttpContext?.User;
-    }
-
-    public string GetUserObjectId()
-    {
-        var objectIdClaim = _httpContextAccessor.HttpContext?.User.FindFirst("http://schemas.microsoft.com/identity/claims/objectidentifier");
-        return objectIdClaim?.Value;
-    }
-
-    public IEnumerable<string> GetUserRoles()
-    {
-        var roles = _httpContextAccessor.HttpContext?.User.Claims
-            .Where(c => c.Type == ClaimTypes.Role)
-            .Select(c => c.Value);
-        return roles ?? Enumerable.Empty<string>();
+        return GetAllPermissions()
+            .Select(p => {
+                var parts = p.Split('.');
+                return (Permission: p, Category: parts[0]);
+            });
     }
 }
 ```
 
-Register the service in Program.cs:
-
+2. Create a RequirePermission attribute:
 ```csharp
-builder.Services.AddHttpContextAccessor();
-builder.Services.AddScoped<TokenValidationService>();
+[AttributeUsage(AttributeTargets.Method | AttributeTargets.Class, AllowMultiple = true)]
+public class RequirePermissionAttribute : AuthorizeAttribute
+{
+    public RequirePermissionAttribute(string permission) : base(policy: permission)
+    {
+    }
+}
+```
+
+3. Implement authorization handler:
+```csharp
+public class PermissionAuthorizationHandler : AuthorizationHandler<PermissionRequirement>
+{
+    private readonly ApplicationDbContext _dbContext;
+    private readonly IConfiguration _configuration;
+    
+    public PermissionAuthorizationHandler(ApplicationDbContext dbContext, IConfiguration configuration)
+    {
+        _dbContext = dbContext;
+        _configuration = configuration;
+    }
+    
+    protected override async Task HandleRequirementAsync(
+        AuthorizationHandlerContext context,
+        PermissionRequirement requirement)
+    {
+        if (!context.User.Identity.IsAuthenticated)
+        {
+            return;
+        }
+        
+        var userEmail = context.User.FindFirst("preferred_username")?.Value;
+        if (string.IsNullOrEmpty(userEmail))
+        {
+            return;
+        }
+        
+        // Get user roles from claims
+        var userRoles = context.User.FindAll(ClaimTypes.Role).Select(c => c.Value).ToList();
+        
+        // Check if user has any system role
+        var systemRoles = await _dbContext.Roles
+            .Where(r => r.IsSystemRole && userRoles.Contains(r.Name.ToLower()))
+            .AnyAsync();
+            
+        // Development flag for system roles
+        bool isDevelopment = _configuration.GetValue<bool>("DevelopmentMode", false);
+        if (isDevelopment && userEmail.EndsWith("@yourdomain.com"))
+        {
+            systemRoles = true;
+        }
+        
+        if (systemRoles)
+        {
+            context.Succeed(requirement);
+            return;
+        }
+        
+        // Check specific permission
+        var hasPermission = await _dbContext.Roles
+            .Where(r => userRoles.Contains(r.Name.ToLower()))
+            .SelectMany(r => r.RolePermissions)
+            .AnyAsync(rp => rp.Permission.Equals(requirement.Permission, StringComparison.OrdinalIgnoreCase));
+            
+        if (hasPermission)
+        {
+            context.Succeed(requirement);
+        }
+    }
+}
+
+public class PermissionRequirement : IAuthorizationRequirement
+{
+    public string Permission { get; }
+    
+    public PermissionRequirement(string permission)
+    {
+        Permission = permission;
+    }
+}
+```
+
+4. Register authorization services:
+```csharp
+public void ConfigureServices(IServiceCollection services)
+{
+    // Other service configurations...
+    
+    services.AddScoped<IAuthorizationHandler, PermissionAuthorizationHandler>();
+    
+    services.AddAuthorization(options =>
+    {
+        // Register each permission as a policy
+        foreach (var permission in Permissions.GetAllPermissions())
+        {
+            options.AddPolicy(permission, policy =>
+                policy.Requirements.Add(new PermissionRequirement(permission)));
+        }
+    });
+}
 ```
 
 # Test Strategy:
-Write unit tests for the TokenValidationService using mocked HttpContext with various claims configurations. Test each method with valid and invalid/missing claims scenarios.
+1. Test authorization with users having specific permissions
+2. Verify system role users bypass permission checks
+3. Test case-insensitive role mapping
+4. Verify development flag works correctly
+5. Test authorization fails for users without required permissions
+6. Verify automatic view permission when edit permission is granted
+7. Test with various combinations of roles and permissions
+
+# Subtasks:
+## 1. Create the Permissions class [done]
+### Dependencies: None
+### Description: Define a static Permissions class with constants for all application permissions and helper methods for permission management
+### Details:
+Create a static class that contains string constants for all permissions (e.g., 'Products.View', 'Products.Create'). Implement helper methods to group permissions by module, get all permissions, and check permission inheritance relationships. Include documentation for each permission constant.
+
+## 2. Implement the RequirePermission attribute [done]
+### Dependencies: 4.1
+### Description: Create a custom authorization attribute that can be applied to controllers and actions
+### Details:
+Develop a RequirePermission attribute that inherits from AuthorizeAttribute. The attribute should accept one or more permission strings as parameters and register the appropriate authorization policy. Ensure it works at both controller and action levels with proper permission inheritance.
+
+## 3. Create the PermissionRequirement class [done]
+### Dependencies: 4.1
+### Description: Implement the IAuthorizationRequirement interface for permission-based requirements
+### Details:
+Create a PermissionRequirement class that implements IAuthorizationRequirement. This class should store the permission string required for authorization and provide methods to check if a user has the specific permission or any permission that inherits from it.
+
+## 4. Implement the PermissionAuthorizationHandler [done]
+### Dependencies: 4.3
+### Description: Create a handler that evaluates permission requirements against user claims with system role bypass logic
+### Details:
+Develop a PermissionAuthorizationHandler that inherits from AuthorizationHandler<PermissionRequirement>. Implement the HandleRequirementAsync method to check if the user has the required permission claim or a system role that bypasses permission checks. Include logic to handle permission inheritance.
+
+## 5. Register authorization services and policies [done]
+### Dependencies: 4.2, 4.4
+### Description: Configure the application's service collection with the custom authorization components
+### Details:
+Add extension methods for IServiceCollection to register the authorization services, handlers, and policies. Configure the application to use the custom permission-based authorization system. Set up policy providers to dynamically create policies based on permission requirements.
+
+## 6. Test the authorization system [done]
+### Dependencies: 4.5
+### Description: Create test scenarios to verify the permission-based authorization system works correctly
+### Details:
+Develop test cases for different permission scenarios including: basic permission checks, permission inheritance, system role bypasses, and denied access cases. Create test controllers and actions with various permission requirements. Verify that users with appropriate permissions or system roles can access protected resources while others are denied.
+

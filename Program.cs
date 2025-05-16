@@ -1,9 +1,12 @@
+using FourSPM_WebService.Authorization;
 using FourSPM_WebService.Data.Extensions;
 using FourSPM_WebService.Middleware;
 using FourSPM_WebService.Data.EF.FourSPM;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.OData;
 using Microsoft.AspNetCore.OData.Batch;
+using Microsoft.Identity.Web;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OData.UriParser;
 using System.Text;
@@ -126,13 +129,53 @@ builder.Services.Configure<IISServerOptions>(options =>
 
 builder.Services.AddScoped<IAuthService, AuthService>();
 
-// Add JWT Authentication
-builder.Services.AddAuthentication(options =>
+// Add permission-based authorization services
+builder.Services.AddPermissionBasedAuthorization();
+
+// Configure authorization policies
+builder.Services.AddAuthorization(options =>
 {
-    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-})
-.AddJwtBearer(options =>
+    // Add default policy requiring authenticated users
+    options.DefaultPolicy = new AuthorizationPolicyBuilder()
+        .RequireAuthenticatedUser()
+        .Build();
+    
+    // Add policies for basic operations
+    options.AddPolicy("RequireAdminRole", policy =>
+        policy.RequireRole("Administrator"));
+});
+
+// Add Azure AD Authentication with JWT Bearer fallback for legacy support
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddMicrosoftIdentityWebApi(builder.Configuration.GetSection("AzureAd"));
+    
+// Configure token validation parameters for Azure AD
+builder.Services.Configure<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme, options =>
+{
+    // Set the valid audience to match the Application ID URI
+    options.TokenValidationParameters.ValidAudiences = new[]
+    {
+        $"api://{builder.Configuration["AzureAd:ClientId"]}"
+    };
+    
+    // Only use JWT token validation when Azure AD token validation fails
+    options.ForwardDefaultSelector = context =>
+    {
+        string? authorization = context.Request.Headers["Authorization"].FirstOrDefault();
+        if (!string.IsNullOrEmpty(authorization) && authorization.StartsWith("Bearer "))
+        {
+            var token = authorization.Substring("Bearer ".Length).Trim();
+            // If it looks like a JWT token, use JwtBearerDefaults.AuthenticationScheme
+            // Otherwise, use Microsoft.Identity.Web.Constants.Bearer for Azure AD tokens
+            return JwtBearerDefaults.AuthenticationScheme;
+        }
+        return null;
+    };
+});
+
+// Legacy JWT Authentication - retained for backward compatibility
+builder.Services.AddAuthentication()
+.AddJwtBearer("LegacyJwt", options =>
 {
     options.TokenValidationParameters = new TokenValidationParameters
     {
