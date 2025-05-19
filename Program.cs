@@ -4,6 +4,7 @@ using FourSPM_WebService.Data.EF.FourSPM;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.OData;
 using Microsoft.AspNetCore.OData.Batch;
+using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OData.UriParser;
 using System.Text;
@@ -143,80 +144,21 @@ builder.Services.AddScoped<MsalTokenValidator>();
 // Register auth service
 builder.Services.AddScoped<IAuthService, AuthService>();
 
-// Add Authentication with support for both JWT and MSAL
-// Configure authentication with multiple schemes
+// Add Authentication with Microsoft Identity Web (MSAL)
+// Important: We must use the Microsoft.Identity.Web method correctly
 builder.Services
-    .AddAuthentication(options =>
-    {
-        // Default schemes - these will be used if no specific scheme is specified
-        options.DefaultAuthenticateScheme = "Bearer"; // A custom scheme that combines both
-        options.DefaultChallengeScheme = "Bearer";
-        options.DefaultScheme = "Bearer";
-    })
-    // Add JWT Bearer handler for legacy authentication with a specific scheme name "Legacy"
-    .AddJwtBearer("Legacy", options =>
-    {
-        options.TokenValidationParameters = new TokenValidationParameters
-        {
-            ValidateIssuer = true,
-            ValidateAudience = true,
-            ValidateLifetime = true,
-            ValidateIssuerSigningKey = true,
-            ValidIssuer = jwtConfig.Issuer,
-            ValidAudience = jwtConfig.Audience,
-            IssuerSigningKey = new SymmetricSecurityKey(
-                Encoding.UTF8.GetBytes(jwtConfig.Secret))
-        };
-    })
-    // Add Microsoft Identity Web API handler with scheme name "AzureAd"
-    .AddMicrosoftIdentityWebApi(builder.Configuration.GetSection("AzureAd"), "AzureAd", "AzureAd");
+    .AddAuthentication(Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerDefaults.AuthenticationScheme)
+    .AddMicrosoftIdentityWebApi(builder.Configuration.GetSection("AzureAd"));
 
-// Add a combined authentication handler that can select between schemes based on the token
-builder.Services.AddAuthentication()
-    .AddPolicyScheme("Bearer", "Bearer or AzureAd", options =>
-    {
-        // This is the key part - dynamically select which scheme to use based on the token
-        options.ForwardDefaultSelector = context =>
-        {
-            // Get the token from the Authorization header
-            var authorization = context.Request.Headers["Authorization"].FirstOrDefault();
-            
-            // If no authorization header is provided, use the default scheme
-            if (string.IsNullOrEmpty(authorization))
-            {
-                return "Legacy";
-            }
-            
-            // If we have a Bearer token, try to determine if it's a legacy or MSAL token
-            if (authorization.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
-            {
-                var token = authorization.Substring("Bearer ".Length).Trim();
-                try
-                {
-                    // Try to read the token without validation to check its issuer
-                    var handler = new JwtSecurityTokenHandler();
-                    if (handler.CanReadToken(token))
-                    {
-                        var jwtToken = handler.ReadJwtToken(token);
-                        
-                        // Check the issuer to determine which scheme to use
-                        if (jwtToken.Issuer.Contains("login.microsoftonline.com") || 
-                            jwtToken.Issuer.Contains("sts.windows.net"))
-                        {
-                            return "AzureAd"; // Use Azure AD scheme for MSAL tokens
-                        }
-                    }
-                }
-                catch
-                {
-                    // If there's an error reading the token, default to legacy
-                }
-            }
-            
-            // Default to legacy authentication
-            return "Legacy";
-        };
-    });
+// Add authentication logging for debugging
+builder.Services.AddLogging(logging => 
+{
+    logging.AddFilter("Microsoft.AspNetCore.Authentication", LogLevel.Debug);
+    logging.AddFilter("Microsoft.Identity", LogLevel.Debug);
+});
+
+// Add HTTP context accessor (must be singleton)
+builder.Services.AddHttpContextAccessor();
 
 
 builder.ConfigureInstallers();
