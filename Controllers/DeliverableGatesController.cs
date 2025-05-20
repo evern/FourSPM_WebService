@@ -147,16 +147,12 @@ namespace FourSPM_WebService.Controllers
                 var updatedEntity = MapToEntity(existingGate);
                 delta.CopyChangedValues(updatedEntity);
 
-                // Map back to DELIVERABLE_GATE entity
-                var gateToUpdate = new DELIVERABLE_GATE
-                {
-                    GUID = updatedEntity.Guid,
-                    NAME = updatedEntity.Name,
-                    MAX_PERCENTAGE = updatedEntity.MaxPercentage,
-                    AUTO_PERCENTAGE = updatedEntity.AutoPercentage ?? 0
-                };
+                // Map back to EF tracked DELIVERABLE_GATE entity
+                existingGate.NAME = updatedEntity.Name;
+                existingGate.MAX_PERCENTAGE = updatedEntity.MaxPercentage;
+                existingGate.AUTO_PERCENTAGE = updatedEntity.AutoPercentage;
 
-                var result = await _repository.UpdateAsync(gateToUpdate);
+                var result = await _repository.UpdateAsync(existingGate);
                 return Updated(MapToEntity(result));
             }
             catch (Exception ex)

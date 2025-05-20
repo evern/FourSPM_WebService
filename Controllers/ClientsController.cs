@@ -128,7 +128,7 @@ public class ClientsController : FourSPMODataController
         try
         {
             // Use the new DeleteAsync method
-            if (await _clientRepository.DeleteAsync(key, _user.UserId!.Value))
+            if (await _clientRepository.DeleteAsync(key, _user.UserId ?? Guid.Empty))
             {
                 return NoContent();
             }

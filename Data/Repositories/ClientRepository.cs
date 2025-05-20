@@ -40,8 +40,8 @@ namespace FourSPM_WebService.Data.Repositories
         public async Task<CLIENT> CreateAsync(CLIENT client)
         {
             client.CREATED = DateTime.Now;
-            client.CREATEDBY = _user.UserId!.Value;
-            
+            client.CREATEDBY = _user.UserId ?? Guid.Empty;
+
             _context.CLIENTs.Add(client);
             await _context.SaveChangesAsync();
             
@@ -52,8 +52,8 @@ namespace FourSPM_WebService.Data.Repositories
         {
             // Update audit fields directly on the passed client object
             client.UPDATED = DateTime.Now;
-            client.UPDATEDBY = _user.UserId!.Value;
-            
+            client.UPDATEDBY = _user.UserId ?? Guid.Empty;
+
             try
             {
                 await _context.SaveChangesAsync();
