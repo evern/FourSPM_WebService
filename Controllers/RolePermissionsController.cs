@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using FourSPM_WebService.Data.Constants;
 using FourSPM_WebService.Data.EF.FourSPM;
 using FourSPM_WebService.Data.Interfaces;
 using FourSPM_WebService.Data.Mapping;
@@ -82,6 +83,102 @@ namespace FourSPM_WebService.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, $"Error retrieving role permissions for role ID {roleId}");
+                return StatusCode(500, "Internal server error");
+            }
+        }
+        
+        /// <summary>
+        /// Gets a comprehensive summary of all permissions and their access levels for a specific role
+        /// </summary>
+        /// <param name="roleId">The GUID of the role</param>
+        /// <returns>A collection of RolePermissionSummaryEntity objects</returns>
+        [EnableQuery]
+        [HttpGet("GetPermissionSummary(roleId={roleId})")]
+        public async Task<IActionResult> GetPermissionSummary([FromODataUri] Guid roleId)
+        {
+            try
+            {
+                // Get all static permissions (this serves as the base for all available permissions)
+                var staticPermissions = PermissionConstants.GetStaticPermissions();
+                
+                // Get all role permissions for this role
+                var rolePermissions = await _repository.GetByRoleIdAsync(roleId);
+                
+                // Create the summary by joining static permissions with role permissions
+                var permissionSummary = staticPermissions.Select(sp => {
+                    // Determine which type of permission this is
+                    var isTogglePermission = sp.PermissionType == PermissionConstants.TypeToggle;
+
+                    if (isTogglePermission)
+                    {
+                        // For toggle permissions, look for the .toggle permission
+                        var togglePermission = rolePermissions.FirstOrDefault(rp => 
+                            rp.PERMISSION == $"{sp.FeatureKey}.toggle");
+                        
+                        // For toggle permissions, level is either 0 (disabled) or 1 (enabled)
+                        var toggleLevel = togglePermission != null ? 1 : 0;
+                        var toggleLevelText = togglePermission != null ? "Enabled" : "Disabled";
+                        
+                        // Create a summary entity for toggle permission
+                        return new RolePermissionSummaryEntity
+                        {
+                            FeatureKey = sp.FeatureKey,
+                            DisplayName = sp.DisplayName,
+                            Description = sp.Description,
+                            FeatureGroup = sp.FeatureGroup,
+                            TogglePermissionGuid = togglePermission?.GUID,
+                            // Standardize toggle levels: 0=disabled, 1=enabled
+                            PermissionLevel = toggleLevel,
+                            // Include text representation
+                            PermissionLevelText = toggleLevelText,
+                            PermissionType = PermissionConstants.TypeToggle
+                        };
+                    }
+                    else
+                    {
+                        // For access level permissions, look for view and edit permissions
+                        var viewPermission = rolePermissions.FirstOrDefault(rp => 
+                            rp.PERMISSION == $"{sp.FeatureKey}.view");
+                            
+                        var editPermission = rolePermissions.FirstOrDefault(rp => 
+                            rp.PERMISSION == $"{sp.FeatureKey}.edit");
+                        
+                        // Determine permission level
+                        int permissionLevel = 0; // Default: No Access
+                        string permissionLevelText = "No Access"; // Default text
+                        
+                        if (editPermission != null)
+                        {
+                            permissionLevel = 2; // Full Access
+                            permissionLevelText = "Full Access";
+                        }
+                        else if (viewPermission != null)
+                        {
+                            permissionLevel = 1; // Read-Only
+                            permissionLevelText = "Read-Only";
+                        }
+                        
+                        // Create a summary entity for access level permission
+                        return new RolePermissionSummaryEntity
+                        {
+                            FeatureKey = sp.FeatureKey,
+                            DisplayName = sp.DisplayName,
+                            Description = sp.Description,
+                            FeatureGroup = sp.FeatureGroup,
+                            ViewPermissionGuid = viewPermission?.GUID,
+                            EditPermissionGuid = editPermission?.GUID,
+                            PermissionLevel = permissionLevel,
+                            PermissionLevelText = permissionLevelText,
+                            PermissionType = PermissionConstants.TypeAccessLevel
+                        };
+                    }
+                });
+                
+                return Ok(permissionSummary);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Error retrieving permission summary for role ID {roleId}");
                 return StatusCode(500, "Internal server error");
             }
         }
