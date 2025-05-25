@@ -304,5 +304,167 @@ namespace FourSPM_WebService.Controllers
                 return StatusCode(500, "Internal Server Error - " + ex.Message);
             }
         }
+        
+        /// <summary>
+        /// Sets the permission level for a specific feature for a role
+        /// </summary>
+        /// <param name="request">The request containing roleId, featureKey, and action</param>
+        /// <returns>The updated permission summary for the role</returns>
+        [HttpPost]
+        [Route("/odata/v1/RolePermissions/SetPermissionLevel")]
+        public async Task<IActionResult> SetPermissionLevel([FromBody] Models.Request.SetPermissionLevelRequest request)
+        {
+            try
+            {
+                _logger.LogInformation($"Setting permission level for role {request.RoleId}, feature {request.FeatureKey}, action {request.Action}");
+                
+                // Validate the request
+                if (request == null || string.IsNullOrEmpty(request.FeatureKey) || string.IsNullOrEmpty(request.Action))
+                {
+                    return BadRequest("Invalid request. RoleId, FeatureKey, and Action are required.");
+                }
+                
+                // Determine the permission type by looking up the feature key in static permissions
+                var staticPermissions = PermissionConstants.GetStaticPermissions();
+                var staticPermission = staticPermissions.FirstOrDefault(p => p.FeatureKey.Equals(request.FeatureKey, StringComparison.OrdinalIgnoreCase));
+                var permissionType = staticPermission?.PermissionType ?? PermissionConstants.TypeAccessLevel;
+                
+                // For access level permissions
+                if (permissionType == PermissionConstants.TypeAccessLevel)
+                {
+                    switch (request.Action)
+                    {
+                        case "NoAccess":
+                            // Remove both view and edit permissions if they exist
+                            await RemovePermissionFromRole(request.RoleId, $"{request.FeatureKey}.view");
+                            await RemovePermissionFromRole(request.RoleId, $"{request.FeatureKey}.edit");
+                            break;
+                            
+                        case "ReadOnly":
+                            // Remove edit permission if it exists
+                            await RemovePermissionFromRole(request.RoleId, $"{request.FeatureKey}.edit");
+                            
+                            // Add view permission if it doesn't exist
+                            if (!await HasPermission(request.RoleId, $"{request.FeatureKey}.view"))
+                            {
+                                await AddPermissionToRole(request.RoleId, $"{request.FeatureKey}.view");
+                            }
+                            break;
+                            
+                        case "FullAccess":
+                            // Remove view permission if it exists (since edit implies view)
+                            await RemovePermissionFromRole(request.RoleId, $"{request.FeatureKey}.view");
+                            
+                            // Add edit permission if it doesn't exist
+                            if (!await HasPermission(request.RoleId, $"{request.FeatureKey}.edit"))
+                            {
+                                await AddPermissionToRole(request.RoleId, $"{request.FeatureKey}.edit");
+                            }
+                            break;
+                            
+                        default:
+                            return BadRequest($"Invalid action: {request.Action}");
+                    }
+                }
+                // For toggle permissions
+                else if (permissionType == PermissionConstants.TypeToggle)
+                {
+                    // Append .toggle to the feature key for toggle permissions
+                    var toggleFeatureKey = $"{request.FeatureKey}.toggle";
+                    
+                    switch (request.Action)
+                    {
+                        case "Enable":
+                            // Add the toggle permission if it doesn't exist
+                            if (!await HasPermission(request.RoleId, toggleFeatureKey))
+                            {
+                                await AddPermissionToRole(request.RoleId, toggleFeatureKey);
+                            }
+                            break;
+                            
+                        case "Disable":
+                            // Remove the toggle permission if it exists
+                            await RemovePermissionFromRole(request.RoleId, toggleFeatureKey);
+                            break;
+                            
+                        default:
+                            return BadRequest($"Invalid action: {request.Action}");
+                    }
+                }
+                else
+                {
+                    return BadRequest($"Unknown permission type for feature key: {request.FeatureKey}");
+                }
+                
+                // Return success result
+                return Ok(new { success = true });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error setting permission level");
+                return StatusCode(500, "An error occurred while setting permission level");
+            }
+        }
+        
+        // Helper methods
+        
+        /// <summary>
+        /// Checks if a role has a specific permission
+        /// </summary>
+        private async Task<bool> HasPermission(Guid roleId, string permission)
+        {
+            var rolePermissions = await _repository.GetByRoleIdAsync(roleId);
+            return rolePermissions.Any(rp => 
+                rp.PERMISSION == permission && 
+                rp.DELETED == null);
+        }
+        
+        /// <summary>
+        /// Adds a permission to a role
+        /// </summary>
+        private async Task<ROLE_PERMISSION> AddPermissionToRole(Guid roleId, string permission)
+        {
+            // Check if the permission already exists for this role
+            if (await HasPermission(roleId, permission))
+            {
+                // Get the existing permission
+                var rolePermissions = await _repository.GetByRoleIdAsync(roleId);
+                return rolePermissions.First(rp => 
+                    rp.PERMISSION == permission && 
+                    rp.DELETED == null);
+            }
+            
+            // Create new permission
+            var rolePermission = new ROLE_PERMISSION
+            {
+                GUID = Guid.NewGuid(),
+                GUID_ROLE = roleId,
+                PERMISSION = permission,
+                CREATED = DateTime.UtcNow,
+                CREATEDBY = _applicationUser.UserId ?? Guid.Empty
+            };
+            
+            var result = await _repository.CreateAsync(rolePermission);
+            return result;
+        }
+        
+        /// <summary>
+        /// Removes a permission from a role
+        /// </summary>
+        private async Task<bool> RemovePermissionFromRole(Guid roleId, string permission)
+        {
+            var rolePermissions = await _repository.GetByRoleIdAsync(roleId);
+            var rolePermission = rolePermissions.FirstOrDefault(rp => 
+                rp.PERMISSION == permission && 
+                rp.DELETED == null);
+            
+            if (rolePermission == null)
+            {
+                return false; // Permission doesn't exist, nothing to remove
+            }
+            
+            await _repository.DeleteAsync(rolePermission.GUID, _applicationUser.UserId ?? Guid.Empty);
+            return true;
+        }
     }
 }
