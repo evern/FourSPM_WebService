@@ -28,14 +28,15 @@ public static class MsalClaimsUtility
         user.Email = principal.FindFirst("email")?.Value ?? user.PreferredUsername;
         
         // Extract roles and groups
-        var roles = principal.Claims.Where(c => c.Type == "roles").Select(c => c.Value).ToList();
+        // Extract role claim using the standard ClaimTypes.Role claim type
+        var roleClaim = principal.FindFirst(System.Security.Claims.ClaimTypes.Role);
         var groups = principal.Claims.Where(c => c.Type == "groups").Select(c => c.Value).ToList();
         
         // Extract scopes
         var scopeClaim = principal.FindFirst("scp") ?? principal.FindFirst("http://schemas.microsoft.com/identity/claims/scope");
         var scopes = scopeClaim != null ? scopeClaim.Value.Split(' ').ToList() : new List<string>();
         
-        user.Roles = roles;
+        user.Role = roleClaim?.Value;
         user.Groups = groups;
         user.Scopes = scopes;
         user.AuthenticationType = "MSAL";
@@ -74,8 +75,8 @@ public static class MsalClaimsUtility
             user.Name = GetClaimValue(jwtToken, "name") ?? user.PreferredUsername;
             user.Email = GetClaimValue(jwtToken, "email") ?? user.PreferredUsername;
             
-            // Extract roles and groups
-            var roles = jwtToken.Claims.Where(c => c.Type == "roles").Select(c => c.Value).ToList();
+            // Extract role and groups
+            var roleClaim = jwtToken.Claims.FirstOrDefault(c => c.Type == System.Security.Claims.ClaimTypes.Role);
             var groups = jwtToken.Claims.Where(c => c.Type == "groups").Select(c => c.Value).ToList();
             
             // Extract scopes
@@ -84,7 +85,7 @@ public static class MsalClaimsUtility
                           
             var scopes = scopeClaim != null ? scopeClaim.Value.Split(' ').ToList() : new List<string>();
             
-            user.Roles = roles;
+            user.Role = roleClaim?.Value;
             user.Groups = groups;
             user.Scopes = scopes;
             user.AuthenticationType = "MSAL";

@@ -16,16 +16,11 @@ namespace FourSPM_WebService.Models.Session
         public string? PreferredUsername { get; set; } // preferred_username claim
         public string? Name { get; set; } // name claim
         public string? AuthenticationType { get; set; } // MSAL or Legacy
-        public List<string> Roles { get; set; } = new List<string>(); // roles claim
+        public string? Role { get; set; } // http://schemas.microsoft.com/ws/2008/06/identity/claims/role claim
         public List<string> Groups { get; set; } = new List<string>(); // groups claim
         public List<string> Scopes { get; set; } = new List<string>(); // scp claim
         
         // Application-specific permissions
         public IReadOnlyCollection<RolePermissionModel> Permissions { get; set; } = new List<RolePermissionModel>();
-
-        public bool HasAccessPermissions(string item, Permission permission)
-        {
-            return Permissions.Any(x => x.Permission == permission && x.Name == item);
-        }
     }
 }
