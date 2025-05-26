@@ -23,16 +23,13 @@ namespace FourSPM_WebService.Controllers
     public class RolePermissionsController : FourSPMODataController
     {
         private readonly IRolePermissionRepository _repository;
-        private readonly ApplicationUser _applicationUser;
         private readonly ILogger<RolePermissionsController> _logger;
 
         public RolePermissionsController(
             IRolePermissionRepository repository,
-            ApplicationUser applicationUser,
             ILogger<RolePermissionsController> logger)
         {
             _repository = repository;
-            _applicationUser = applicationUser;
             _logger = logger;
         }
 
@@ -196,7 +193,7 @@ namespace FourSPM_WebService.Controllers
                     GUID_ROLE = entity.RoleGuid,
                     PERMISSION = entity.Permission,
                     CREATED = DateTime.UtcNow,
-                    CREATEDBY = _applicationUser.UserId ?? Guid.Empty
+                    CREATEDBY = CurrentUser.UserId ?? Guid.Empty
                 };
 
                 var result = await _repository.CreateAsync(rolePermission);
@@ -226,7 +223,7 @@ namespace FourSPM_WebService.Controllers
                     GUID_ROLE = entity.RoleGuid,
                     PERMISSION = entity.Permission,
                     CREATED = DateTime.UtcNow,
-                    CREATEDBY = _applicationUser.UserId ?? Guid.Empty
+                    CREATEDBY = CurrentUser.UserId ?? Guid.Empty
                 };
 
                 var result = await _repository.UpdateAsync(rolePermission);
@@ -251,7 +248,7 @@ namespace FourSPM_WebService.Controllers
         {
             try
             {
-                var deletedBy = _applicationUser.UserId ?? Guid.Empty;
+                var deletedBy = CurrentUser.UserId ?? Guid.Empty;
                 var result = await _repository.DeleteAsync(key, deletedBy);
                 return result ? NoContent() : NotFound($"Role permission with ID {key} not found");
             }
@@ -441,7 +438,7 @@ namespace FourSPM_WebService.Controllers
                 GUID_ROLE = roleId,
                 PERMISSION = permission,
                 CREATED = DateTime.UtcNow,
-                CREATEDBY = _applicationUser.UserId ?? Guid.Empty
+                CREATEDBY = CurrentUser.UserId ?? Guid.Empty
             };
             
             var result = await _repository.CreateAsync(rolePermission);
@@ -463,7 +460,7 @@ namespace FourSPM_WebService.Controllers
                 return false; // Permission doesn't exist, nothing to remove
             }
             
-            await _repository.DeleteAsync(rolePermission.GUID, _applicationUser.UserId ?? Guid.Empty);
+            await _repository.DeleteAsync(rolePermission.GUID, CurrentUser.UserId ?? Guid.Empty);
             return true;
         }
     }

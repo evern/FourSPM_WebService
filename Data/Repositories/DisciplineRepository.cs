@@ -12,12 +12,10 @@ namespace FourSPM_WebService.Data.Repositories
     public class DisciplineRepository : IDisciplineRepository
     {
         private readonly FourSPMContext _context;
-        private readonly ApplicationUser _user;
 
-        public DisciplineRepository(FourSPMContext context, ApplicationUser user)
+        public DisciplineRepository(FourSPMContext context)
         {
             _context = context;
-            _user = user;
         }
 
         public async Task<IEnumerable<DISCIPLINE>> GetAllAsync()
@@ -40,10 +38,10 @@ namespace FourSPM_WebService.Data.Repositories
                 .FirstOrDefaultAsync(d => d.CODE == code && d.DELETED == null);
         }
 
-        public async Task<DISCIPLINE> CreateAsync(DISCIPLINE discipline)
+        public async Task<DISCIPLINE> CreateAsync(DISCIPLINE discipline, Guid? createdBy)
         {
             discipline.CREATED = DateTime.Now;
-            discipline.CREATEDBY = _user.UserId ?? Guid.Empty;
+            discipline.CREATEDBY = createdBy ?? Guid.Empty;
             
             _context.DISCIPLINEs.Add(discipline);
             await _context.SaveChangesAsync();
@@ -51,11 +49,11 @@ namespace FourSPM_WebService.Data.Repositories
             return await GetByIdAsync(discipline.GUID) ?? discipline;
         }
 
-        public async Task<DISCIPLINE> UpdateAsync(DISCIPLINE discipline)
+        public async Task<DISCIPLINE> UpdateAsync(DISCIPLINE discipline, Guid? updatedBy)
         {
             // Update audit fields directly on the passed object
             discipline.UPDATED = DateTime.Now;
-            discipline.UPDATEDBY = _user.UserId ?? Guid.Empty;
+            discipline.UPDATEDBY = updatedBy ?? Guid.Empty;
             
             try
             {

@@ -13,13 +13,11 @@ namespace FourSPM_WebService.Data.Repositories
     public class DeliverableRepository : IDeliverableRepository
     {
         private readonly FourSPMContext _context;
-        private readonly ApplicationUser _user;
         private readonly ILogger<DeliverableRepository>? _logger;
 
-        public DeliverableRepository(FourSPMContext context, ApplicationUser user, ILogger<DeliverableRepository>? logger = null)
+        public DeliverableRepository(FourSPMContext context, ILogger<DeliverableRepository>? logger = null)
         {
             _context = context;
-            _user = user;
             _logger = logger;
         }
 
@@ -75,21 +73,21 @@ namespace FourSPM_WebService.Data.Repositories
                 .FirstOrDefaultAsync(d => d.GUID == id && d.DELETED == null);
         }
 
-        public async Task<DELIVERABLE> CreateAsync(DELIVERABLE deliverable)
+        public async Task<DELIVERABLE> CreateAsync(DELIVERABLE deliverable, Guid? createdBy)
         {
             deliverable.CREATED = DateTime.Now;
-            deliverable.CREATEDBY = _user.UserId ?? Guid.Empty;
+            deliverable.CREATEDBY = createdBy ?? Guid.Empty;
             
             _context.DELIVERABLEs.Add(deliverable);
             await _context.SaveChangesAsync();
             return await GetByIdAsync(deliverable.GUID) ?? deliverable;
         }
 
-        public async Task<DELIVERABLE> UpdateAsync(DELIVERABLE deliverable)
+        public async Task<DELIVERABLE> UpdateAsync(DELIVERABLE deliverable, Guid? updatedBy)
         {
             // Update audit fields directly on the passed object
             deliverable.UPDATED = DateTime.Now;
-            deliverable.UPDATEDBY = _user.UserId ?? Guid.Empty;
+            deliverable.UPDATEDBY = updatedBy ?? Guid.Empty;
             
             try
             {
@@ -251,7 +249,7 @@ namespace FourSPM_WebService.Data.Repositories
         /// <summary>
         /// Creates a copy of a deliverable with the specified properties for variations
         /// </summary>
-        private DELIVERABLE CreateDeliverableCopy(DELIVERABLE original, Guid variationId, int variationStatus)
+        private DELIVERABLE CreateDeliverableCopy(DELIVERABLE original, Guid variationId, int variationStatus, Guid? userId)
         {
             return new DELIVERABLE
             {
@@ -274,15 +272,15 @@ namespace FourSPM_WebService.Data.Repositories
                 BOOKING_CODE = original.BOOKING_CODE,
                 TOTAL_COST = original.TOTAL_COST,
                 CREATED = DateTime.Now,
-                CREATEDBY = _user.UserId ?? Guid.Empty,
+                CREATEDBY = userId ?? Guid.Empty,
                 VARIATION_STATUS = variationStatus
             };
         }
 
-        public async Task<DELIVERABLE> CreateVariationCopyAsync(DELIVERABLE original, Guid variationId, int variationStatus)
+        public async Task<DELIVERABLE> CreateVariationCopyAsync(DELIVERABLE original, Guid variationId, int variationStatus, Guid? userId)
         {
             // Create a new instance with copied properties from the original
-            var variationCopy = CreateDeliverableCopy(original, variationId, variationStatus);
+            var variationCopy = CreateDeliverableCopy(original, variationId, variationStatus, userId);
 
             _context.DELIVERABLEs.Add(variationCopy);
             await _context.SaveChangesAsync();
@@ -295,7 +293,7 @@ namespace FourSPM_WebService.Data.Repositories
         /// <param name="originalDeliverableGuid">The original deliverable GUID to cancel or un-cancel</param>
         /// <param name="variationGuid">The variation GUID this operation belongs to</param>
         /// <returns>The updated or newly created deliverable</returns>
-        public async Task<DELIVERABLE> CancelDeliverableAsync(Guid originalDeliverableGuid, Guid? variationGuid)
+        public async Task<DELIVERABLE> CancelDeliverableAsync(Guid originalDeliverableGuid, Guid? variationGuid, Guid? userId)
         {
             // Find both the original deliverable and any variation copy for the current variation
             // We need to check both because the user might be attempting to cancel either one
@@ -346,7 +344,7 @@ namespace FourSPM_WebService.Data.Repositories
                     {
                         // This is an un-cancel operation - mark the cancellation as deleted
                         deliverable.DELETED = DateTime.Now;
-                        deliverable.DELETEDBY = _user.UserId ?? Guid.Empty;
+                        deliverable.DELETEDBY = userId ?? Guid.Empty;
                         deliverable.VARIATION_HOURS = 0;  // Reset hours on cancellation
                         
                         await _context.SaveChangesAsync();
@@ -357,7 +355,7 @@ namespace FourSPM_WebService.Data.Repositories
                     {
                         // For other unapproved variations, just mark as deleted (normal cancellation)
                         deliverable.DELETED = DateTime.Now;
-                        deliverable.DELETEDBY = _user.UserId ?? Guid.Empty;
+                        deliverable.DELETEDBY = userId ?? Guid.Empty;
                         
                         // If it's an in-progress variation, reset hours
                         if (deliverable.VARIATION_STATUS == (int)VariationStatus.UnapprovedVariation)
@@ -380,7 +378,7 @@ namespace FourSPM_WebService.Data.Repositories
                     {
                         // This is an un-cancel operation - mark the cancellation as deleted
                         existingCancellation.DELETED = DateTime.Now;
-                        existingCancellation.DELETEDBY = _user.UserId ?? Guid.Empty;
+                        existingCancellation.DELETEDBY = userId ?? Guid.Empty;
                         existingCancellation.VARIATION_HOURS = 0;  // Reset hours on cancellation
                         
                         await _context.SaveChangesAsync();
@@ -398,7 +396,8 @@ namespace FourSPM_WebService.Data.Repositories
                     var cancellationDeliverable = CreateDeliverableCopy(
                         deliverable, 
                         variationGuid.Value, 
-                        (int)VariationStatus.UnapprovedCancellation);
+                        (int)VariationStatus.UnapprovedCancellation,
+                        userId);
                     
                     _context.DELIVERABLEs.Add(cancellationDeliverable);
                     deliverable = cancellationDeliverable;

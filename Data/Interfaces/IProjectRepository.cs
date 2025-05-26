@@ -11,8 +11,8 @@ namespace FourSPM_WebService.Data.Interfaces
         Task<PROJECT?> GetByIdAsync(Guid id);
         Task<PROJECT?> GetProjectWithClientAsync(Guid id);
         Task<IEnumerable<PROJECT>> GetAllWithClientsAsync();
-        Task<PROJECT> CreateAsync(PROJECT project);
-        Task<PROJECT> UpdateAsync(PROJECT project);
+        Task<PROJECT> CreateAsync(PROJECT project, Guid? createdBy);
+        Task<PROJECT> UpdateAsync(PROJECT project, Guid? updatedBy);
         Task<bool> DeleteAsync(Guid id, Guid deletedBy);
     }
 }

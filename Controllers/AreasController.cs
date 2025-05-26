@@ -68,7 +68,7 @@ namespace FourSPM_WebService.Controllers
                 DESCRIPTION = entity.Description
             };
 
-            var result = await _repository.CreateAsync(area);
+            var result = await _repository.CreateAsync(area, CurrentUser.UserId);
             return Created(MapToEntity(result));
         }
 
@@ -96,7 +96,7 @@ namespace FourSPM_WebService.Controllers
                     DESCRIPTION = entity.Description
                 };
 
-                var result = await _repository.UpdateAsync(area);
+                var result = await _repository.UpdateAsync(area, CurrentUser.UserId);
                 return Updated(MapToEntity(result));
             }
             catch (KeyNotFoundException)
@@ -105,9 +105,9 @@ namespace FourSPM_WebService.Controllers
             }
         }
 
-        public async Task<IActionResult> Delete([FromRoute] Guid key, [FromBody] Guid deletedBy)
+        public async Task<IActionResult> Delete([FromRoute] Guid key)
         {
-            var result = await _repository.DeleteAsync(key, deletedBy);
+            var result = await _repository.DeleteAsync(key, CurrentUser.UserId ?? Guid.Empty);
             return result ? NoContent() : NotFound();
         }
 
@@ -151,7 +151,7 @@ namespace FourSPM_WebService.Controllers
                 existingArea.NUMBER = updatedEntity.Number;
                 existingArea.DESCRIPTION = updatedEntity.Description;
 
-                var result = await _repository.UpdateAsync(existingArea);
+                var result = await _repository.UpdateAsync(existingArea, CurrentUser.UserId);
                 return Updated(MapToEntity(result));
             }
             catch (Exception ex)

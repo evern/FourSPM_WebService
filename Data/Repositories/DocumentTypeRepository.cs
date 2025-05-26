@@ -12,12 +12,10 @@ namespace FourSPM_WebService.Data.Repositories
     public class DocumentTypeRepository : IDocumentTypeRepository
     {
         private readonly FourSPMContext _context;
-        private readonly ApplicationUser _user;
 
-        public DocumentTypeRepository(FourSPMContext context, ApplicationUser user)
+        public DocumentTypeRepository(FourSPMContext context)
         {
             _context = context;
-            _user = user;
         }
 
         public async Task<IEnumerable<DOCUMENT_TYPE>> GetAllAsync()
@@ -34,21 +32,21 @@ namespace FourSPM_WebService.Data.Repositories
                 .FirstOrDefaultAsync(d => d.GUID == id && d.DELETED == null);
         }
 
-        public async Task<DOCUMENT_TYPE> CreateAsync(DOCUMENT_TYPE documentType)
+        public async Task<DOCUMENT_TYPE> CreateAsync(DOCUMENT_TYPE documentType, Guid? createdBy)
         {
             documentType.CREATED = DateTime.Now;
-            documentType.CREATEDBY = _user.UserId ?? Guid.Empty;
+            documentType.CREATEDBY = createdBy ?? Guid.Empty;
             
             _context.DOCUMENT_TYPEs.Add(documentType);
             await _context.SaveChangesAsync();
             return await GetByIdAsync(documentType.GUID) ?? documentType;
         }
 
-        public async Task<DOCUMENT_TYPE> UpdateAsync(DOCUMENT_TYPE documentType)
+        public async Task<DOCUMENT_TYPE> UpdateAsync(DOCUMENT_TYPE documentType, Guid? updatedBy)
         {
             // Update audit fields directly on the passed object
             documentType.UPDATED = DateTime.Now;
-            documentType.UPDATEDBY = _user.UserId ?? Guid.Empty;
+            documentType.UPDATEDBY = updatedBy ?? Guid.Empty;
             
             try
             {

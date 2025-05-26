@@ -78,7 +78,7 @@ namespace FourSPM_WebService.Controllers
                 UNITS = entity.Units
             };
 
-            var result = await _repository.CreateAsync(progress);
+            var result = await _repository.CreateAsync(progress, CurrentUser.UserId);
             return Created(MapToEntity(result));
         }
 
@@ -100,7 +100,7 @@ namespace FourSPM_WebService.Controllers
                     UNITS = entity.Units
                 };
 
-                var result = await _repository.UpdateAsync(progress);
+                var result = await _repository.UpdateAsync(progress, CurrentUser.UserId);
                 return Updated(MapToEntity(result));
             }
             catch (KeyNotFoundException)
@@ -109,9 +109,9 @@ namespace FourSPM_WebService.Controllers
             }
         }
 
-        public async Task<IActionResult> Delete([FromRoute] Guid key, [FromBody] Guid deletedBy)
+        public async Task<IActionResult> Delete([FromRoute] Guid key)
         {
-            var result = await _repository.DeleteAsync(key, deletedBy);
+            var result = await _repository.DeleteAsync(key, CurrentUser.UserId ?? Guid.Empty);
             return result ? NoContent() : NotFound();
         }
 
@@ -154,7 +154,7 @@ namespace FourSPM_WebService.Controllers
                 existingProgress.PERIOD = updatedEntity.Period;
                 existingProgress.UNITS = updatedEntity.Units;
 
-                var result = await _repository.UpdateAsync(existingProgress);
+                var result = await _repository.UpdateAsync(existingProgress, CurrentUser.UserId);
                 return Updated(MapToEntity(result));
             }
             catch (Exception ex)
@@ -192,7 +192,7 @@ namespace FourSPM_WebService.Controllers
 
                     matchingItem.UNITS = entity.Units;
 
-                    var result = await _repository.UpdateAsync(matchingItem);
+                    var result = await _repository.UpdateAsync(matchingItem, CurrentUser.UserId);
                     return Ok(MapToEntity(result));
                 }
                 else
@@ -208,7 +208,7 @@ namespace FourSPM_WebService.Controllers
                         UNITS = entity.Units
                     };
 
-                    var result = await _repository.CreateAsync(newProgress);
+                    var result = await _repository.CreateAsync(newProgress, CurrentUser.UserId);
                     // Don't use OData-specific Created() for a custom endpoint
                     return Ok(MapToEntity(result));
                 }

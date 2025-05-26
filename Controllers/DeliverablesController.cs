@@ -109,7 +109,7 @@ namespace FourSPM_WebService.Controllers
             // Calculate booking code if not provided, otherwise use the one from entity
             deliverable.BOOKING_CODE = await CalculateBookingCodeAsync(entity.ProjectGuid, entity.AreaNumber, entity.Discipline, entity.BookingCode);
 
-            var result = await _repository.CreateAsync(deliverable);
+            var result = await _repository.CreateAsync(deliverable, CurrentUser.UserId);
             return Created(DeliverableMapperHelper.MapToEntity(result));
         }
 
@@ -150,7 +150,7 @@ namespace FourSPM_WebService.Controllers
                 // Calculate booking code if not provided, otherwise use the one from entity
                 deliverable.BOOKING_CODE = await CalculateBookingCodeAsync(entity.ProjectGuid, entity.AreaNumber, entity.Discipline, entity.BookingCode);
 
-                var result = await _repository.UpdateAsync(deliverable);
+                var result = await _repository.UpdateAsync(deliverable, CurrentUser.UserId);
                 return Updated(DeliverableMapperHelper.MapToEntity(result));
             }
             catch (KeyNotFoundException)
@@ -159,7 +159,7 @@ namespace FourSPM_WebService.Controllers
             }
         }
 
-        public async Task<IActionResult> Delete([FromRoute] Guid key, [FromBody] Guid deletedBy)
+        public async Task<IActionResult> Delete([FromRoute] Guid key)
         {
             try
             {
@@ -176,7 +176,7 @@ namespace FourSPM_WebService.Controllers
                     return BadRequest("Cannot delete this deliverable because it has been progressed.");
                 
                 // If all validations pass, delete the deliverable
-                var result = await _repository.DeleteAsync(key, deletedBy);
+                var result = await _repository.DeleteAsync(key, CurrentUser.UserId ?? Guid.Empty);
                 return result ? NoContent() : NotFound();
             }
             catch (Exception ex)
@@ -218,9 +218,10 @@ namespace FourSPM_WebService.Controllers
 
                 // Create a copy of the entity to track changes
                 var updatedEntity = DeliverableMapperHelper.MapToEntity(existingDeliverable);
-                if (updatedEntity != null) {
-                    delta.CopyChangedValues(updatedEntity);
+                if (updatedEntity == null) {
+                    return BadRequest("Failed to map the existing deliverable");
                 }
+                delta.CopyChangedValues(updatedEntity);
 
                 // Map back to DELIVERABLE entity
                 existingDeliverable.GUID_PROJECT = updatedEntity.ProjectGuid;
@@ -258,7 +259,7 @@ namespace FourSPM_WebService.Controllers
                     existingDeliverable.BOOKING_CODE = updatedEntity.BookingCode;
                 }
 
-                var result = await _repository.UpdateAsync(existingDeliverable);
+                var result = await _repository.UpdateAsync(existingDeliverable, CurrentUser.UserId);
                 return Updated(DeliverableMapperHelper.MapToEntity(result));
             }
             catch (Exception ex)

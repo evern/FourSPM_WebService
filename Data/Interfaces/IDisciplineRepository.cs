@@ -10,8 +10,8 @@ namespace FourSPM_WebService.Data.Interfaces
         Task<IEnumerable<DISCIPLINE>> GetAllAsync();
         Task<DISCIPLINE?> GetByIdAsync(Guid id);
         Task<DISCIPLINE?> GetByCodeAsync(string code);
-        Task<DISCIPLINE> CreateAsync(DISCIPLINE discipline);
-        Task<DISCIPLINE> UpdateAsync(DISCIPLINE discipline);
+        Task<DISCIPLINE> CreateAsync(DISCIPLINE discipline, Guid? createdBy);
+        Task<DISCIPLINE> UpdateAsync(DISCIPLINE discipline, Guid? updatedBy);
         Task<bool> DeleteAsync(Guid id, Guid deletedBy);
         Task<bool> ExistsAsync(Guid id);
     }

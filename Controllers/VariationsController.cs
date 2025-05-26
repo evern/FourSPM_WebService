@@ -20,16 +20,13 @@ namespace FourSPM_WebService.Controllers
     public class VariationsController : FourSPMODataController
     {
         private readonly IVariationRepository _repository;
-        private readonly ApplicationUser _applicationUser;
         private readonly ILogger<VariationsController> _logger;
 
         public VariationsController(
             IVariationRepository repository, 
-            ApplicationUser applicationUser,
             ILogger<VariationsController> logger)
         {
             _repository = repository;
-            _applicationUser = applicationUser;
             _logger = logger;
         }
 
@@ -127,7 +124,7 @@ namespace FourSPM_WebService.Controllers
                 }
 
                 // Proceed with deletion since the variation isn't approved
-                var result = await _repository.DeleteAsync(key, _applicationUser.UserId ?? Guid.Empty);
+                var result = await _repository.DeleteAsync(key, CurrentUser.UserId ?? Guid.Empty);
                 return result ? NoContent() : NotFound();
             }
             catch (Exception ex)

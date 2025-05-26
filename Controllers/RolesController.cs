@@ -22,16 +22,13 @@ namespace FourSPM_WebService.Controllers
     public class RolesController : FourSPMODataController
     {
         private readonly IRoleRepository _repository;
-        private readonly ApplicationUser _applicationUser;
         private readonly ILogger<RolesController> _logger;
 
         public RolesController(
             IRoleRepository repository,
-            ApplicationUser applicationUser,
             ILogger<RolesController> logger)
         {
             _repository = repository;
-            _applicationUser = applicationUser;
             _logger = logger;
         }
 
@@ -84,7 +81,7 @@ namespace FourSPM_WebService.Controllers
                     DESCRIPTION = entity.Description,
                     IS_SYSTEM_ROLE = entity.IsSystemRole,
                     CREATED = DateTime.UtcNow,
-                    CREATEDBY = _applicationUser.UserId ?? Guid.Empty
+                    CREATEDBY = CurrentUser.UserId ?? Guid.Empty
                 };
 
                 var result = await _repository.CreateAsync(role);
@@ -115,7 +112,7 @@ namespace FourSPM_WebService.Controllers
                     DESCRIPTION = entity.Description,
                     IS_SYSTEM_ROLE = entity.IsSystemRole,
                     CREATED = DateTime.UtcNow,
-                    CREATEDBY = _applicationUser.UserId ?? Guid.Empty
+                    CREATEDBY = CurrentUser.UserId ?? Guid.Empty
                 };
 
                 var result = await _repository.UpdateAsync(role);
@@ -140,7 +137,7 @@ namespace FourSPM_WebService.Controllers
         {
             try
             {
-                var deletedBy = _applicationUser.UserId ?? Guid.Empty;
+                var deletedBy = CurrentUser.UserId ?? Guid.Empty;
                 var result = await _repository.DeleteAsync(key, deletedBy);
                 return result ? NoContent() : NotFound($"Role with ID {key} not found");
             }

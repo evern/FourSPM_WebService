@@ -93,7 +93,7 @@ public class ProjectsController : FourSPMODataController
         };
 
         // Create the project using the repository
-        var result = await _projectRepository.CreateAsync(project);
+        var result = await _projectRepository.CreateAsync(project, CurrentUser.UserId);
         return Created(MapToEntity(result));
     }
 
@@ -102,9 +102,9 @@ public class ProjectsController : FourSPMODataController
     /// </summary>
     /// <param name="key">The GUID of the project to delete</param>
     /// <returns>A success message if the project was deleted successfully</returns>
-    public async Task<IActionResult> Delete([FromRoute] Guid key, [FromBody] Guid deletedBy)
+    public async Task<IActionResult> Delete([FromRoute] Guid key)
     {
-        var result = await _projectRepository.DeleteAsync(key, deletedBy);
+        var result = await _projectRepository.DeleteAsync(key, CurrentUser.UserId ?? Guid.Empty);
         return result ? NoContent() : NotFound();
     }
 
@@ -141,7 +141,7 @@ public class ProjectsController : FourSPMODataController
                 PROGRESS_START = entity.ProgressStart
             };
 
-            var result = await _projectRepository.UpdateAsync(project);
+            var result = await _projectRepository.UpdateAsync(project, CurrentUser.UserId);
             return Updated(MapToEntity(result));
         }
         catch (KeyNotFoundException)
@@ -213,7 +213,7 @@ public class ProjectsController : FourSPMODataController
             existingProject.PROGRESS_START = updatedEntity.ProgressStart;
 
             // Update the project
-            var result = await _projectRepository.UpdateAsync(existingProject);
+            var result = await _projectRepository.UpdateAsync(existingProject, CurrentUser.UserId);
 
             // Return the updated project with client details included
             return Updated(MapToEntity(result));

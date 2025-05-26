@@ -9,8 +9,8 @@ namespace FourSPM_WebService.Data.Interfaces
     {
         Task<DOCUMENT_TYPE?> GetByIdAsync(Guid id);
         Task<IEnumerable<DOCUMENT_TYPE>> GetAllAsync();
-        Task<DOCUMENT_TYPE> CreateAsync(DOCUMENT_TYPE documentType);
-        Task<DOCUMENT_TYPE> UpdateAsync(DOCUMENT_TYPE documentType);
+        Task<DOCUMENT_TYPE> CreateAsync(DOCUMENT_TYPE documentType, Guid? createdBy);
+        Task<DOCUMENT_TYPE> UpdateAsync(DOCUMENT_TYPE documentType, Guid? updatedBy);
         Task<bool> DeleteAsync(Guid id, Guid deletedBy);
         Task<bool> ExistsAsync(Guid id);
     }

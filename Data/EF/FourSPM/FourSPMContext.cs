@@ -21,6 +21,7 @@ public partial class FourSPMContext : DbContext
         VARIATIONs = Set<VARIATION>();
         ROLEs = Set<ROLE>();
         ROLE_PERMISSIONs = Set<ROLE_PERMISSION>();
+        USER_IDENTITY_MAPPINGs = Set<USER_IDENTITY_MAPPING>();
     }
 
     public FourSPMContext(DbContextOptions<FourSPMContext> options)
@@ -38,6 +39,7 @@ public partial class FourSPMContext : DbContext
         VARIATIONs = Set<VARIATION>();
         ROLEs = Set<ROLE>();
         ROLE_PERMISSIONs = Set<ROLE_PERMISSION>();
+        USER_IDENTITY_MAPPINGs = Set<USER_IDENTITY_MAPPING>();
     }
 
     public virtual DbSet<PROJECT> PROJECTs { get; set; }
@@ -52,6 +54,7 @@ public partial class FourSPMContext : DbContext
     public virtual DbSet<VARIATION> VARIATIONs { get; set; }
     public virtual DbSet<ROLE> ROLEs { get; set; }
     public virtual DbSet<ROLE_PERMISSION> ROLE_PERMISSIONs { get; set; }
+    public virtual DbSet<USER_IDENTITY_MAPPING> USER_IDENTITY_MAPPINGs { get; set; }
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
 #warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see https://go.microsoft.com/fwlink/?LinkId=723263.
@@ -372,6 +375,23 @@ public partial class FourSPMContext : DbContext
                 .WithMany(r => r.ROLE_PERMISSIONS)
                 .HasForeignKey(d => d.GUID_ROLE)
                 .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<USER_IDENTITY_MAPPING>(entity =>
+        {
+            entity.HasKey(e => e.GUID);
+            entity.ToTable("USER_IDENTITY_MAPPING");
+
+            entity.HasIndex(e => e.EMAIL).IsUnique().HasDatabaseName("IX_USER_IDENTITY_MAPPING_EMAIL");
+            entity.HasIndex(e => e.DELETED).HasDatabaseName("IX_USER_IDENTITY_MAPPING_DELETED");
+
+            entity.Property(e => e.GUID).ValueGeneratedNever();
+            entity.Property(e => e.USERNAME).HasMaxLength(100).IsRequired();
+            entity.Property(e => e.EMAIL).HasMaxLength(255).IsRequired();
+            entity.Property(e => e.CREATED).HasColumnType("datetime").IsRequired();
+            entity.Property(e => e.LAST_LOGIN).HasColumnType("datetime");
+            entity.Property(e => e.DELETED).HasColumnType("datetime");
+            entity.Property(e => e.DELETEDBY);
         });
 
         OnModelCreatingPartial(modelBuilder);

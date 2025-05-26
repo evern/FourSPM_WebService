@@ -70,7 +70,7 @@ namespace FourSPM_WebService.Controllers
                 NAME = entity.Name ?? string.Empty
             };
 
-            var result = await _repository.CreateAsync(discipline);
+            var result = await _repository.CreateAsync(discipline, CurrentUser.UserId);
             return Created(MapToEntity(result));
         }
 
@@ -91,7 +91,7 @@ namespace FourSPM_WebService.Controllers
                     NAME = entity.Name ?? string.Empty
                 };
 
-                var result = await _repository.UpdateAsync(discipline);
+                var result = await _repository.UpdateAsync(discipline, CurrentUser.UserId);
                 return Updated(MapToEntity(result));
             }
             catch (KeyNotFoundException)
@@ -100,9 +100,9 @@ namespace FourSPM_WebService.Controllers
             }
         }
 
-        public async Task<IActionResult> Delete([FromRoute] Guid key, [FromBody] Guid deletedBy)
+        public async Task<IActionResult> Delete([FromRoute] Guid key)
         {
-            var result = await _repository.DeleteAsync(key, deletedBy);
+            var result = await _repository.DeleteAsync(key, CurrentUser.UserId ?? Guid.Empty);
             return result ? NoContent() : NotFound();
         }
 
@@ -144,7 +144,7 @@ namespace FourSPM_WebService.Controllers
                 existingDiscipline.CODE = updatedEntity.Code;
                 existingDiscipline.NAME = updatedEntity.Name;
 
-                var result = await _repository.UpdateAsync(existingDiscipline);
+                var result = await _repository.UpdateAsync(existingDiscipline, CurrentUser.UserId);
                 return Updated(MapToEntity(result));
             }
             catch (Exception ex)

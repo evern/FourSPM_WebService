@@ -160,7 +160,7 @@ namespace FourSPM_WebService.Controllers
                 // Map changes back to database entity
                 UpdateDeliverableProperties(existingDeliverable, updatedEntity);
                 
-                await _repository.UpdateAsync(existingDeliverable);
+                await _repository.UpdateAsync(existingDeliverable, CurrentUser.UserId);
                 
                 // Return updated entity
                 var resultEntity = DeliverableMapperHelper.MapToEntity(existingDeliverable, currentVariationGuid: existingDeliverable.GUID_VARIATION);
@@ -241,7 +241,8 @@ namespace FourSPM_WebService.Controllers
                 existingCopy = await _repository.CreateVariationCopyAsync(
                     originalDeliverable, 
                     entity.VariationGuid.Value, 
-                    status);
+                    status,
+                    CurrentUser.UserId);
                     
                 if (existingCopy == null)
                     return (BadRequest("Failed to create variation copy"), null, false);
@@ -275,7 +276,7 @@ namespace FourSPM_WebService.Controllers
             await UpdateBookingCodeIfNeeded(existingCopy, changedProps, entity, isNewCopy);
             
             // Save changes
-            return await _repository.UpdateAsync(existingCopy);
+            return await _repository.UpdateAsync(existingCopy, CurrentUser.UserId);
         }
         
         private async Task UpdateBookingCodeIfNeeded(
@@ -321,7 +322,7 @@ namespace FourSPM_WebService.Controllers
                 _logger?.LogInformation($"Cancelling deliverable {originalDeliverableGuid} for variation {variationGuid}");
                 
                 // Call the repository method to handle the cancellation logic
-                var result = await _repository.CancelDeliverableAsync(originalDeliverableGuid, variationGuid);
+                var result = await _repository.CancelDeliverableAsync(originalDeliverableGuid, variationGuid, CurrentUser.UserId);
                 
                 // Map to entity for response
                 var resultEntity = DeliverableMapperHelper.MapToEntity(result, currentVariationGuid: result.GUID_VARIATION);
@@ -389,7 +390,7 @@ namespace FourSPM_WebService.Controllers
                     GUID_ORIGINAL_DELIVERABLE = deliverableGuid // Set to its own GUID for proper tracking
                 };
                 
-                var result = await _repository.CreateAsync(deliverable);
+                var result = await _repository.CreateAsync(deliverable, CurrentUser.UserId);
                 var resultEntity = DeliverableMapperHelper.MapToEntity(result, currentVariationGuid: result.GUID_VARIATION);
                 return Created($"odata/v1/VariationDeliverables/{result.GUID}", resultEntity);
             }

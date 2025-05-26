@@ -23,16 +23,13 @@ namespace FourSPM_WebService.Controllers
     public class DocumentTypesController : FourSPMODataController
     {
         private readonly IDocumentTypeRepository _repository;
-        private readonly ApplicationUser _applicationUser;
         private readonly ILogger<DocumentTypesController> _logger;
 
         public DocumentTypesController(
             IDocumentTypeRepository repository,
-            ApplicationUser applicationUser,
             ILogger<DocumentTypesController> logger)
         {
             _repository = repository;
-            _applicationUser = applicationUser;
             _logger = logger;
         }
 
@@ -66,7 +63,7 @@ namespace FourSPM_WebService.Controllers
                 NAME = entity.Name ?? string.Empty
             };
 
-            var result = await _repository.CreateAsync(documentType);
+            var result = await _repository.CreateAsync(documentType, CurrentUser.UserId);
             return Created(MapToEntity(result));
         }
 
@@ -87,7 +84,7 @@ namespace FourSPM_WebService.Controllers
                     NAME = entity.Name ?? string.Empty
                 };
 
-                var result = await _repository.UpdateAsync(documentType);
+                var result = await _repository.UpdateAsync(documentType, CurrentUser.UserId);
                 return Updated(MapToEntity(result));
             }
             catch (KeyNotFoundException)
@@ -96,9 +93,9 @@ namespace FourSPM_WebService.Controllers
             }
         }
 
-        public async Task<IActionResult> Delete([FromRoute] Guid key, [FromBody] Guid deletedBy)
+        public async Task<IActionResult> Delete([FromRoute] Guid key)
         {
-            var result = await _repository.DeleteAsync(key, deletedBy);
+            var result = await _repository.DeleteAsync(key, CurrentUser.UserId ?? Guid.Empty);
             return result ? NoContent() : NotFound();
         }
 
@@ -140,7 +137,7 @@ namespace FourSPM_WebService.Controllers
                 existingDocumentType.CODE = updatedEntity.Code;
                 existingDocumentType.NAME = updatedEntity.Name ?? string.Empty;
 
-                var result = await _repository.UpdateAsync(existingDocumentType);
+                var result = await _repository.UpdateAsync(existingDocumentType, CurrentUser.UserId);
                 return Updated(MapToEntity(result));
             }
             catch (Exception ex)

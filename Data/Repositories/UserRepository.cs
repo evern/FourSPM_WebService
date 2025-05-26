@@ -1,4 +1,4 @@
-﻿using AutoMapper;
+using AutoMapper;
 using FourSPM_WebService.Data.EF.FourSPM;
 using FourSPM_WebService.Data.Interfaces;
 using FourSPM_WebService.Data.OData.FourSPM;
@@ -11,12 +11,10 @@ namespace FourSPM_WebService.Data.Repositories
     public class UserRepository : IUserRepository
     {
         private readonly FourSPMContext _context;
-        private readonly ApplicationUser _user;
         private readonly IMapper _mapper;
 
-        public UserRepository(ApplicationUser user, FourSPMContext context, IMapper mapper)
+        public UserRepository(FourSPMContext context, IMapper mapper)
         {
-            _user = user;
             _context = context;
             _mapper = mapper;
         }
@@ -27,7 +25,7 @@ namespace FourSPM_WebService.Data.Repositories
             .Where(u => !u.DELETED.HasValue)
             .AsSplitQuery();
 
-        public async Task<OperationResult<UserEntity?>> CreateUser(UserEntity? entity)
+        public async Task<OperationResult<UserEntity?>> CreateUser(UserEntity? entity, Guid? createdBy)
         {
             if (entity == null)
             {
@@ -54,12 +52,12 @@ namespace FourSPM_WebService.Data.Repositories
                 USERNAME = entity.UserName,
                 PASSWORD = entity.Password,
                 CREATED = DateTime.Now,
-                CREATEDBY = _user.UserId!.Value
+                CREATEDBY = createdBy ?? Guid.Empty
             };
 
             await _context.USERs.AddAsync(efUser);
 
-            await UpdateUser(efUser, entity);
+            await UpdateUser(efUser, entity, createdBy);
 
             await _context.SaveChangesAsync();
 
@@ -70,7 +68,7 @@ namespace FourSPM_WebService.Data.Repositories
             };
         }
 
-        public async Task<OperationResult<UserEntity?>> UpdateUserByKey(Guid key, Action<UserEntity> update)
+        public async Task<OperationResult<UserEntity?>> UpdateUserByKey(Guid key, Action<UserEntity> update, Guid? updatedBy)
         {
             var original = await Query().FirstOrDefaultAsync(x => x.Guid == key);
 
@@ -85,10 +83,10 @@ namespace FourSPM_WebService.Data.Repositories
             update(original);
 
             // Call the other method by the new name
-            return await UpdateUser(original);
+            return await UpdateUser(original, updatedBy);
         }
 
-        public async Task<OperationResult<UserEntity?>> UpdateUser(UserEntity? entity)
+        public async Task<OperationResult<UserEntity?>> UpdateUser(UserEntity? entity, Guid? updatedBy)
         {
             if (entity == null)
             {
@@ -110,7 +108,7 @@ namespace FourSPM_WebService.Data.Repositories
                 };
             }
 
-            await UpdateUser(efUser, entity);
+            await UpdateUser(efUser, entity, updatedBy);
             await _context.SaveChangesAsync();
 
             return new OperationResult<UserEntity?>
@@ -120,7 +118,7 @@ namespace FourSPM_WebService.Data.Repositories
             };
         }
 
-        public async Task<OperationResult> DeleteUser(Guid key)
+        public async Task<OperationResult> DeleteUser(Guid key, Guid? deletedBy)
         {
             var efUser = await _context.USERs.FirstOrDefaultAsync(p => p.GUID == key);
 
@@ -134,18 +132,18 @@ namespace FourSPM_WebService.Data.Repositories
             }
 
             efUser.DELETED = DateTime.Now;
-            efUser.DELETEDBY = _user.UserId!.Value;
+            efUser.DELETEDBY = deletedBy ?? Guid.Empty;
 
             await _context.SaveChangesAsync();
             return OperationResult.Success();
         }
 
-        private Task UpdateUser(USER efUser, UserEntity entity)
+        private Task UpdateUser(USER efUser, UserEntity entity, Guid? updatedBy)
         {
             efUser.FIRST_NAME = entity.FirstName;
             efUser.LAST_NAME = entity.LastName;
             efUser.UPDATED = DateTime.Now;
-            efUser.UPDATEDBY = _user.UserId!.Value;
+            efUser.UPDATEDBY = updatedBy ?? Guid.Empty;
 
             return Task.CompletedTask;
         }

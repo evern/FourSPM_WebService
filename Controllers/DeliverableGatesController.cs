@@ -61,7 +61,7 @@ namespace FourSPM_WebService.Controllers
                 AUTO_PERCENTAGE = entity.AutoPercentage
             };
 
-            var result = await _repository.CreateAsync(deliverableGate);
+            var result = await _repository.CreateAsync(deliverableGate, CurrentUser.UserId);
             return Created(MapToEntity(result));
         }
 
@@ -88,7 +88,7 @@ namespace FourSPM_WebService.Controllers
                     AUTO_PERCENTAGE = entity.AutoPercentage ?? 0
                 };
 
-                var result = await _repository.UpdateAsync(gate);
+                var result = await _repository.UpdateAsync(gate, CurrentUser.UserId);
                 _logger.LogInformation($"Successfully updated DeliverableGate with GUID: {result.GUID}");
                 return Updated(MapToEntity(result));
             }
@@ -103,13 +103,13 @@ namespace FourSPM_WebService.Controllers
             }
         }
 
-        public async Task<IActionResult> Delete([FromRoute] Guid key, [FromBody] Guid deletedBy)
+        public async Task<IActionResult> Delete([FromRoute] Guid key)
         {
             _logger.LogInformation($"Received DELETE request for DeliverableGate {key}");
             
             try
             {
-                var result = await _repository.DeleteAsync(key, deletedBy);
+                var result = await _repository.DeleteAsync(key, CurrentUser.UserId ?? Guid.Empty);
                 return result ? NoContent() : NotFound();
             }
             catch (Exception ex)
@@ -152,7 +152,7 @@ namespace FourSPM_WebService.Controllers
                 existingGate.MAX_PERCENTAGE = updatedEntity.MaxPercentage;
                 existingGate.AUTO_PERCENTAGE = updatedEntity.AutoPercentage;
 
-                var result = await _repository.UpdateAsync(existingGate);
+                var result = await _repository.UpdateAsync(existingGate, CurrentUser.UserId);
                 return Updated(MapToEntity(result));
             }
             catch (Exception ex)

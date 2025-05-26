@@ -15,12 +15,10 @@ namespace FourSPM_WebService.Data.Repositories
     public class ClientRepository : IClientRepository
     {
         private readonly FourSPMContext _context;
-        private readonly ApplicationUser _user;
 
-        public ClientRepository(FourSPMContext context, ApplicationUser user)
+        public ClientRepository(FourSPMContext context)
         {
             _context = context;
-            _user = user;
         }
 
         public async Task<IEnumerable<CLIENT>> GetAllAsync()
@@ -37,10 +35,10 @@ namespace FourSPM_WebService.Data.Repositories
                 .FirstOrDefaultAsync(c => c.GUID == id && c.DELETED == null);
         }
 
-        public async Task<CLIENT> CreateAsync(CLIENT client)
+        public async Task<CLIENT> CreateAsync(CLIENT client, Guid? createdBy)
         {
             client.CREATED = DateTime.Now;
-            client.CREATEDBY = _user.UserId ?? Guid.Empty;
+            client.CREATEDBY = createdBy ?? Guid.Empty;
 
             _context.CLIENTs.Add(client);
             await _context.SaveChangesAsync();
@@ -48,11 +46,11 @@ namespace FourSPM_WebService.Data.Repositories
             return await GetByIdAsync(client.GUID) ?? client;
         }
         
-        public async Task<CLIENT> UpdateAsync(CLIENT client)
+        public async Task<CLIENT> UpdateAsync(CLIENT client, Guid? updatedBy)
         {
             // Update audit fields directly on the passed client object
             client.UPDATED = DateTime.Now;
-            client.UPDATEDBY = _user.UserId ?? Guid.Empty;
+            client.UPDATEDBY = updatedBy ?? Guid.Empty;
 
             try
             {

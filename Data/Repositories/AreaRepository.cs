@@ -8,12 +8,10 @@ namespace FourSPM_WebService.Data.Repositories
     public class AreaRepository : IAreaRepository
     {
         private readonly FourSPMContext _context;
-        private readonly ApplicationUser _user;
 
-        public AreaRepository(FourSPMContext context, ApplicationUser user)
+        public AreaRepository(FourSPMContext context)
         {
             _context = context;
-            _user = user;
         }
 
         public async Task<IEnumerable<AREA>> GetAllAsync()
@@ -42,11 +40,11 @@ namespace FourSPM_WebService.Data.Repositories
                 .ToListAsync();
         }
 
-        public async Task<AREA> CreateAsync(AREA area)
+        public async Task<AREA> CreateAsync(AREA area, Guid? createdBy)
         {
             area.GUID = Guid.NewGuid();
             area.CREATED = DateTime.Now;
-            area.CREATEDBY = _user.UserId ?? Guid.Empty;
+            area.CREATEDBY = createdBy ?? Guid.Empty;
 
             _context.AREAs.Add(area);
             await _context.SaveChangesAsync();
@@ -54,11 +52,11 @@ namespace FourSPM_WebService.Data.Repositories
             return await GetByIdAsync(area.GUID) ?? area;
         }
 
-        public async Task<AREA> UpdateAsync(AREA area)
+        public async Task<AREA> UpdateAsync(AREA area, Guid? updatedBy)
         {
             // Update audit fields directly on the passed object
             area.UPDATED = DateTime.Now;
-            area.UPDATEDBY = _user.UserId ?? Guid.Empty;
+            area.UPDATEDBY = updatedBy ?? Guid.Empty;
             
             try
             {

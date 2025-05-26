@@ -90,6 +90,9 @@ namespace FourSPM_WebService.Data.Extensions
             var variationDeliverableEntityType = builder.EntitySet<DeliverableEntity>("VariationDeliverables").EntityType;
             variationDeliverableEntityType.HasKey(d => d.Guid);
             
+            // Register UserIdentityMapping entity
+            builder.EntitySet<UserIdentityMappingEntity>("UserIdentityMappings").EntityType.HasKey(u => u.Guid);
+            
             // Define the GetMergedVariationDeliverables function as a bound OData function on the VariationDeliverables collection
             // This follows the same pattern as GetWithProgressPercentages
             var getMergedDeliverables = variationDeliverableEntityType.Collection

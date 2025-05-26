@@ -22,14 +22,12 @@ public class ClientsController : FourSPMODataController
     private readonly IClientRepository _clientRepository;
     private readonly ILogger<ClientsController> _logger;
     private readonly FourSPMContext _context;
-    private readonly ApplicationUser _user;
 
-    public ClientsController(IClientRepository clientRepository, ILogger<ClientsController> logger, FourSPMContext context, ApplicationUser user)
+    public ClientsController(IClientRepository clientRepository, ILogger<ClientsController> logger, FourSPMContext context)
     {
         _clientRepository = clientRepository;
         _logger = logger;
         _context = context;
-        _user = user;
     }
 
     /// <summary>
@@ -107,8 +105,8 @@ public class ClientsController : FourSPMODataController
                 CLIENT_CONTACT_EMAIL = entity.ClientContactEmail
             };
 
-            // Use the new CreateAsync method
-            var createdClient = await _clientRepository.CreateAsync(clientToCreate);
+            // Use the new CreateAsync method with CurrentUser.UserId
+            var createdClient = await _clientRepository.CreateAsync(clientToCreate, CurrentUser.UserId);
             return Created($"odata/v1/Clients/{createdClient.GUID}", MapToEntity(createdClient));
         }
         catch (Exception ex)
@@ -127,8 +125,8 @@ public class ClientsController : FourSPMODataController
     {
         try
         {
-            // Use the new DeleteAsync method
-            if (await _clientRepository.DeleteAsync(key, _user.UserId ?? Guid.Empty))
+            // Use the new DeleteAsync method with CurrentUser.UserId
+            if (await _clientRepository.DeleteAsync(key, CurrentUser.UserId ?? Guid.Empty))
             {
                 return NoContent();
             }
@@ -185,8 +183,8 @@ public class ClientsController : FourSPMODataController
             existingClient.CLIENT_CONTACT_EMAIL = update.ClientContactEmail;
             // Created, Updated, and Deleted info will be handled by the repository
             
-            // Use the new UpdateAsync method
-            var updatedClient = await _clientRepository.UpdateAsync(existingClient);
+            // Use the new UpdateAsync method with CurrentUser.UserId
+            var updatedClient = await _clientRepository.UpdateAsync(existingClient, CurrentUser.UserId);
             return Ok(MapToEntity(updatedClient));
         }
         catch (KeyNotFoundException ex)
@@ -248,8 +246,8 @@ public class ClientsController : FourSPMODataController
             existingClient.CLIENT_CONTACT_NUMBER = updatedEntity.ClientContactNumber;
             existingClient.CLIENT_CONTACT_EMAIL = updatedEntity.ClientContactEmail;
 
-            // Use the new UpdateAsync method instead of UpdateClient
-            var updatedClient = await _clientRepository.UpdateAsync(existingClient);
+            // Use the new UpdateAsync method with CurrentUser.UserId
+            var updatedClient = await _clientRepository.UpdateAsync(existingClient, CurrentUser.UserId);
             return Ok(MapToEntity(updatedClient));
         }
         catch (Exception ex)

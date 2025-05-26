@@ -12,12 +12,10 @@ namespace FourSPM_WebService.Data.Repositories
     public class DeliverableGateRepository : IDeliverableGateRepository
     {
         private readonly FourSPMContext _context;
-        private readonly ApplicationUser _user;
 
-        public DeliverableGateRepository(FourSPMContext context, ApplicationUser user)
+        public DeliverableGateRepository(FourSPMContext context)
         {
             _context = context;
-            _user = user;
         }
 
         public async Task<IEnumerable<DELIVERABLE_GATE>> GetAllAsync()
@@ -34,21 +32,21 @@ namespace FourSPM_WebService.Data.Repositories
                 .FirstOrDefaultAsync(dg => dg.GUID == id && dg.DELETED == null);
         }
 
-        public async Task<DELIVERABLE_GATE> CreateAsync(DELIVERABLE_GATE deliverableGate)
+        public async Task<DELIVERABLE_GATE> CreateAsync(DELIVERABLE_GATE deliverableGate, Guid? createdBy)
         {
             deliverableGate.CREATED = DateTime.Now;
-            deliverableGate.CREATEDBY = _user.UserId ?? Guid.Empty;
+            deliverableGate.CREATEDBY = createdBy ?? Guid.Empty;
             
             _context.DELIVERABLE_GATEs.Add(deliverableGate);
             await _context.SaveChangesAsync();
             return await GetByIdAsync(deliverableGate.GUID) ?? deliverableGate;
         }
 
-        public async Task<DELIVERABLE_GATE> UpdateAsync(DELIVERABLE_GATE deliverableGate)
+        public async Task<DELIVERABLE_GATE> UpdateAsync(DELIVERABLE_GATE deliverableGate, Guid? updatedBy)
         {
             // Update audit fields directly on the passed object
             deliverableGate.UPDATED = DateTime.Now;
-            deliverableGate.UPDATEDBY = _user.UserId ?? Guid.Empty;
+            deliverableGate.UPDATEDBY = updatedBy ?? Guid.Empty;
             
             try
             {

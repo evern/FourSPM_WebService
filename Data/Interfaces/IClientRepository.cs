@@ -12,8 +12,8 @@ namespace FourSPM_WebService.Data.Interfaces
     {
         Task<IEnumerable<CLIENT>> GetAllAsync();
         Task<CLIENT?> GetByIdAsync(Guid id);
-        Task<CLIENT> CreateAsync(CLIENT client);
-        Task<CLIENT> UpdateAsync(CLIENT client);
+        Task<CLIENT> CreateAsync(CLIENT client, Guid? createdBy);
+        Task<CLIENT> UpdateAsync(CLIENT client, Guid? updatedBy);
         Task<bool> DeleteAsync(Guid id, Guid deletedBy);
         Task<bool> ExistsAsync(Guid id);
     }

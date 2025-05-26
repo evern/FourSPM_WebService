@@ -9,8 +9,8 @@ namespace FourSPM_WebService.Data.Interfaces
     {
         Task<IEnumerable<DELIVERABLE_GATE>> GetAllAsync();
         Task<DELIVERABLE_GATE?> GetByIdAsync(Guid id);
-        Task<DELIVERABLE_GATE> CreateAsync(DELIVERABLE_GATE deliverableGate);
-        Task<DELIVERABLE_GATE> UpdateAsync(DELIVERABLE_GATE deliverableGate);
+        Task<DELIVERABLE_GATE> CreateAsync(DELIVERABLE_GATE deliverableGate, Guid? createdBy);
+        Task<DELIVERABLE_GATE> UpdateAsync(DELIVERABLE_GATE deliverableGate, Guid? updatedBy);
         Task<bool> DeleteAsync(Guid id, Guid deletedBy);
         Task<bool> ExistsAsync(Guid id);
     }

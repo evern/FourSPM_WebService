@@ -10,8 +10,8 @@ namespace FourSPM_WebService.Data.Interfaces
         Task<IEnumerable<PROGRESS>> GetAllAsync();
         Task<IEnumerable<PROGRESS>> GetByDeliverableIdAsync(Guid deliverableId);
         Task<PROGRESS?> GetByIdAsync(Guid id);
-        Task<PROGRESS> CreateAsync(PROGRESS progress);
-        Task<PROGRESS> UpdateAsync(PROGRESS progress);
+        Task<PROGRESS> CreateAsync(PROGRESS progress, Guid? createdBy);
+        Task<PROGRESS> UpdateAsync(PROGRESS progress, Guid? updatedBy);
         Task<bool> DeleteAsync(Guid id, Guid deletedBy);
         Task<bool> ExistsAsync(Guid id);
         

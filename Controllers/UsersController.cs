@@ -55,7 +55,7 @@ public class UsersController : FourSPMODataController
     [HttpPost]
     public async Task<IActionResult> Post([FromBody] UserEntity userEntity)
     {
-        var result = await _userRepository.CreateUser(userEntity);
+        var result = await _userRepository.CreateUser(userEntity, CurrentUser.UserId);
 
         return GetResult(result);
     }
@@ -63,7 +63,7 @@ public class UsersController : FourSPMODataController
     [HttpDelete]
     public async Task<IActionResult> Delete([FromRoute] Guid key)
     {
-        var result = await _userRepository.DeleteUser(key);
+        var result = await _userRepository.DeleteUser(key, CurrentUser.UserId);
 
         return GetResult(result);
     }
@@ -71,7 +71,7 @@ public class UsersController : FourSPMODataController
     [HttpPut]
     public async Task<IActionResult> Put(Guid key, [FromBody] UserEntity update)
     {
-        var result = await _userRepository.UpdateUser(update);
+        var result = await _userRepository.UpdateUser(update, CurrentUser.UserId);
 
         return GetResult(result);
     }
@@ -87,7 +87,7 @@ public class UsersController : FourSPMODataController
 
         update.Patch(entity);
 
-        var result = await _userRepository.UpdateUser(entity);
+        var result = await _userRepository.UpdateUser(entity, CurrentUser.UserId);
         return GetResult(result);
     }
 }

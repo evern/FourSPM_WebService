@@ -18,12 +18,10 @@ namespace FourSPM_WebService.Data.Repositories
     public class ProjectRepository : IProjectRepository
     {
         private readonly FourSPMContext _context;
-        private readonly ApplicationUser _user;
 
-        public ProjectRepository(FourSPMContext context, ApplicationUser user)
+        public ProjectRepository(FourSPMContext context)
         {
             _context = context;
-            _user = user;
         }
 
         public async Task<IEnumerable<PROJECT>> GetAllAsync()
@@ -60,10 +58,10 @@ namespace FourSPM_WebService.Data.Repositories
                 .FirstOrDefaultAsync();
         }
 
-        public async Task<PROJECT> CreateAsync(PROJECT project)
+        public async Task<PROJECT> CreateAsync(PROJECT project, Guid? createdBy)
         {
             project.CREATED = DateTime.Now;
-            project.CREATEDBY = _user.UserId ?? Guid.Empty;
+            project.CREATEDBY = createdBy ?? Guid.Empty;
 
             _context.PROJECTs.Add(project);
             await _context.SaveChangesAsync();
@@ -71,11 +69,11 @@ namespace FourSPM_WebService.Data.Repositories
             return project;
         }
 
-        public async Task<PROJECT> UpdateAsync(PROJECT project)
+        public async Task<PROJECT> UpdateAsync(PROJECT project, Guid? updatedBy)
         {
             // Update audit fields directly on the passed object
             project.UPDATED = DateTime.Now;
-            project.UPDATEDBY = _user.UserId ?? Guid.Empty;
+            project.UPDATEDBY = updatedBy ?? Guid.Empty;
             
             try
             {

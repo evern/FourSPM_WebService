@@ -11,12 +11,10 @@ namespace FourSPM_WebService.Data.Repositories
     public class ProgressRepository : IProgressRepository
     {
         private readonly FourSPMContext _context;
-        private readonly ApplicationUser _user;
 
-        public ProgressRepository(FourSPMContext context, ApplicationUser user)
+        public ProgressRepository(FourSPMContext context)
         {
             _context = context;
-            _user = user;
         }
 
         public async Task<IEnumerable<PROGRESS>> GetAllAsync()
@@ -42,21 +40,21 @@ namespace FourSPM_WebService.Data.Repositories
                 .FirstOrDefaultAsync(p => p.GUID == id && p.DELETED == null);
         }
 
-        public async Task<PROGRESS> CreateAsync(PROGRESS progress)
+        public async Task<PROGRESS> CreateAsync(PROGRESS progress, Guid? createdBy)
         {
             progress.CREATED = DateTime.Now;
-            progress.CREATEDBY = _user.UserId ?? Guid.Empty;
+            progress.CREATEDBY = createdBy ?? Guid.Empty;
             
             _context.PROGRESSes.Add(progress);
             await _context.SaveChangesAsync();
             return await GetByIdAsync(progress.GUID) ?? progress;
         }
 
-        public async Task<PROGRESS> UpdateAsync(PROGRESS progress)
+        public async Task<PROGRESS> UpdateAsync(PROGRESS progress, Guid? updatedBy)
         {
             // Update audit fields directly on the passed object
             progress.UPDATED = DateTime.Now;
-            progress.UPDATEDBY = _user.UserId ?? Guid.Empty;
+            progress.UPDATEDBY = updatedBy ?? Guid.Empty;
             
             try
             {

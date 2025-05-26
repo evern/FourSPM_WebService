@@ -1,6 +1,7 @@
+using FourSPM_WebService.Models.Session;
 using FourSPM_WebService.Data.Interfaces;
 using FourSPM_WebService.Data.Repositories;
-using FourSPM_WebService.Models.Session;
+using Microsoft.AspNetCore.Http;
 using FourSPM_WebService.Services;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -10,9 +11,17 @@ namespace FourSPM_WebService.Extensions
     {
         public static IServiceCollection AddRepositories(this IServiceCollection services)
         {
-            // Register ApplicationUser as scoped
-            services.AddScoped<ApplicationUser>();
-
+            // Register HttpContextAccessor for accessing the current request
+            // Still needed for other services and controllers
+            services.AddHttpContextAccessor();
+            
+            // Register ApplicationUserProvider as scoped to match IUserIdentityMappingRepository lifetime
+            services.AddScoped<ApplicationUserProvider>();
+            
+            // Register a default ApplicationUser for repositories
+            // Controllers will still use their own CurrentUser property
+            services.AddSingleton<ApplicationUser>(new ApplicationUser());
+            
             // Register repositories
             services.AddScoped<IProjectRepository, ProjectRepository>();
             services.AddScoped<IAuthService, AuthService>();
@@ -28,6 +37,7 @@ namespace FourSPM_WebService.Extensions
             services.AddScoped<IVariationRepository, VariationRepository>();
             services.AddScoped<IRoleRepository, RoleRepository>();
             services.AddScoped<IRolePermissionRepository, RolePermissionRepository>();
+            services.AddScoped<IUserIdentityMappingRepository, UserIdentityMappingRepository>();
 
             return services;
         }

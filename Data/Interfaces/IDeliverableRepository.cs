@@ -11,8 +11,8 @@ namespace FourSPM_WebService.Data.Interfaces
         IQueryable<DELIVERABLE> GetAllAsync();
         Task<IEnumerable<DELIVERABLE>> GetByProjectIdAsync(Guid projectId);
         Task<DELIVERABLE?> GetByIdAsync(Guid id);
-        Task<DELIVERABLE> CreateAsync(DELIVERABLE deliverable);
-        Task<DELIVERABLE> UpdateAsync(DELIVERABLE deliverable);
+        Task<DELIVERABLE> CreateAsync(DELIVERABLE deliverable, Guid? createdBy);
+        Task<DELIVERABLE> UpdateAsync(DELIVERABLE deliverable, Guid? updatedBy);
         Task<bool> DeleteAsync(Guid id, Guid deletedBy);
         Task<bool> ExistsAsync(Guid id);
         Task<IEnumerable<DELIVERABLE>> GetDeliverablesByNumberPatternAsync(Guid projectId, string pattern);
@@ -48,15 +48,17 @@ namespace FourSPM_WebService.Data.Interfaces
         /// <param name="original">The original deliverable to create a copy from</param>
         /// <param name="variationId">The GUID of the variation</param>
         /// <param name="variationStatus">The variation status (UnapprovedVariation or UnapprovedCancellation)</param>
+        /// <param name="userId">The ID of the user creating the variation copy</param>
         /// <returns>The newly created variation copy</returns>
-        Task<DELIVERABLE> CreateVariationCopyAsync(DELIVERABLE original, Guid variationId, int variationStatus);
+        Task<DELIVERABLE> CreateVariationCopyAsync(DELIVERABLE original, Guid variationId, int variationStatus, Guid? userId);
         
         /// <summary>
         /// Cancels a deliverable by either marking it as deleted or creating a cancellation variation
         /// </summary>
         /// <param name="originalDeliverableGuid">The original deliverable GUID to cancel</param>
         /// <param name="variationGuid">The variation GUID this cancellation belongs to</param>
+        /// <param name="userId">The user ID who is performing the cancellation</param>
         /// <returns>The updated or newly created cancellation deliverable</returns>
-        Task<DELIVERABLE> CancelDeliverableAsync(Guid originalDeliverableGuid, Guid? variationGuid);
+        Task<DELIVERABLE> CancelDeliverableAsync(Guid originalDeliverableGuid, Guid? variationGuid, Guid? userId);
     }
 }
