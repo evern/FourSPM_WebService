@@ -20,6 +20,8 @@ using Microsoft.AspNetCore.OData.Formatter;
 using Microsoft.AspNetCore.OData.Routing.Attributes;
 using FourSPM_WebService.Data.EF.FourSPM;
 using FourSPM_WebService.Models.Shared;
+using FourSPM_WebService.Attributes;
+using FourSPM_WebService.Data.Constants;
 
 namespace FourSPM_WebService.Controllers;
 
@@ -56,6 +58,7 @@ public class ProjectsController : FourSPMODataController
     /// <param name="key">The GUID of the project to retrieve</param>
     /// <returns>The project with the specified GUID</returns>
     [EnableQuery]
+    [RequirePermission(PermissionConstants.ProjectsView)]
     public async Task<IActionResult> Get([FromODataUri] Guid key)
     {
         var project = await _projectRepository.GetByIdAsync(key);
@@ -70,6 +73,7 @@ public class ProjectsController : FourSPMODataController
     /// </summary>
     /// <param name="project">The project to create</param>
     /// <returns>The created project</returns>
+    [RequirePermission(PermissionConstants.ProjectsEdit)]
     public async Task<IActionResult> Post([FromBody] ProjectEntity entity)
     {
         if (!ModelState.IsValid)
@@ -102,6 +106,7 @@ public class ProjectsController : FourSPMODataController
     /// </summary>
     /// <param name="key">The GUID of the project to delete</param>
     /// <returns>A success message if the project was deleted successfully</returns>
+    [RequirePermission(PermissionConstants.ProjectsEdit)]
     public async Task<IActionResult> Delete([FromRoute] Guid key)
     {
         var result = await _projectRepository.DeleteAsync(key, CurrentUser.UserId ?? Guid.Empty);
@@ -114,6 +119,7 @@ public class ProjectsController : FourSPMODataController
     /// <param name="key">The GUID of the project to update</param>
     /// <param name="entity">The project properties to update</param>
     /// <returns>The updated project</returns>
+    [RequirePermission(PermissionConstants.ProjectsEdit)]
     public async Task<IActionResult> Put([FromRoute] Guid key, [FromBody] ProjectEntity entity)
     {
         if (!ModelState.IsValid)
@@ -156,6 +162,7 @@ public class ProjectsController : FourSPMODataController
     /// <param name="key">The GUID of the project to update</param>
     /// <param name="delta">The project properties to update</param>
     /// <returns>The updated project</returns>
+    [RequirePermission(PermissionConstants.ProjectsEdit)]
     public async Task<IActionResult> Patch([FromODataUri] Guid key, [FromBody] Delta<ProjectEntity> delta)
     {
         try
@@ -230,6 +237,7 @@ public class ProjectsController : FourSPMODataController
     /// </summary>
     /// <returns>Projects with client data</returns>
     [HttpGet("/odata/v1/Projects/GetWithClientData")]
+    [RequirePermission(PermissionConstants.ProjectsView)]
     public async Task<IActionResult> GetWithClientData()
     {
         try
@@ -264,6 +272,7 @@ public class ProjectsController : FourSPMODataController
     /// <param name="projectId">The GUID of the project</param>
     /// <returns>Project with client data</returns>
     [HttpGet("/odata/v1/Projects/GetWithClientData/{projectId}")]
+    [RequirePermission(PermissionConstants.ProjectsView)]
     public async Task<IActionResult> GetWithClientData(Guid projectId)
     {
         try

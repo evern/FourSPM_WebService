@@ -20,6 +20,8 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using System.ComponentModel.DataAnnotations;
 using FourSPM_WebService.Models.Shared;
+using FourSPM_WebService.Attributes;
+using FourSPM_WebService.Data.Constants;
 
 // For access to the VariationStatus enum
 using static FourSPM_WebService.Data.EF.FourSPM.VariationStatus;
@@ -50,6 +52,7 @@ namespace FourSPM_WebService.Controllers
         /// <param name="variationId">Required parameter to filter by a specific variation. Returns merged view of original and variation deliverables.</param>
         [HttpGet]
         [EnableQuery]
+        [RequirePermission(PermissionConstants.VariationDeliverablesView)]
         public IQueryable<DeliverableEntity> Get([FromODataUri] Guid variationId)
         {
             _logger?.LogInformation($"Getting merged deliverables for variation {variationId} with IQueryable support");
@@ -65,6 +68,7 @@ namespace FourSPM_WebService.Controllers
             return entitiesQuery;
         }
 
+        [RequirePermission(PermissionConstants.VariationDeliverablesEdit)]
         public async Task<IActionResult> Patch([FromODataUri] Guid key, [FromBody] Delta<DeliverableEntity> delta)
         {
             try
@@ -315,7 +319,8 @@ namespace FourSPM_WebService.Controllers
         /// <param name="variationGuid">The GUID of the variation this cancellation belongs to</param>
         /// <returns>The cancelled deliverable with updated status</returns>
         [HttpPost("/odata/v1/VariationDeliverables/CancelDeliverable(originalDeliverableGuid={originalDeliverableGuid},variationGuid={variationGuid})")]
-        public async Task<IActionResult> CancelDeliverable([FromODataUri] Guid originalDeliverableGuid, [FromODataUri] Guid variationGuid)
+        [RequirePermission(PermissionConstants.VariationDeliverablesEdit)]
+        public async Task<IActionResult> CancelDeliverable([FromQuery] Guid originalDeliverableGuid, [FromQuery] Guid variationGuid)
         {
             try
             {
@@ -345,6 +350,7 @@ namespace FourSPM_WebService.Controllers
             }
         }
 
+        [RequirePermission(PermissionConstants.VariationDeliverablesEdit)]
         public async Task<IActionResult> Post([FromBody] DeliverableEntity entity)
         {
             try

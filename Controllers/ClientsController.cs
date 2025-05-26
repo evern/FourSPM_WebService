@@ -5,6 +5,8 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.OData.Query;
 using Microsoft.AspNetCore.OData.Deltas;
 using Microsoft.AspNetCore.Authorization;
+using FourSPM_WebService.Attributes;
+using FourSPM_WebService.Data.Constants;
 using FourSPM_WebService.Data.Interfaces;
 using FourSPM_WebService.Data.OData.FourSPM;
 using Microsoft.EntityFrameworkCore;
@@ -35,6 +37,7 @@ public class ClientsController : FourSPMODataController
     /// </summary>
     /// <returns>A list of clients</returns>
     [EnableQuery]
+    [RequirePermission(PermissionConstants.ClientsView)]
     public async Task<IActionResult> Get()
     {
         try
@@ -56,6 +59,7 @@ public class ClientsController : FourSPMODataController
     /// <param name="key">The GUID of the client to retrieve</param>
     /// <returns>The client with the specified GUID</returns>
     [EnableQuery]
+    [RequirePermission(PermissionConstants.ClientsView)]
     public async Task<IActionResult> Get([FromRoute] Guid key)
     {
         try
@@ -84,6 +88,7 @@ public class ClientsController : FourSPMODataController
     /// </summary>
     /// <param name="entity">The client to create</param>
     /// <returns>The created client</returns>
+    [RequirePermission(PermissionConstants.ClientsEdit)]
     public async Task<IActionResult> Post([FromBody] ClientEntity entity)
     {
         try
@@ -121,6 +126,7 @@ public class ClientsController : FourSPMODataController
     /// </summary>
     /// <param name="key">The GUID of the client to delete</param>
     /// <returns>A success message if the client was deleted successfully</returns>
+    [RequirePermission(PermissionConstants.ClientsEdit)]
     public async Task<IActionResult> Delete([FromODataUri] Guid key)
     {
         try
@@ -153,6 +159,7 @@ public class ClientsController : FourSPMODataController
     /// <param name="key">The GUID of the client to update</param>
     /// <param name="update">The client properties to update</param>
     /// <returns>The updated client</returns>
+    [RequirePermission(PermissionConstants.ClientsEdit)]
     public async Task<IActionResult> Put([FromODataUri] Guid key, [FromBody] ClientEntity update)
     {
         try
@@ -204,6 +211,7 @@ public class ClientsController : FourSPMODataController
     /// <param name="key">The GUID of the client to update</param>
     /// <param name="delta">The client properties to update</param>
     /// <returns>The updated client</returns>
+    [RequirePermission(PermissionConstants.ClientsEdit)]
     public async Task<IActionResult> Patch([FromODataUri] Guid key, [FromBody] Delta<ClientEntity> delta)
     {
         try

@@ -23,6 +23,8 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using System.ComponentModel.DataAnnotations;
 using FourSPM_WebService.Models.Shared;
+using FourSPM_WebService.Attributes;
+using FourSPM_WebService.Data.Constants;
 
 namespace FourSPM_WebService.Controllers
 {
@@ -49,6 +51,7 @@ namespace FourSPM_WebService.Controllers
         }
 
         [EnableQuery]
+        [RequirePermission(PermissionConstants.DeliverablesView)]
         public IQueryable<DeliverableEntity> Get()
         {
             // Get the collection from repository directly as IQueryable
@@ -64,6 +67,7 @@ namespace FourSPM_WebService.Controllers
         }
 
         [EnableQuery]
+        [RequirePermission(PermissionConstants.DeliverablesView)]
         public async Task<IActionResult> Get([FromRoute] Guid key)
         {
             var deliverable = await _repository.GetByIdAsync(key);
@@ -77,6 +81,7 @@ namespace FourSPM_WebService.Controllers
             return Ok(entity);
         }
 
+        [RequirePermission(PermissionConstants.DeliverablesEdit)]
         public async Task<IActionResult> Post([FromBody] DeliverableEntity entity)
         {
             if (!ModelState.IsValid)
@@ -113,6 +118,7 @@ namespace FourSPM_WebService.Controllers
             return Created(DeliverableMapperHelper.MapToEntity(result));
         }
 
+        [RequirePermission(PermissionConstants.DeliverablesEdit)]
         public async Task<IActionResult> Put([FromRoute] Guid key, [FromBody] DeliverableEntity entity)
         {
             if (!ModelState.IsValid)
@@ -159,6 +165,7 @@ namespace FourSPM_WebService.Controllers
             }
         }
 
+        [RequirePermission(PermissionConstants.DeliverablesEdit)]
         public async Task<IActionResult> Delete([FromRoute] Guid key)
         {
             try
@@ -192,6 +199,7 @@ namespace FourSPM_WebService.Controllers
         /// <param name="key">The GUID of the deliverable to update</param>
         /// <param name="delta">The deliverable properties to update</param>
         /// <returns>The updated deliverable</returns>
+        [RequirePermission(PermissionConstants.DeliverablesEdit)]
         public async Task<IActionResult> Patch([FromODataUri] Guid key, [FromBody] Delta<DeliverableEntity> delta)
         {
             try
@@ -283,6 +291,7 @@ namespace FourSPM_WebService.Controllers
 
         // Add a new action to suggest an internal document number
         [HttpGet("/odata/v1/Deliverables/SuggestInternalDocumentNumber")]
+        [RequirePermission(PermissionConstants.DeliverablesView)]
         public async Task<IActionResult> SuggestInternalDocumentNumber([FromQuery] Guid projectGuid, [FromQuery] string areaNumber, [FromQuery] string discipline, [FromQuery] string documentType, [FromQuery] string deliverableTypeId, [FromQuery] Guid? excludeDeliverableGuid = null)
     {
             _logger?.LogInformation($"Generating suggested internal document number for project {projectGuid}");
@@ -331,6 +340,7 @@ namespace FourSPM_WebService.Controllers
         // Endpoint to get deliverables with progress percentages for a specific project and period
         // This follows OData conventions, ensuring proper serialization of enum values as strings
         [HttpGet]
+        [RequirePermission(PermissionConstants.DeliverablesView)]
         public async Task<IActionResult> GetWithProgressPercentages([FromODataUri] Guid projectGuid, int period)
         {
             try
@@ -377,6 +387,7 @@ namespace FourSPM_WebService.Controllers
         /// Gets all deliverables for a specific project
         /// </summary>
         [HttpGet("odata/v1/Deliverables/ByProject/{projectGuid}")]
+        [RequirePermission(PermissionConstants.DeliverablesView)]
         public async Task<IActionResult> GetByProject(Guid projectGuid)
         {
             try

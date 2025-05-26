@@ -16,6 +16,8 @@ using Microsoft.AspNetCore.OData.Formatter;
 using System.Collections.Generic;
 using Microsoft.Extensions.Logging;
 using FourSPM_WebService.Models.Shared;
+using FourSPM_WebService.Attributes;
+using FourSPM_WebService.Data.Constants;
 
 namespace FourSPM_WebService.Controllers
 {
@@ -33,6 +35,7 @@ namespace FourSPM_WebService.Controllers
         }
 
         [EnableQuery]
+        [RequirePermission(PermissionConstants.ProgressView)]
         public async Task<IActionResult> Get()
         {
             var progressItems = await _repository.GetAllAsync();
@@ -41,6 +44,7 @@ namespace FourSPM_WebService.Controllers
         }
 
         [EnableQuery]
+        [RequirePermission(PermissionConstants.ProgressView)]
         public async Task<IActionResult> Get([FromRoute] Guid key)
         {
             var progress = await _repository.GetByIdAsync(key);
@@ -52,6 +56,7 @@ namespace FourSPM_WebService.Controllers
 
         [EnableQuery]
         [HttpGet("odata/v1/GetByDeliverable({deliverableId})")]
+        [RequirePermission(PermissionConstants.ProgressView)]
         public async Task<IActionResult> GetByDeliverable([FromRoute] Guid deliverableId)
         {
             var progressItems = await _repository.GetByDeliverableIdAsync(deliverableId);
@@ -66,6 +71,7 @@ namespace FourSPM_WebService.Controllers
             return Ok(response);
         }
 
+        [RequirePermission(PermissionConstants.ProgressEdit)]
         public async Task<IActionResult> Post([FromBody] ProgressEntity entity)
         {
             if (!ModelState.IsValid)
@@ -82,6 +88,7 @@ namespace FourSPM_WebService.Controllers
             return Created(MapToEntity(result));
         }
 
+        [RequirePermission(PermissionConstants.ProgressEdit)]
         public async Task<IActionResult> Put([FromRoute] Guid key, [FromBody] ProgressEntity entity)
         {
             if (!ModelState.IsValid)
@@ -109,6 +116,7 @@ namespace FourSPM_WebService.Controllers
             }
         }
 
+        [RequirePermission(PermissionConstants.ProgressEdit)]
         public async Task<IActionResult> Delete([FromRoute] Guid key)
         {
             var result = await _repository.DeleteAsync(key, CurrentUser.UserId ?? Guid.Empty);
@@ -121,6 +129,7 @@ namespace FourSPM_WebService.Controllers
         /// <param name="key">The GUID of the progress record to update</param>
         /// <param name="delta">The progress properties to update</param>
         /// <returns>The updated progress record</returns>
+        [RequirePermission(PermissionConstants.ProgressEdit)]
         public async Task<IActionResult> Patch([FromODataUri] Guid key, [FromBody] Delta<ProgressEntity> delta)
         {
             try
@@ -170,6 +179,7 @@ namespace FourSPM_WebService.Controllers
         /// <param name="entity">The progress entity to add or update</param>
         /// <returns>The newly created or updated progress record</returns>
         [HttpPost("odata/v1/Progress/AddOrUpdateExisting")]
+        [RequirePermission(PermissionConstants.ProgressEdit)]
         public async Task<IActionResult> AddOrUpdateExisting([FromBody] ProgressEntity entity)
         {
             try

@@ -12,6 +12,8 @@ using Microsoft.AspNetCore.OData.Query;
 using Microsoft.AspNetCore.OData.Routing.Attributes;
 using Microsoft.EntityFrameworkCore;
 using System.Net;
+using FourSPM_WebService.Attributes;
+using FourSPM_WebService.Data.Constants;
 
 namespace FourSPM_WebService.Controllers;
 
@@ -36,6 +38,7 @@ public class UsersController : FourSPMODataController
     //[EnableQuery]
     [Produces("application/json")]
     [ProducesResponseType(typeof(ODataQueryResponse<UserEntity>), (int)HttpStatusCode.OK)]
+    [RequirePermission(PermissionConstants.RolesView)]
     public async Task<IActionResult> Get(ODataQueryOptions<USER> options)
     {
         var query = await UserRepository.Query(_context)
@@ -47,12 +50,14 @@ public class UsersController : FourSPMODataController
     [HttpGet]
     [Produces("application/json")]
     [ProducesResponseType(typeof(UserEntity), (int)HttpStatusCode.OK)]
+    [RequirePermission(PermissionConstants.RolesView)]
     public IActionResult Get([FromRoute] Guid key)
     {
         return Ok(_userRepository.Query().FirstOrDefault(p => p.Guid == key));
     }
 
     [HttpPost]
+    [RequirePermission(PermissionConstants.RolesEdit)]
     public async Task<IActionResult> Post([FromBody] UserEntity userEntity)
     {
         var result = await _userRepository.CreateUser(userEntity, CurrentUser.UserId);
@@ -61,6 +66,7 @@ public class UsersController : FourSPMODataController
     }
 
     [HttpDelete]
+    [RequirePermission(PermissionConstants.RolesEdit)]
     public async Task<IActionResult> Delete([FromRoute] Guid key)
     {
         var result = await _userRepository.DeleteUser(key, CurrentUser.UserId);
@@ -69,6 +75,7 @@ public class UsersController : FourSPMODataController
     }
 
     [HttpPut]
+    [RequirePermission(PermissionConstants.RolesEdit)]
     public async Task<IActionResult> Put(Guid key, [FromBody] UserEntity update)
     {
         var result = await _userRepository.UpdateUser(update, CurrentUser.UserId);
@@ -77,6 +84,7 @@ public class UsersController : FourSPMODataController
     }
 
     [HttpPatch]
+    [RequirePermission(PermissionConstants.RolesEdit)]
     public async Task<IActionResult> Patch(Guid key, [FromBody] Delta<UserEntity> update)
     {
         var entity = await _userRepository.Query().FirstOrDefaultAsync(p => p.Guid == key);

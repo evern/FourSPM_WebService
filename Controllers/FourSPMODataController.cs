@@ -19,10 +19,40 @@ public class FourSPMODataController : ODataController
     private ApplicationUserProvider? _applicationUserProvider;
     
     /// <summary>
+    /// Checks if the current user has the specified permission
+    /// </summary>
+    /// <param name="permissionName">The name of the permission to check for</param>
+    /// <returns>True if the user has the permission, false otherwise</returns>
+    public bool HasPermission(string permissionName)
+    {
+        // Force CurrentUser to be initialized if it hasn't been already
+        
+        // Direct match - user has the exact permission
+        if (CurrentUser.Permissions.Any(p => p.Name == permissionName))
+        {
+            return true;
+        }
+        
+        // Handle permission hierarchy - if checking for a view permission, 
+        // check if user has the corresponding edit permission
+        if (permissionName.EndsWith(".view"))
+        {
+            // Convert view permission to its edit equivalent
+            string editPermission = permissionName.Replace(".view", ".edit");
+            
+            // Check if user has the edit permission
+            return CurrentUser.Permissions.Any(p => p.Name == editPermission);
+        }
+        
+        // No matching permission found
+        return false;
+    }
+    
+    /// <summary>
     /// Gets the current ApplicationUser for the request.
     /// This property creates the user directly from HttpContext claims when accessed.
     /// </summary>
-    protected ApplicationUser CurrentUser
+    public ApplicationUser CurrentUser
     {
         get
         {

@@ -13,6 +13,8 @@ using System.Linq;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
 using Microsoft.EntityFrameworkCore;
+using FourSPM_WebService.Attributes;
+using FourSPM_WebService.Data.Constants;
 
 namespace FourSPM_WebService.Controllers
 {
@@ -32,6 +34,7 @@ namespace FourSPM_WebService.Controllers
         }
 
         [EnableQuery]
+        [RequirePermission(PermissionConstants.AreasView)]
         public async Task<IActionResult> Get()
         {
             var areas = await _repository.GetAllAsync();
@@ -40,6 +43,7 @@ namespace FourSPM_WebService.Controllers
         }
 
         [EnableQuery]
+        [RequirePermission(PermissionConstants.AreasView)]
         public async Task<IActionResult> Get([FromRoute] Guid key)
         {
             var area = await _repository.GetByIdAsync(key);
@@ -49,6 +53,7 @@ namespace FourSPM_WebService.Controllers
             return Ok(MapToEntity(area));
         }
 
+        [RequirePermission(PermissionConstants.AreasEdit)]
         public async Task<IActionResult> Post([FromBody] AreaEntity entity)
         {
             if (!ModelState.IsValid)
@@ -72,6 +77,7 @@ namespace FourSPM_WebService.Controllers
             return Created(MapToEntity(result));
         }
 
+        [RequirePermission(PermissionConstants.AreasEdit)]
         public async Task<IActionResult> Put([FromRoute] Guid key, [FromBody] AreaEntity entity)
         {
             if (!ModelState.IsValid)
@@ -105,12 +111,14 @@ namespace FourSPM_WebService.Controllers
             }
         }
 
+        [RequirePermission(PermissionConstants.AreasEdit)]
         public async Task<IActionResult> Delete([FromRoute] Guid key)
         {
             var result = await _repository.DeleteAsync(key, CurrentUser.UserId ?? Guid.Empty);
             return result ? NoContent() : NotFound();
         }
 
+        [RequirePermission(PermissionConstants.AreasEdit)]
         public async Task<IActionResult> Patch([FromODataUri] Guid key, [FromBody] Delta<AreaEntity> delta)
         {
             try

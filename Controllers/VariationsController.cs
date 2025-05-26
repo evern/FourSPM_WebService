@@ -12,6 +12,8 @@ using System;
 using System.Linq;
 using System.Threading.Tasks;
 using FourSPM_WebService.Models.Session;
+using FourSPM_WebService.Attributes;
+using FourSPM_WebService.Data.Constants;
 
 namespace FourSPM_WebService.Controllers
 {
@@ -31,6 +33,7 @@ namespace FourSPM_WebService.Controllers
         }
 
         [EnableQuery]
+        [RequirePermission(PermissionConstants.VariationsView)]
         public async Task<IActionResult> Get()
         {
             var variations = await _repository.GetAllAsync();
@@ -39,6 +42,7 @@ namespace FourSPM_WebService.Controllers
         }
 
         [EnableQuery]
+        [RequirePermission(PermissionConstants.VariationsView)]
         public async Task<IActionResult> Get([FromRoute] Guid key)
         {
             var variation = await _repository.GetByIdAsync(key);
@@ -48,6 +52,7 @@ namespace FourSPM_WebService.Controllers
             return Ok(MapToEntity(variation));
         }
 
+        [RequirePermission(PermissionConstants.VariationsEdit)]
         public async Task<IActionResult> Post([FromBody] VariationEntity entity)
         {
             if (!ModelState.IsValid)
@@ -69,6 +74,7 @@ namespace FourSPM_WebService.Controllers
             return Created(MapToEntity(result));
         }
 
+        [RequirePermission(PermissionConstants.VariationsEdit)]
         public async Task<IActionResult> Put([FromRoute] Guid key, [FromBody] VariationEntity entity)
         {
             if (!ModelState.IsValid)
@@ -102,6 +108,7 @@ namespace FourSPM_WebService.Controllers
             }
         }
 
+        [RequirePermission(PermissionConstants.VariationsEdit)]
         public async Task<IActionResult> Delete([FromRoute] Guid key)
         {
             try
@@ -134,6 +141,7 @@ namespace FourSPM_WebService.Controllers
             }
         }
 
+        [RequirePermission(PermissionConstants.VariationsEdit)]
         public async Task<IActionResult> Patch([FromODataUri] Guid key, [FromBody] Delta<VariationEntity> delta)
         {
             try
@@ -187,6 +195,7 @@ namespace FourSPM_WebService.Controllers
         /// <param name="id">The GUID of the variation to approve</param>
         /// <returns>The updated variation entity with approval information</returns>
         [HttpPost("odata/v1/Variations/ApproveVariation/{id}")]
+        [RequirePermission(PermissionConstants.VariationsEdit)]
         public async Task<IActionResult> ApproveVariation([FromRoute] Guid id)
         {
             try
@@ -227,6 +236,7 @@ namespace FourSPM_WebService.Controllers
         /// <param name="id">The GUID of the variation to reject</param>
         /// <returns>The updated variation entity with approval information cleared</returns>
         [HttpPost("odata/v1/Variations/RejectVariation/{id}")]
+        [RequirePermission(PermissionConstants.VariationsEdit)]
         public async Task<IActionResult> RejectVariation([FromRoute] Guid id)
         {
             try

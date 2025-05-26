@@ -15,6 +15,8 @@ using Microsoft.AspNetCore.OData.Routing.Controllers;
 using Microsoft.AspNetCore.OData.Routing.Attributes;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
+using FourSPM_WebService.Attributes;
+using FourSPM_WebService.Data.Constants;
 
 namespace FourSPM_WebService.Controllers
 {
@@ -34,6 +36,7 @@ namespace FourSPM_WebService.Controllers
         }
 
         [EnableQuery]
+        [RequirePermission(PermissionConstants.DocumentTypesView)]
         public async Task<IActionResult> Get()
         {
             var documentTypes = await _repository.GetAllAsync();
@@ -42,6 +45,7 @@ namespace FourSPM_WebService.Controllers
         }
 
         [EnableQuery]
+        [RequirePermission(PermissionConstants.DocumentTypesView)]
         public async Task<IActionResult> Get([FromRoute] Guid key)
         {
             var documentType = await _repository.GetByIdAsync(key);
@@ -51,6 +55,7 @@ namespace FourSPM_WebService.Controllers
             return Ok(MapToEntity(documentType));
         }
 
+        [RequirePermission(PermissionConstants.DocumentTypesEdit)]
         public async Task<IActionResult> Post([FromBody] DocumentTypeEntity entity)
         {
             if (!ModelState.IsValid)
@@ -67,6 +72,7 @@ namespace FourSPM_WebService.Controllers
             return Created(MapToEntity(result));
         }
 
+        [RequirePermission(PermissionConstants.DocumentTypesEdit)]
         public async Task<IActionResult> Put([FromRoute] Guid key, [FromBody] DocumentTypeEntity entity)
         {
             if (!ModelState.IsValid)
@@ -93,6 +99,7 @@ namespace FourSPM_WebService.Controllers
             }
         }
 
+        [RequirePermission(PermissionConstants.DocumentTypesEdit)]
         public async Task<IActionResult> Delete([FromRoute] Guid key)
         {
             var result = await _repository.DeleteAsync(key, CurrentUser.UserId ?? Guid.Empty);
@@ -105,6 +112,7 @@ namespace FourSPM_WebService.Controllers
         /// <param name="key">The GUID of the document type to update</param>
         /// <param name="delta">The document type properties to update</param>
         /// <returns>The updated document type</returns>
+        [RequirePermission(PermissionConstants.DocumentTypesEdit)]
         public async Task<IActionResult> Patch([FromODataUri] Guid key, [FromBody] Delta<DocumentTypeEntity> delta)
         {
             try

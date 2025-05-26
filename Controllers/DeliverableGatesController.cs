@@ -14,6 +14,8 @@ using Microsoft.Extensions.Logging;
 using Microsoft.AspNetCore.OData.Formatter;
 using Newtonsoft.Json;
 using System.Text.Json;
+using FourSPM_WebService.Attributes;
+using FourSPM_WebService.Data.Constants;
 
 namespace FourSPM_WebService.Controllers
 {
@@ -31,6 +33,7 @@ namespace FourSPM_WebService.Controllers
         }
 
         [EnableQuery]
+        [RequirePermission(PermissionConstants.DeliverableGatesView)]
         public async Task<IActionResult> Get()
         {
             var gates = await _repository.GetAllAsync();
@@ -39,6 +42,7 @@ namespace FourSPM_WebService.Controllers
         }
 
         [EnableQuery]
+        [RequirePermission(PermissionConstants.DeliverableGatesView)]
         public async Task<IActionResult> Get([FromRoute] Guid key)
         {
             var gate = await _repository.GetByIdAsync(key);
@@ -48,6 +52,7 @@ namespace FourSPM_WebService.Controllers
             return Ok(MapToEntity(gate));
         }
 
+        [RequirePermission(PermissionConstants.DeliverableGatesEdit)]
         public async Task<IActionResult> Post([FromBody] DeliverableGateEntity entity)
         {
             if (!ModelState.IsValid)
@@ -65,6 +70,7 @@ namespace FourSPM_WebService.Controllers
             return Created(MapToEntity(result));
         }
 
+        [RequirePermission(PermissionConstants.DeliverableGatesEdit)]
         public async Task<IActionResult> Put([FromRoute] Guid key, [FromBody] DeliverableGateEntity entity)
         {
             _logger.LogInformation($"Received PUT request for DeliverableGate {key}: {JsonConvert.SerializeObject(entity)}");
@@ -103,6 +109,7 @@ namespace FourSPM_WebService.Controllers
             }
         }
 
+        [RequirePermission(PermissionConstants.DeliverableGatesEdit)]
         public async Task<IActionResult> Delete([FromRoute] Guid key)
         {
             _logger.LogInformation($"Received DELETE request for DeliverableGate {key}");
@@ -119,6 +126,7 @@ namespace FourSPM_WebService.Controllers
             }
         }
 
+        [RequirePermission(PermissionConstants.DeliverableGatesEdit)]
         public async Task<IActionResult> Patch([FromODataUri] Guid key, [FromBody] Delta<DeliverableGateEntity> delta)
         {
             try

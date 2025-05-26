@@ -14,6 +14,8 @@ using Microsoft.AspNetCore.OData.Formatter;
 using Microsoft.AspNetCore.OData.Query;
 using Microsoft.AspNetCore.OData.Routing.Attributes;
 using Microsoft.Extensions.Logging;
+using FourSPM_WebService.Attributes;
+using FourSPM_WebService.Data.Constants;
 
 namespace FourSPM_WebService.Controllers
 {
@@ -33,6 +35,7 @@ namespace FourSPM_WebService.Controllers
         }
 
         [EnableQuery]
+        [RequirePermission(PermissionConstants.RolesView)]
         public async Task<IActionResult> Get()
         {
             try
@@ -49,6 +52,7 @@ namespace FourSPM_WebService.Controllers
         }
 
         [EnableQuery]
+        [RequirePermission(PermissionConstants.RolesView)]
         public async Task<IActionResult> Get([FromRoute] Guid key)
         {
             try
@@ -66,6 +70,7 @@ namespace FourSPM_WebService.Controllers
             }
         }
 
+        [RequirePermission(PermissionConstants.RolesEdit)]
         public async Task<IActionResult> Post([FromBody] RoleEntity entity)
         {
             try
@@ -94,6 +99,7 @@ namespace FourSPM_WebService.Controllers
             }
         }
 
+        [RequirePermission(PermissionConstants.RolesEdit)]
         public async Task<IActionResult> Put([FromRoute] Guid key, [FromBody] RoleEntity entity)
         {
             try
@@ -133,6 +139,7 @@ namespace FourSPM_WebService.Controllers
             }
         }
 
+        [RequirePermission(PermissionConstants.RolesEdit)]
         public async Task<IActionResult> Delete([FromRoute] Guid key)
         {
             try
@@ -160,6 +167,7 @@ namespace FourSPM_WebService.Controllers
         /// <param name="key">The ID of the role to update</param>
         /// <param name="delta">The role properties to update</param>
         /// <returns>The updated role</returns>
+        [RequirePermission(PermissionConstants.RolesEdit)]
         public async Task<IActionResult> Patch([FromODataUri] Guid key, [FromBody] Delta<RoleEntity> delta)
         {
             try
