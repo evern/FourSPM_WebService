@@ -217,8 +217,8 @@ namespace FourSPM_WebService.Controllers
         /// <param name="roleName">The name of the role</param>
         /// <returns>A collection of permissions for the role</returns>
         [EnableQuery]
-        [HttpGet("GetPermissionsByRoleName(roleName='{roleName}')")] 
-        public async Task<IActionResult> GetPermissionsByRoleName([FromODataUri] string roleName)
+        [HttpGet("/odata/v1/Roles/GetPermissionsByRoleName")] 
+        public async Task<IActionResult> GetPermissionsByRoleName([FromQuery] string roleName)
         {
             try
             {
@@ -262,13 +262,16 @@ namespace FourSPM_WebService.Controllers
         /// </summary>
         /// <returns>A collection of permissions for the current user</returns>
         [EnableQuery]
-        [HttpGet("GetCurrentUserPermissions()")] 
+        [HttpGet("/odata/v1/Roles/GetCurrentUserPermissions")] 
         public async Task<IActionResult> GetCurrentUserPermissions()
         {
             try
             {
-                // Get the current user's role from claims
-                string? roleName = CurrentUser.Role;
+                // Ensure user is fully initialized first using our new async method
+                var currentUser = await InitializeCurrentUserAsync();
+                
+                // Now we can safely access the role
+                string? roleName = currentUser.Role;
                 
                 if (string.IsNullOrEmpty(roleName))
                 {
@@ -284,11 +287,11 @@ namespace FourSPM_WebService.Controllers
                     return NotFound($"Role with name {roleName} not found");
                 }
                 
-                // Use the permissions directly from the CurrentUser object
+                // Use the permissions directly from our initialized currentUser object
                 // This is faster than going through the repository again
-                if (CurrentUser.Permissions != null && CurrentUser.Permissions.Any())
+                if (currentUser.Permissions != null && currentUser.Permissions.Any())
                 {
-                    var permissions = CurrentUser.Permissions.Select(p => new
+                    var permissions = currentUser.Permissions.Select(p => new
                     {
                         Name = p.Name,
                         IsViewPermission = p.Name.EndsWith(".view"),

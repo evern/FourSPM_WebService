@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using FourSPM_WebService.Attributes;
 using FourSPM_WebService.Data.Constants;
 using FourSPM_WebService.Data.EF.FourSPM;
 using FourSPM_WebService.Data.Interfaces;
@@ -91,6 +92,7 @@ namespace FourSPM_WebService.Controllers
         /// <returns>A collection of RolePermissionSummaryEntity objects</returns>
         [EnableQuery]
         [HttpGet("GetPermissionSummary(roleId={roleId})")]
+        [RequirePermission(PermissionConstants.RolesView)]
         public async Task<IActionResult> GetPermissionSummary([FromODataUri] Guid roleId)
         {
             try
@@ -309,6 +311,7 @@ namespace FourSPM_WebService.Controllers
         /// <returns>The updated permission summary for the role</returns>
         [HttpPost]
         [Route("/odata/v1/RolePermissions/SetPermissionLevel")]
+        [RequirePermission(PermissionConstants.RolesEdit)]
         public async Task<IActionResult> SetPermissionLevel([FromBody] Models.Request.SetPermissionLevelRequest request)
         {
             try
