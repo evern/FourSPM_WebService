@@ -24,13 +24,16 @@ namespace FourSPM_WebService.Controllers
     public class RolesController : FourSPMODataController
     {
         private readonly IRoleRepository _repository;
+        private readonly IRolePermissionRepository _permissionRepository;
         private readonly ILogger<RolesController> _logger;
 
         public RolesController(
             IRoleRepository repository,
+            IRolePermissionRepository permissionRepository,
             ILogger<RolesController> logger)
         {
             _repository = repository;
+            _permissionRepository = permissionRepository;
             _logger = logger;
         }
 
@@ -204,6 +207,114 @@ namespace FourSPM_WebService.Controllers
             {
                 _logger.LogError(ex, $"Error updating role with ID {key}");
                 return StatusCode(500, "Internal Server Error - " + ex.Message);
+            }
+        }
+        
+        /// <summary>
+        /// Gets all permissions for a role by role name
+        /// This allows the frontend to get permissions for the current user based on their role
+        /// </summary>
+        /// <param name="roleName">The name of the role</param>
+        /// <returns>A collection of permissions for the role</returns>
+        [EnableQuery]
+        [HttpGet("GetPermissionsByRoleName(roleName='{roleName}')")] 
+        public async Task<IActionResult> GetPermissionsByRoleName([FromODataUri] string roleName)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(roleName))
+                {
+                    return BadRequest("Role name is required");
+                }
+                
+                // Get all roles and filter by name
+                var allRoles = await _repository.GetAllAsync();
+                var role = allRoles.FirstOrDefault(r => r.NAME.ToLower() == roleName.ToLower() && r.DELETED == null);
+                    
+                if (role == null)
+                {
+                    return NotFound($"Role with name {roleName} not found");
+                }
+                
+                // Get all permissions for this role using the permission repository
+                var rolePermissions = await _permissionRepository.GetByRoleIdAsync(role.GUID);
+                    
+                // Map permissions to a simple model for the frontend
+                var permissions = rolePermissions.Select(rp => new
+                {
+                    Name = rp.PERMISSION,
+                    IsViewPermission = rp.PERMISSION.EndsWith(".view"),
+                    IsEditPermission = rp.PERMISSION.EndsWith(".edit")
+                }).ToList();
+                
+                return Ok(permissions);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Error retrieving permissions for role {roleName}");
+                return StatusCode(500, "Internal server error");
+            }
+        }
+        
+        /// <summary>
+        /// Gets all permissions for the current user
+        /// This is a convenience method for the frontend to easily get permissions without needing to know the role name
+        /// </summary>
+        /// <returns>A collection of permissions for the current user</returns>
+        [EnableQuery]
+        [HttpGet("GetCurrentUserPermissions()")] 
+        public async Task<IActionResult> GetCurrentUserPermissions()
+        {
+            try
+            {
+                // Get the current user's role from claims
+                string? roleName = CurrentUser.Role;
+                
+                if (string.IsNullOrEmpty(roleName))
+                {
+                    return BadRequest("Current user has no assigned role");
+                }
+                
+                // Get all roles and filter by name
+                var allRoles = await _repository.GetAllAsync();
+                var role = allRoles.FirstOrDefault(r => r.NAME.ToLower() == roleName.ToLower() && r.DELETED == null);
+                    
+                if (role == null)
+                {
+                    return NotFound($"Role with name {roleName} not found");
+                }
+                
+                // Use the permissions directly from the CurrentUser object
+                // This is faster than going through the repository again
+                if (CurrentUser.Permissions != null && CurrentUser.Permissions.Any())
+                {
+                    var permissions = CurrentUser.Permissions.Select(p => new
+                    {
+                        Name = p.Name,
+                        IsViewPermission = p.Name.EndsWith(".view"),
+                        IsEditPermission = p.Name.EndsWith(".edit")
+                    }).ToList();
+                    
+                    return Ok(permissions);
+                }
+                
+                // Fallback to getting permissions from the repository if not cached in CurrentUser
+                var rolePermissions = await _permissionRepository.GetByRoleIdAsync(role.GUID);
+                    
+                // Map permissions to a simple model for the frontend
+                var repoPermissions = rolePermissions.Select(rp => new
+                {
+                    Name = rp.PERMISSION,
+                    IsViewPermission = rp.PERMISSION.EndsWith(".view"),
+                    IsEditPermission = rp.PERMISSION.EndsWith(".edit")
+                }).ToList();
+                
+                return Ok(repoPermissions);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving permissions for current user");
+                return StatusCode(500, "Internal server error");
             }
         }
     }
