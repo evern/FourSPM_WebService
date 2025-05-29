@@ -56,7 +56,8 @@ builder.Services.AddCors(options =>
             .WithOrigins(
                 "http://localhost:3000",      // Local development
                 "https://localhost:3000",     // Local development with HTTPS
-                "https://app.4spm.org"        // Production
+                "https://app.4spm.org",        // Production
+                "https://app.scopium-spm.com"
             )
             .AllowAnyMethod()
             .AllowAnyHeader()
