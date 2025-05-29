@@ -194,6 +194,36 @@ public class AuthController : ControllerBase
         }
     }
 
+    [HttpGet("front-channel-logout")]
+    [AllowAnonymous]
+    public IActionResult FrontChannelLogout()
+    {
+        try
+        {
+            // Log the front-channel logout request
+            _logger.LogInformation("Front-channel logout notification received from Azure AD");
+            
+            // Get the session ID and client ID from the request parameters (OIDC standard)
+            var sid = Request.Query["sid"].ToString();
+            var clientId = Request.Query["client_id"].ToString();
+            
+            _logger.LogInformation($"Front-channel logout parameters: sid={sid}, client_id={clientId}");
+            
+            // In a more complex implementation, you might:
+            // 1. Add the token to a blacklist/revocation list
+            // 2. Clear any server-side session state
+            // 3. Notify other services about the logout
+            
+            // Return a successful response to acknowledge the logout notification
+            return Ok(new { message = "Logout notification received and processed" });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error processing front-channel logout notification");
+            return StatusCode(500, "An error occurred during front-channel logout processing");
+        }
+    }
+
     [HttpPost("reset-password")]
     [AllowAnonymous]
     public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordRequest request)
