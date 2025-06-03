@@ -194,8 +194,6 @@ namespace FourSPM_WebService.Data.Repositories
                     projectGuidQuery.Contains(d.GUID_PROJECT) && 
                     // Only standard deliverables (not variations or cancellations)
                     d.GUID_VARIATION == null && 
-                    // Make sure not already in this variation
-                    !deliverablesInVariationQuery.Contains(d.GUID) &&
                     // Ensure it's a standard deliverable
                     d.VARIATION_STATUS == (int)VariationStatus.Standard);
 
