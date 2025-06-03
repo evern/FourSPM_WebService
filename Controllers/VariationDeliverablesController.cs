@@ -318,7 +318,7 @@ namespace FourSPM_WebService.Controllers
         /// <param name="originalDeliverableGuid">The GUID of the original deliverable to cancel</param>
         /// <param name="variationGuid">The GUID of the variation this cancellation belongs to</param>
         /// <returns>The cancelled deliverable with updated status</returns>
-        [HttpPost("/odata/v1/VariationDeliverables/CancelDeliverable(originalDeliverableGuid={originalDeliverableGuid},variationGuid={variationGuid})")]
+        [HttpPost("/odata/v1/VariationDeliverables/CancelDeliverable")]
         [RequirePermission(PermissionConstants.VariationDeliverablesEdit)]
         public async Task<IActionResult> CancelDeliverable([FromQuery] Guid originalDeliverableGuid, [FromQuery] Guid variationGuid)
         {
