@@ -79,11 +79,7 @@ public class ProjectsController : FourSPMODataController
         if (!ModelState.IsValid)
             return BadRequest(ModelState);
             
-        // Check if project number is unique
-        if (!await IsProjectNumberUnique(entity.ProjectNumber, null))
-        {
-            return BadRequest($"A project with number '{entity.ProjectNumber}' already exists.");
-        }
+        // Project numbers no longer need to be unique - requirement changed
 
         var project = new PROJECT
         {
@@ -133,11 +129,7 @@ public class ProjectsController : FourSPMODataController
 
         try
         {
-            // Check if project number is unique (excluding the current project)
-            if (!await IsProjectNumberUnique(entity.ProjectNumber, key))
-            {
-                return BadRequest($"A project with number '{entity.ProjectNumber}' already exists.");
-            }
+            // Project numbers no longer need to be unique - requirement changed
             
             var project = new PROJECT
             {
@@ -210,12 +202,7 @@ public class ProjectsController : FourSPMODataController
             var updatedEntity = MapToEntity(existingProject);
             delta.CopyChangedValues(updatedEntity);
             
-            // Check if project number is being changed and is unique (if it's being updated)
-            if (changedProperties.Contains("ProjectNumber") && 
-                !await IsProjectNumberUnique(updatedEntity.ProjectNumber, key))
-            {
-                return BadRequest($"A project with number '{updatedEntity.ProjectNumber}' already exists.");
-            }
+            // Project numbers no longer need to be unique - requirement changed
 
             // Map project fields back to PROJECT entity
             existingProject.GUID_CLIENT = updatedEntity.ClientGuid;
