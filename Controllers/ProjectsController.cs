@@ -93,7 +93,10 @@ public class ProjectsController : FourSPMODataController
             NAME = entity.Name,
             PURCHASE_ORDER_NUMBER = entity.PurchaseOrderNumber,
             PROJECT_STATUS = entity.ProjectStatus,
-            PROGRESS_START = entity.ProgressStart
+            PROGRESS_START = entity.ProgressStart,
+            CONTACT_NAME = entity.ContactName,
+            CONTACT_NUMBER = entity.ContactNumber,
+            CONTACT_EMAIL = entity.ContactEmail
         };
 
         // Create the project using the repository
@@ -144,7 +147,10 @@ public class ProjectsController : FourSPMODataController
                 NAME = entity.Name,
                 PURCHASE_ORDER_NUMBER = entity.PurchaseOrderNumber,
                 PROJECT_STATUS = entity.ProjectStatus,
-                PROGRESS_START = entity.ProgressStart
+                PROGRESS_START = entity.ProgressStart,
+                CONTACT_NAME = entity.ContactName,
+                CONTACT_NUMBER = entity.ContactNumber,
+                CONTACT_EMAIL = entity.ContactEmail
             };
 
             var result = await _projectRepository.UpdateAsync(project, CurrentUser.UserId);
@@ -218,6 +224,9 @@ public class ProjectsController : FourSPMODataController
             existingProject.PURCHASE_ORDER_NUMBER = updatedEntity.PurchaseOrderNumber;
             existingProject.PROJECT_STATUS = updatedEntity.ProjectStatus;
             existingProject.PROGRESS_START = updatedEntity.ProgressStart;
+            existingProject.CONTACT_NAME = updatedEntity.ContactName;
+            existingProject.CONTACT_NUMBER = updatedEntity.ContactNumber;
+            existingProject.CONTACT_EMAIL = updatedEntity.ContactEmail;
 
             // Update the project
             var result = await _projectRepository.UpdateAsync(existingProject, CurrentUser.UserId);
@@ -314,6 +323,9 @@ public class ProjectsController : FourSPMODataController
             PurchaseOrderNumber = project.PURCHASE_ORDER_NUMBER,
             ProjectStatus = project.PROJECT_STATUS,
             ProgressStart = project.PROGRESS_START,
+            ContactName = project.CONTACT_NAME,
+            ContactNumber = project.CONTACT_NUMBER,
+            ContactEmail = project.CONTACT_EMAIL,
             Created = project.CREATED,
             CreatedBy = project.CREATEDBY,
             Updated = project.UPDATED,
@@ -329,10 +341,7 @@ public class ProjectsController : FourSPMODataController
             {
                 Guid = project.Client.GUID,
                 Number = project.Client.NUMBER,
-                Description = project.Client.DESCRIPTION,
-                ClientContactName = project.Client.CLIENT_CONTACT_NAME,
-                ClientContactNumber = project.Client.CLIENT_CONTACT_NUMBER,
-                ClientContactEmail = project.Client.CLIENT_CONTACT_EMAIL
+                Description = project.Client.DESCRIPTION
             };
         }
 

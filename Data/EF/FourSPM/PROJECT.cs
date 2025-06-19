@@ -33,6 +33,12 @@ public partial class PROJECT
     public DateTime? DELETED { get; set; }
 
     public Guid? DELETEDBY { get; set; }
+    
+    public string? CONTACT_NAME { get; set; }
+
+    public string? CONTACT_NUMBER { get; set; }
+
+    public string? CONTACT_EMAIL { get; set; }
 
     public virtual CLIENT? Client { get; set; }
 

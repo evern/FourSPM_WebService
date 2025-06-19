@@ -13,7 +13,7 @@ namespace FourSPM_WebService.Data.OData.FourSPM
         public Guid? ClientGuid { get; set; }
 
         [Required]
-        [MaxLength(2)]
+        [MaxLength(3)]
         public string ProjectNumber { get; set; } = null!;
 
         public string? Name { get; set; }
@@ -36,6 +36,12 @@ namespace FourSPM_WebService.Data.OData.FourSPM
         public DateTime? Deleted { get; set; }
 
         public Guid? DeletedBy { get; set; }
+        
+        public string? ContactName { get; set; }
+        
+        public string? ContactNumber { get; set; }
+        
+        public string? ContactEmail { get; set; }
 
         public virtual ClientEntity? Client { get; set; }
 
