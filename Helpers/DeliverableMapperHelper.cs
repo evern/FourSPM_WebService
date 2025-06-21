@@ -271,8 +271,9 @@ namespace FourSPM_WebService.Helpers
                 
             if (currentPeriodItems.Any())
             {
-                decimal currentPeriodUnits = currentPeriodItems.Sum(item => item.Units);
-                entity.CumulativeEarntPercentage = currentPeriodUnits / entity.TotalHours;
+                decimal unitsUpToCurrentPeriod = currentPeriodItems.Sum(item => item.Units);
+                entity.CumulativeEarntHours = unitsUpToCurrentPeriod;
+                entity.CumulativeEarntPercentage = unitsUpToCurrentPeriod / entity.TotalHours;
             }
             
             // Calculate previous period earned percentage

@@ -36,11 +36,13 @@ namespace FourSPM_WebService.Data.OData.FourSPM
         public decimal VariationHours { get; set; }
         public decimal TotalHours { get; set; } 
         public decimal TotalCost { get; set; }
-        public string? BookingCode { get; set; } = string.Empty; 
+        public string? BookingCode { get; set; } = string.Empty;
 
         #region Progress Calculation Properties
         // These properties are calculated by the backend and not stored in the database
-        
+
+        // Hours earned up to and including the current period
+        public decimal CumulativeEarntHours { get; set; }
         // Percentage earned up to and including the current period
         public decimal CumulativeEarntPercentage { get; set; }
         
