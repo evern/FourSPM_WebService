@@ -57,9 +57,13 @@ namespace FourSPM_WebService.Controllers
             // Get the collection from repository directly as IQueryable
             IQueryable<DELIVERABLE> deliverables = _repository.GetAllAsync();
             
+            // Check if the user has permission to view cost information
+            bool hasPermission = HasPermission(PermissionConstants.CostInformationToggle);
+            
             // Apply the mapping expression directly to the IQueryable
             // This allows OData to translate filters to SQL before execution
-            var entities = deliverables.Select(DeliverableMapperHelper.GetEntityMappingExpression());
+            // Pass the permission check for cost information
+            var entities = deliverables.Select(DeliverableMapperHelper.GetEntityMappingExpression(null, hasPermission));
             
             // Return IQueryable directly for optimal OData performance
             // OData will handle filtering/sorting/paging at the database level
@@ -361,8 +365,14 @@ namespace FourSPM_WebService.Controllers
                 }
 
                 // Map entities and apply CalculateProgressPercentages to each one
+                // Check if the user has permission to view cost information
+                bool hasPermission = HasPermission(PermissionConstants.CostInformationToggle);
+                
                 var entityWithProgress = deliverables
-                    .Select(d => DeliverableMapperHelper.MapToEntity(d, period))
+                    .Select(d => 
+                        // Apply cost information permission check when mapping
+                        DeliverableMapperHelper.MapToEntity(d, period, canViewCostInformation: hasPermission)
+                    )
                     .Where(e => e != null)
                     .Cast<DeliverableEntity>()
                     .ToList();
@@ -400,7 +410,13 @@ namespace FourSPM_WebService.Controllers
                     return Ok(new List<DeliverableEntity>());
                 }
                 
-                var entities = deliverables.Select(d => DeliverableMapperHelper.MapToEntity(d));
+                // Check if the user has permission to view cost information
+                bool hasPermission = HasPermission(PermissionConstants.CostInformationToggle);
+                
+                var entities = deliverables.Select(d => 
+                    // Apply cost information permission check when mapping
+                    DeliverableMapperHelper.MapToEntity(d, canViewCostInformation: hasPermission)
+                );
                 return Ok(entities);
             }
             catch (Exception ex)

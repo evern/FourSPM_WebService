@@ -15,8 +15,9 @@ namespace FourSPM_WebService.Helpers
         /// Creates an expression that maps DELIVERABLE entities to DeliverableEntity DTOs for use in IQueryable projections
         /// </summary>
         /// <param name="currentVariationGuid">The current variation GUID being worked on (optional)</param>
+        /// <param name="canViewCostInformation">Whether the user has permission to view cost information</param>
         /// <returns>An expression that can be used in Select() with IQueryable</returns>
-        public static Expression<Func<DELIVERABLE, DeliverableEntity>> GetEntityMappingExpression(Guid? currentVariationGuid = null)
+        public static Expression<Func<DELIVERABLE, DeliverableEntity>> GetEntityMappingExpression(Guid? currentVariationGuid = null, bool canViewCostInformation = true)
         {
             return d => new DeliverableEntity
             {
@@ -33,6 +34,7 @@ namespace FourSPM_WebService.Helpers
                 InternalDocumentNumber = d.INTERNAL_DOCUMENT_NUMBER,
                 ClientDocumentNumber = d.CLIENT_DOCUMENT_NUMBER,
                 DocumentTitle = d.DOCUMENT_TITLE,
+                // Regular hour fields are always shown
                 BudgetHours = d.BUDGET_HOURS,
                 VariationHours = d.VARIATION_HOURS,
                 TotalHours = d.BUDGET_HOURS + d.APPROVED_VARIATION_HOURS,
@@ -40,9 +42,10 @@ namespace FourSPM_WebService.Helpers
                 // 1. Budget + approved variation hours for original deliverables
                 // 2. Variation hours only for deliverables from other variations
                 VariationDisplayHours = d.GUID_VARIATION == null
-                    ? d.BUDGET_HOURS // Rule 1: Original deliverable
-                    : d.VARIATION_HOURS, // Rule 2: Other variation
-                TotalCost = d.TOTAL_COST,
+                    ? d.BUDGET_HOURS  // Rule 1: Original deliverable
+                    : d.VARIATION_HOURS,  // Rule 2: Other variation
+                // Only restrict the TotalCost field based on permission
+                TotalCost = canViewCostInformation ? d.TOTAL_COST : 0,
                 BookingCode = d.BOOKING_CODE,
                 Created = d.CREATED,
                 CreatedBy = d.CREATEDBY,
@@ -95,8 +98,9 @@ namespace FourSPM_WebService.Helpers
         /// <param name="deliverable">The domain entity to map</param>
         /// <param name="period">Optional period for progress calculation</param>
         /// <param name="currentVariationGuid">The current variation GUID being worked on (optional)</param>
+        /// <param name="canViewCostInformation">Whether the user has permission to view cost information</param>
         /// <returns>The mapped DTO or null if the input is null</returns>
-        public static DeliverableEntity? MapToEntity(DELIVERABLE? deliverable, int? period = null, Guid? currentVariationGuid = null)
+        public static DeliverableEntity? MapToEntity(DELIVERABLE? deliverable, int? period = null, Guid? currentVariationGuid = null, bool canViewCostInformation = true)
         {
             if (deliverable == null) return null;
             
@@ -131,7 +135,7 @@ namespace FourSPM_WebService.Helpers
                 BudgetHours = deliverable.BUDGET_HOURS,
                 VariationHours = deliverable.VARIATION_HOURS,
                 TotalHours = totalHours,
-                TotalCost = deliverable.TOTAL_COST,
+                TotalCost = canViewCostInformation ? deliverable.TOTAL_COST : 0,
                 BookingCode = deliverable.BOOKING_CODE,
                 Created = deliverable.CREATED,
                 CreatedBy = deliverable.CREATEDBY,

@@ -61,10 +61,7 @@ namespace FourSPM_WebService.Data.Constants
         public const string PermissionsEdit = "permissions.edit";
         
         // Toggle permission constants
-        public const string EmailNotificationsToggle = "email-notifications.toggle";
-        public const string BulkOperationsToggle = "bulk-operations.toggle";
-        public const string AdvancedReportsToggle = "advanced-reports.toggle";
-        public const string ExportFeaturesToggle = "export-features.toggle";
+        public const string CostInformationToggle = "cost-information.toggle";
         
         /// <summary>
         /// Gets all static permissions grouped by feature
@@ -185,37 +182,10 @@ namespace FourSPM_WebService.Data.Constants
                 // Toggle Permission samples
                 new StaticPermissionEntity
                 {
-                    FeatureKey = "email-notifications",
-                    DisplayName = "Email Notifications",
-                    Description = "Enable or disable email notifications for events",
+                    FeatureKey = "cost-information",
+                    DisplayName = "Cost Information",
+                    Description = "Enable or disable hiding cost information",
                     FeatureGroup = "User Preferences",
-                    PermissionType = TypeToggle
-                },
-                
-                new StaticPermissionEntity
-                {
-                    FeatureKey = "bulk-operations",
-                    DisplayName = "Bulk Operations",
-                    Description = "Enable or disable bulk editing operations",
-                    FeatureGroup = "Advanced Features",
-                    PermissionType = TypeToggle
-                },
-                
-                new StaticPermissionEntity
-                {
-                    FeatureKey = "advanced-reports",
-                    DisplayName = "Advanced Reports",
-                    Description = "Enable or disable access to advanced reporting features",
-                    FeatureGroup = "Reporting",
-                    PermissionType = TypeToggle
-                },
-                
-                new StaticPermissionEntity
-                {
-                    FeatureKey = "export-features",
-                    DisplayName = "Export Features",
-                    Description = "Enable or disable data export capabilities",
-                    FeatureGroup = "Data Management",
                     PermissionType = TypeToggle
                 }
             };

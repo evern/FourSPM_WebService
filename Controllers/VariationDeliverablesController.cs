@@ -61,8 +61,12 @@ namespace FourSPM_WebService.Controllers
             // This includes both existing variation deliverables and eligible original deliverables
             IQueryable<DELIVERABLE> deliverables = _repository.GetMergedVariationDeliverables(variationId);
             
+            // Check if the user has permission to view cost information
+            bool hasPermission = HasPermission(PermissionConstants.CostInformationToggle);
+            
             // Map to entities while maintaining IQueryable for OData processing
-            var entitiesQuery = deliverables.Select(DeliverableMapperHelper.GetEntityMappingExpression(variationId));
+            // Pass the cost information permission check
+            var entitiesQuery = deliverables.Select(DeliverableMapperHelper.GetEntityMappingExpression(variationId, hasPermission));
             
             // Return IQueryable directly for optimal OData performance with virtual scrolling
             return entitiesQuery;
