@@ -21,7 +21,7 @@ using System.IdentityModel.Tokens.Jwt;
 var builder = WebApplication.CreateBuilder(args);
 
 // Add user secrets configuration
-builder.Configuration.AddUserSecrets<Program>();
+//builder.Configuration.AddUserSecrets<Program>();
 
 // Debug: Check if secrets are loaded
 var jwtSecret = builder.Configuration["Jwt:Secret"];
@@ -48,17 +48,33 @@ builder.Services.AddDbContext<FourSPMContext>(options =>
 builder.Services.AddRepositories();
 
 // Add CORS
+var allowedOrigins = builder.Configuration.GetSection("AllowedOrigins").Get<string[]>();
+if (allowedOrigins == null || allowedOrigins.Length == 0)
+{
+    throw new Exception("AllowedOrigins configuration is missing in appsettings.json");
+}
+
+// Log the allowed origins and environment at startup
+Console.WriteLine($"Current environment: {builder.Environment.EnvironmentName}");
+Console.WriteLine($"CORS AllowedOrigins: {string.Join(", ", allowedOrigins)}");
+
+// Log detailed connection string information
+Console.WriteLine("=== CONNECTION STRING DETAILS ===");
+Console.WriteLine($"Direct from appsettings.json: {builder.Configuration["ConnectionStrings:DefaultConnection"]}");
+Console.WriteLine($"Using GetConnectionString(): {builder.Configuration.GetConnectionString("DefaultConnection")}");
+// List all configuration providers to see where values are coming from
+Console.WriteLine("=== CONFIGURATION PROVIDERS ===");
+foreach (var provider in ((IConfigurationRoot)builder.Configuration).Providers)
+{
+    Console.WriteLine($"Provider: {provider.GetType().Name}");
+}
+
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowReactApp", builder =>
+    options.AddPolicy("AllowReactApp", corsBuilder =>
     {
-        builder
-            .WithOrigins(
-                "http://localhost:3000",      // Local development
-                "https://localhost:3000",     // Local development with HTTPS
-                "https://app.4spm.org",        // Production
-                "https://app.scopium-spm.com"
-            )
+        corsBuilder
+            .WithOrigins(allowedOrigins)
             .AllowAnyMethod()
             .AllowAnyHeader()
             .AllowCredentials();
