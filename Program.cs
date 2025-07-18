@@ -20,29 +20,12 @@ using System.IdentityModel.Tokens.Jwt;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add user secrets configuration
-//builder.Configuration.AddUserSecrets<Program>();
-
-// Debug: Check if secrets are loaded
-var jwtSecret = builder.Configuration["Jwt:Secret"];
-if (string.IsNullOrEmpty(jwtSecret))
-{
-    throw new Exception("JWT secret not found in configuration!");
-}
-
-// Configure JWT settings
-var jwtConfig = builder.Configuration.GetSection("Jwt").Get<JwtConfig>()
-    ?? throw new Exception("JWT configuration is missing in appsettings.json");
-
-// Ensure JWT secret is exactly 32 bytes
-jwtConfig.Secret = jwtConfig.Secret.PadRight(32).Substring(0, 32);
-
-// Register configurations
-builder.Services.AddSingleton(jwtConfig);
-
 // Add database context
 builder.Services.AddDbContext<FourSPMContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+{
+    string? connectionString = Environment.GetEnvironmentVariable("AZURE_SQL_CONNECTIONSTRING");
+    options.UseSqlServer(connectionString);
+});
 
 // Register repositories
 builder.Services.AddRepositories();
@@ -52,21 +35,6 @@ var allowedOrigins = builder.Configuration.GetSection("AllowedOrigins").Get<stri
 if (allowedOrigins == null || allowedOrigins.Length == 0)
 {
     throw new Exception("AllowedOrigins configuration is missing in appsettings.json");
-}
-
-// Log the allowed origins and environment at startup
-Console.WriteLine($"Current environment: {builder.Environment.EnvironmentName}");
-Console.WriteLine($"CORS AllowedOrigins: {string.Join(", ", allowedOrigins)}");
-
-// Log detailed connection string information
-Console.WriteLine("=== CONNECTION STRING DETAILS ===");
-Console.WriteLine($"Direct from appsettings.json: {builder.Configuration["ConnectionStrings:DefaultConnection"]}");
-Console.WriteLine($"Using GetConnectionString(): {builder.Configuration.GetConnectionString("DefaultConnection")}");
-// List all configuration providers to see where values are coming from
-Console.WriteLine("=== CONFIGURATION PROVIDERS ===");
-foreach (var provider in ((IConfigurationRoot)builder.Configuration).Providers)
-{
-    Console.WriteLine($"Provider: {provider.GetType().Name}");
 }
 
 builder.Services.AddCors(options =>
