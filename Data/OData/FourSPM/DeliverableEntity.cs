@@ -14,7 +14,7 @@ namespace FourSPM_WebService.Data.OData.FourSPM
         public Guid ProjectGuid { get; set; }
         [RegularExpression(@"[0-9][0-9][0-9]")]
         public string? ClientNumber { get; set; }
-        [RegularExpression(@"[0-9][0-9]")]
+        [RegularExpression(@"[0-9][0-9][0-9]")]
         public string? ProjectNumber { get; set; }
         [RegularExpression(@"[0-9][0-9]")]
         public string? AreaNumber { get; set; }
