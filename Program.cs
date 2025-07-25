@@ -126,9 +126,6 @@ builder.Services.AddMemoryCache();
 // Register MSAL token validator
 builder.Services.AddScoped<MsalTokenValidator>();
 
-// Register auth service
-builder.Services.AddScoped<IAuthService, AuthService>();
-
 // Add Authentication with Microsoft Identity Web (MSAL)
 // Important: We must use the Microsoft.Identity.Web method correctly
 builder.Services
