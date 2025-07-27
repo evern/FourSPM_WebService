@@ -20,10 +20,28 @@ using System.IdentityModel.Tokens.Jwt;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// 🔧 DEBUG: Log configuration values being used
+var logger = LoggerFactory.Create(config => config.AddConsole()).CreateLogger("ConfigDebug");
+logger.LogInformation("🔧 Configuration Debug:");
+logger.LogInformation($"   Environment: {builder.Environment.EnvironmentName}");
+logger.LogInformation($"   AzureAd:TenantId: {builder.Configuration["AzureAd:TenantId"]}");
+logger.LogInformation($"   AzureAd:ClientId: {builder.Configuration["AzureAd:ClientId"]}");
+logger.LogInformation($"   AzureAd:Instance: {builder.Configuration["AzureAd:Instance"]}");
+logger.LogInformation($"   AzureAd:Audience: {builder.Configuration["AzureAd:Audience"]}");
+var corsOriginsConfig = builder.Configuration["CORS_ALLOWED_ORIGINS"];
+logger.LogInformation($"   CORS_ALLOWED_ORIGINS: {corsOriginsConfig ?? "NULL"}");
+var azureSqlConnectionString = builder.Configuration["AZURE_SQL_CONNECTIONSTRING"];
+logger.LogInformation($"   AZURE_SQL_CONNECTIONSTRING: {(string.IsNullOrEmpty(azureSqlConnectionString) ? "NULL" : "[CONFIGURED]")}");
+logger.LogInformation("🔧 End Configuration Debug");
+
 // Add database context
 builder.Services.AddDbContext<FourSPMContext>(options =>
 {
-    string? connectionString = Environment.GetEnvironmentVariable("AZURE_SQL_CONNECTIONSTRING");
+    string? connectionString = builder.Configuration["AZURE_SQL_CONNECTIONSTRING"];
+    if (string.IsNullOrEmpty(connectionString))
+    {
+        throw new InvalidOperationException("AZURE_SQL_CONNECTIONSTRING configuration is required. Set it via environment variable or appsettings.json.");
+    }
     options.UseSqlServer(connectionString);
 });
 
@@ -31,11 +49,14 @@ builder.Services.AddDbContext<FourSPMContext>(options =>
 builder.Services.AddRepositories();
 
 // Add CORS
-var allowedOrigins = builder.Configuration.GetSection("AllowedOrigins").Get<string[]>();
-if (allowedOrigins == null || allowedOrigins.Length == 0)
+if (string.IsNullOrEmpty(corsOriginsConfig))
 {
-    throw new Exception("AllowedOrigins configuration is missing in appsettings.json");
+    throw new InvalidOperationException("CORS_ALLOWED_ORIGINS configuration is required. Set it via environment variable or appsettings.json.");
 }
+
+string[] allowedOrigins = corsOriginsConfig.Split(',', StringSplitOptions.RemoveEmptyEntries)
+                                          .Select(origin => origin.Trim())
+                                          .ToArray();
 
 builder.Services.AddCors(options =>
 {
