@@ -26,8 +26,6 @@ logger.LogInformation("🔧 Configuration Debug:");
 logger.LogInformation($"   Environment: {builder.Environment.EnvironmentName}");
 logger.LogInformation($"   AzureAd:TenantId: {builder.Configuration["AzureAd:TenantId"]}");
 logger.LogInformation($"   AzureAd:ClientId: {builder.Configuration["AzureAd:ClientId"]}");
-logger.LogInformation($"   AzureAd:Instance: {builder.Configuration["AzureAd:Instance"]}");
-logger.LogInformation($"   AzureAd:Audience: {builder.Configuration["AzureAd:Audience"]}");
 var corsOriginsConfig = builder.Configuration["CORS_ALLOWED_ORIGINS"];
 logger.LogInformation($"   CORS_ALLOWED_ORIGINS: {corsOriginsConfig ?? "NULL"}");
 var azureSqlConnectionString = builder.Configuration["AZURE_SQL_CONNECTIONSTRING"];
